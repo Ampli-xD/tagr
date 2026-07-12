@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tagr — Monochrome Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,900;1,9..144,700;1,9..144,900&family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#0A0A0A;
+    --ink-90:#1C1C1C;
+    --ink-70:#3A3A3A;
+    --gray-50:#8A8A8A;
+    --gray-30:#C7C7C7;
+    --gray-10:#EFEFEF;
+    --white:#FFFFFF;
+    --glass:rgba(255,255,255,0.06);
+    --glass-strong:rgba(255,255,255,0.11);
+    --glass-border:rgba(255,255,255,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:#111;
+    font-family:'Inter',sans-serif;
+    color:var(--white);
+    padding:48px;
+  }
+  h1.page-title{
+    font-family:'Fraunces',serif;
+    font-weight:900;
+    font-style:italic;
+    font-size:32px;
+    margin:0 0 6px 0;
+    letter-spacing:-0.02em;
+  }
+  p.page-sub{
+    margin:0 0 40px 0;
+    color:var(--gray-50);
+    font-size:15px;
+  }
+  .frames{display:flex;gap:32px;flex-wrap:wrap;}
+  .phone{
+    width:300px;height:640px;
+    background:#000;
+    border-radius:48px;
+    padding:10px;
+    box-shadow:0 30px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+    position:relative;
+  }
+  .screen{
+    width:100%;height:100%;
+    border-radius:38px;
+    overflow:hidden;
+    position:relative;
+    display:flex;flex-direction:column;
+    background:var(--black);
+  }
+  .notch{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    width:74px;height:20px;background:#000;border-radius:14px;z-index:20;
+  }
+  .label{
+    text-align:center;font-weight:600;font-size:14px;margin-top:16px;
+    color:rgba(255,255,255,0.7);letter-spacing:0.02em;
+  }
+  .glass{
+    background:var(--glass);
+    backdrop-filter:blur(22px) saturate(120%);
+    -webkit-backdrop-filter:blur(22px) saturate(120%);
+    border:1px solid var(--glass-border);
+  }
+  .glass-strong{
+    background:var(--glass-strong);
+    backdrop-filter:blur(26px) saturate(120%);
+    -webkit-backdrop-filter:blur(26px) saturate(120%);
+    border:1px solid var(--glass-border);
+  }
+  svg.icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* photo surfaces — grayscale duotone gradients simulating real photography */
+  .photo{
+    position:relative;
+    background:
+      linear-gradient(160deg, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%),
+      linear-gradient(210deg, #050505 0%, #3A3A3A 35%, #6E6E6E 65%, #A8A8A8 100%);
+  }
+  .photo.alt{
+    background:
+      linear-gradient(160deg, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%),
+      linear-gradient(200deg, #0C0C0C 0%, #2E2E2E 30%, #565656 65%, #909090 100%);
+  }
+  .photo.dusk{
+    background:
+      linear-gradient(160deg, rgba(0,0,0,0.55), rgba(0,0,0,0) 50%),
+      linear-gradient(200deg, #000 0%, #262626 30%, #4C4C4C 60%, #7C7C7C 100%);
+  }
+  .photo::after{
+    content:"";
+    position:absolute;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size:3px 3px;
+    opacity:0.5;
+    mix-blend-mode:overlay;
+  }
+
+  .topbar{
+    padding:34px 18px 14px 18px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .wordmark{
+    font-family:'Fraunces',serif;font-weight:900;font-style:italic;
+    font-size:20px;letter-spacing:-0.01em;
+  }
+  .eyebrow-caps{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:19px;
+    letter-spacing:0.02em;text-transform:uppercase;
+  }
+  .icon-circle{
+    width:38px;height:38px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:var(--white);
+  }
+  .avatar-circle{
+    width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(135deg,#4A4A4A,#1E1E1E);
+    border:1.5px solid rgba(255,255,255,0.25);
+  }
+  .content{flex:1;overflow:hidden;padding:0 16px 16px 16px;}
+
+  .pill-badge{
+    font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;
+    padding:6px 12px;border-radius:20px;color:var(--white);
+  }
+  .heart-btn{
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:var(--white);
+  }
+
+  /* ---- Screen 1: Enrollment ---- */
+  .enroll-photo{flex:1;display:flex;flex-direction:column;position:relative;}
+  .enroll-badge{
+    position:absolute;top:30px;left:50%;transform:translateX(-50%);
+    width:38px;height:38px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:var(--white);
+  }
+  .enroll-wordmark{
+    font-family:'Fraunces',serif;font-weight:900;font-style:italic;
+    font-size:52px;line-height:0.95;letter-spacing:-0.02em;
+    text-align:center;margin-top:110px;padding:0 20px;color:var(--white);
+  }
+  .enroll-panel{padding:26px 24px 30px 24px;background:var(--black);}
+  .enroll-kicker{font-size:12px;color:var(--gray-50);margin-bottom:10px;}
+  .enroll-title{
+    font-family:'Fraunces',serif;font-weight:700;font-size:24px;
+    line-height:1.15;margin:0 0 10px 0;color:var(--white);
+  }
+  .enroll-sub{font-size:13px;color:var(--gray-50);line-height:1.55;margin:0 0 24px 0;}
+  .btn-primary{
+    background:var(--white);color:var(--black);
+    border:none;padding:16px 0;width:100%;border-radius:100px;
+    font-weight:700;font-size:14.5px;font-family:'Inter',sans-serif;
+  }
+  .btn-outline{
+    background:transparent;color:var(--white);
+    border:1.5px solid rgba(255,255,255,0.3);
+    padding:15px 0;width:100%;border-radius:100px;
+    font-weight:700;font-size:14.5px;font-family:'Inter',sans-serif;
+  }
+
+  /* ---- Screen 2: Home Feed ---- */
+  .feed-card{
+    border-radius:24px;overflow:hidden;margin-bottom:16px;height:280px;
+    display:flex;flex-direction:column;justify-content:space-between;position:relative;
+  }
+  .card-top-row{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:16px;position:relative;z-index:2;
+  }
+  .card-bottom-row{padding:16px 18px 20px 18px;position:relative;z-index:2;}
+  .card-people{
+    font-family:'Fraunces',serif;font-weight:700;font-size:18px;color:white;margin-bottom:4px;
+  }
+  .card-meta{font-size:11.5px;color:rgba(255,255,255,0.7);}
+  .face-pin{
+    position:absolute;width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:white;font-size:11px;font-weight:700;
+    background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);
+    border:1.5px solid rgba(255,255,255,0.6);z-index:2;
+  }
+  .section-eyebrow{
+    font-size:11.5px;font-weight:700;color:var(--gray-50);
+    margin:14px 2px 12px 2px;text-transform:uppercase;letter-spacing:0.1em;
+  }
+
+  /* ---- Screen 3: Tag Review ---- */
+  .review-photo{height:300px;border-radius:24px;position:relative;margin-bottom:16px;}
+  .tag-chip{
+    position:absolute;color:white;font-size:11px;font-weight:600;
+    padding:7px 13px 7px 9px;border-radius:20px;display:flex;align-items:center;gap:6px;
+  }
+  .tag-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--white);}
+  .review-list-item{
+    border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px;
+  }
+  .avatar-dot{width:40px;height:40px;border-radius:50%;flex-shrink:0;}
+  .review-name{font-size:13.5px;font-weight:700;color:var(--white);}
+  .review-conf{font-size:10.5px;color:var(--gray-50);}
+  .fix-link{margin-left:auto;font-size:11.5px;color:var(--white);font-weight:700;text-decoration:underline;text-underline-offset:3px;}
+
+  /* ---- Screen 4: Notifications ---- */
+  .notif-item{display:flex;gap:12px;padding:14px;border-radius:20px;margin-bottom:10px;}
+  .notif-thumb{width:52px;height:52px;border-radius:16px;flex-shrink:0;position:relative;}
+  .notif-text{font-size:12.5px;line-height:1.5;color:var(--white);}
+  .notif-text b{font-weight:700;}
+  .notif-time{font-size:10.5px;color:var(--gray-50);margin-top:3px;}
+  .unread-dot{
+    width:7px;height:7px;border-radius:50%;background:var(--white);
+    margin-left:auto;margin-top:6px;flex-shrink:0;
+  }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">tagr — monochrome</h1>
+<p class="page-sub">Pure black &amp; white. Editorial serif + condensed caps + grayscale photo cards. Contrast and type carry all hierarchy — no color anywhere.</p>
+
+<div class="frames">
+
+  <!-- SCREEN 1: ENROLLMENT -->
+  <div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="enroll-photo photo dusk">
+          <div class="enroll-badge glass-strong">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+          </div>
+          <div class="enroll-wordmark">tagr</div>
+        </div>
+        <div class="enroll-panel">
+          <div class="enroll-kicker">Welcome to tagr</div>
+          <div class="enroll-title">Let's get you set up</div>
+          <p class="enroll-sub">Look at the camera for a second. This is how friends' photos find you.</p>
+          <button class="btn-primary">Capture my face</button>
+        </div>
+      </div>
+    </div>
+    <div class="label">1 · Enrollment</div>
+  </div>
+
+  <!-- SCREEN 2: HOME FEED -->
+  <div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="topbar">
+          <div class="avatar-circle"></div>
+          <div class="eyebrow-caps">GALLERY</div>
+          <div class="icon-circle glass">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+        </div>
+        <div class="content">
+          <div class="section-eyebrow">You're in these</div>
+
+          <div class="feed-card photo">
+            <div class="card-top-row">
+              <div class="pill-badge glass-strong">3 tagged</div>
+              <div class="heart-btn glass-strong">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+              </div>
+            </div>
+            <div class="face-pin" style="top:78px;left:26px;">A</div>
+            <div class="face-pin" style="top:120px;left:106px;">Y</div>
+            <div class="card-bottom-row">
+              <div class="card-people">You, Ananya + 2</div>
+              <div class="card-meta">Uploaded by Ravi · 2h ago</div>
+            </div>
+          </div>
+
+          <div class="feed-card photo alt" style="height:170px;">
+            <div class="card-top-row">
+              <div class="pill-badge glass-strong">Just you</div>
+              <div class="heart-btn glass-strong">
+                <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+              </div>
+            </div>
+            <div class="card-bottom-row">
+              <div class="card-people" style="font-size:16px;">Meera's photo</div>
+              <div class="card-meta">1 day ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="label">2 · Home Feed</div>
+  </div>
+
+  <!-- SCREEN 3: TAG REVIEW -->
+  <div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="topbar">
+          <div class="icon-circle glass">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div class="eyebrow-caps" style="font-size:16px;">REVIEW TAGS</div>
+          <div class="icon-circle glass">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+        </div>
+        <div class="content">
+          <div class="review-photo photo">
+            <div class="tag-chip glass-strong" style="top:26px;left:20px;"><span class="dot"></span>Ananya</div>
+            <div class="tag-chip glass-strong" style="top:110px;left:150px;"><span class="dot"></span>Yash</div>
+          </div>
+
+          <div class="review-list-item glass">
+            <div class="avatar-dot" style="background:linear-gradient(135deg,#5A5A5A,#252525);"></div>
+            <div>
+              <div class="review-name">Ananya Sharma</div>
+              <div class="review-conf">92% match</div>
+            </div>
+            <div class="fix-link">Fix</div>
+          </div>
+
+          <div class="review-list-item glass">
+            <div class="avatar-dot" style="background:linear-gradient(135deg,#7A7A7A,#3A3A3A);"></div>
+            <div>
+              <div class="review-name">Yash Mehta</div>
+              <div class="review-conf">78% match</div>
+            </div>
+            <div class="fix-link">Fix</div>
+          </div>
+
+          <button class="btn-primary" style="margin-top:8px;">Confirm tags</button>
+        </div>
+      </div>
+    </div>
+    <div class="label">3 · Tag Review</div>
+  </div>
+
+  <!-- SCREEN 4: NOTIFICATIONS -->
+  <div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="topbar">
+          <div class="eyebrow-caps" style="font-size:18px;">ALERTS</div>
+          <div class="icon-circle glass">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
+          </div>
+        </div>
+        <div class="content" style="overflow-y:auto;">
+          <div class="notif-item glass">
+            <div class="notif-thumb photo"></div>
+            <div style="flex:1;">
+              <div class="notif-text"><b>Ravi</b> tagged you in a new photo</div>
+              <div class="notif-time">2 hours ago</div>
+            </div>
+            <div class="unread-dot"></div>
+          </div>
+          <div class="notif-item glass">
+            <div class="notif-thumb photo alt"></div>
+            <div style="flex:1;">
+              <div class="notif-text"><b>Meera</b> added a photo with you and 3 others</div>
+              <div class="notif-time">1 day ago</div>
+            </div>
+            <div class="unread-dot"></div>
+          </div>
+          <div class="notif-item glass">
+            <div class="notif-thumb photo dusk"></div>
+            <div style="flex:1;">
+              <div class="notif-text"><b>Yash</b> sent you a friend request</div>
+              <div class="notif-time">2 days ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="label">4 · Notifications</div>
+  </div>
+
+</div>
+
+</body>
+</html>

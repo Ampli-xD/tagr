@@ -47,6 +47,16 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 | **web**       | `tagr-web`       | `8000`      | FastAPI app serving API + static frontend         |
 | **inference** | `tagr-inference` | `8001`      | Face detection & embedding service (InsightFace)  |
 
+### 🖥️ Frontend Clients
+
+* **FastAPI Static Frontend (Active/Primary)**: The primary frontend we are working on is the static HTML/JS application located in [app/static/](file:///c:/Workspace/face-rec-sm/app/static/). It is fully integrated with the `web` service and served directly on `http://localhost:8000/`.
+* **React Native Frontend (Optional)**: A React Native / Expo codebase exists in [frontend/](file:///c:/Workspace/face-rec-sm/frontend/). This mobile/client build is **not** included in the Docker Compose configuration. If you wish to run or work on it, you can do so manually by navigating to `frontend/`, installing node modules, and starting the Expo server:
+  ```bash
+  cd frontend
+  npm install
+  npm start
+  ```
+
 ---
 
 ## 🛠️ Tech Stack
@@ -59,7 +69,8 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 | **Auth**        | JWT (PyJWT) with mock OTP flow                                      |
 | **ML/Inference**| InsightFace (`buffalo_l`), ONNX Runtime, OpenCV                     |
 | **Storage**     | MinIO (S3-compatible), Boto3                                        |
-| **Frontend**    | Vanilla HTML/CSS/JS (served as static files)                        |
+| **Frontend**    | Vanilla HTML/CSS/JS (served as static files in FastAPI)             |
+| **Mobile App**  | React Native & Expo (optional client under `frontend/`)             |
 | **Infra**       | Docker, Docker Compose                                              |
 
 ---
@@ -122,7 +133,7 @@ docker-compose ps
 
 | What                    | URL                                |
 |-------------------------|------------------------------------|
-| **Web UI**              | http://localhost:8000              |
+| **Web UI (Static)**     | http://localhost:8000              |
 | **API Docs (Swagger)**  | http://localhost:8000/api/v1/docs  |
 | **MinIO Console**       | http://localhost:9001              |
 | **Inference Health**    | http://localhost:8001              |
@@ -143,8 +154,9 @@ tagr/
 │   ├── internal.py             # Internal inference callback endpoint
 │   ├── batcher.py              # In-memory photo batch queue for inference
 │   ├── storage.py              # MinIO/S3 upload & URL generation
-│   └── static/                 # Static frontend (HTML/CSS/JS)
+│   └── static/                 # Static frontend (HTML/CSS/JS served at /)
 │       └── index.html
+├── frontend/                   # Optional React Native/Expo frontend (Not in Docker)
 ├── inference/                  # Face detection & embedding microservice
 │   ├── main.py                 # InsightFace inference FastAPI server
 │   ├── requirements.txt        # Python dependencies for inference

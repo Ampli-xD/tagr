@@ -121,14 +121,23 @@ async def get_tags(id, db):
     ...
 ```
 
-### Frontend (HTML/CSS/JS)
+### Frontend (HTML/CSS/JS & React Native)
 
-- Use semantic HTML5 elements
-- Keep JavaScript modular and well-commented
-- Follow the project's existing design system (`docs/Tagr_Design_System.md`)
+We support two frontends, but only the FastAPI static frontend is actively integrated into our development environment:
+
+#### 1. FastAPI Static Frontend (Active/Primary)
+Located at [app/static/](file:///c:/Workspace/face-rec-sm/app/static/). This is the primary web UI served directly by FastAPI.
+- Use semantic HTML5 elements and Vanilla CSS.
+- Keep JavaScript modular, cleanly structured, and well-commented.
+- Follow the design parameters in [Tagr_Design_System.md](file:///c:/Workspace/face-rec-sm/docs/Tagr_Design_System.md).
+
+#### 2. React Native / Expo Frontend (Optional Mobile Client)
+Located at [frontend/](file:///c:/Workspace/face-rec-sm/frontend/).
+- This mobile app is **not** included in the Docker orchestration.
+- If you want to work on it, navigate to `frontend/`, run `npm install`, and use `npm start` to run the Expo developer server.
+- Follow standard React Native best practices.
 
 ### General
-
 - No hardcoded secrets or credentials in code
 - Use environment variables for all configuration
 - Keep imports organized (stdlib → third-party → local)

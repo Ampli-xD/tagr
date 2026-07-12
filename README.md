@@ -85,7 +85,7 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/tagr.git
+git clone https://github.com/ampli-xD/tagr.git
 cd tagr
 ```
 
@@ -299,4 +299,3 @@ This project is licensed under the **MIT License** — see the [LICENSE.md](docs
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](docs/CONTRIBUTING.md) for details on our code of conduct, coding standards, commit conventions, and the pull request process.
-

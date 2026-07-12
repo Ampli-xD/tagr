@@ -280,14 +280,11 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ## 📝 License
 
-This project is for educational and personal use.
+This project is licensed under the **MIT License** — see the [LICENSE.md](docs/LICENSE.md) file for details.
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome! Please read our [Contributing Guide](docs/CONTRIBUTING.md) for details on our code of conduct, coding standards, commit conventions, and the pull request process.
+

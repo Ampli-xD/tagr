@@ -1,6 +1,6 @@
 # Tagr — Cloudflare Worker API (v1-migration-backend)
 
-TypeScript/Hono port of the FastAPI `app/` backend. Runs locally via **Wrangler** or Docker Compose.
+TypeScript/Hono Cloudflare Worker backend. Runs locally via **Wrangler** or Docker Compose.
 
 ## Quick start (Docker Compose)
 
@@ -44,12 +44,8 @@ npm run dev
 
 ## Deploy to Cloudflare
 
-Configure production secrets (`DATABASE_URL`, Supabase/R2 credentials) in the Cloudflare dashboard, then:
+Configure production secrets (`DATABASE_URL`, R2 credentials, etc.) in the Cloudflare dashboard, then:
 
 ```bash
 npm run deploy
 ```
-
-## Legacy FastAPI
-
-The original Python API remains in `app/` for reference. Docker Compose no longer starts the `web` service by default.

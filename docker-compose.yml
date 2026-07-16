@@ -79,29 +79,6 @@ services:
       - ./v1-migration-backend/public:/app/public
       - ./v1-migration-backend/wrangler.toml:/app/wrangler.toml
 
-  web:
-    profiles: ["legacy"]
-    build: .
-    container_name: tagr-web
-    env_file: .env
-    environment:
-      POSTGRES_HOST: db
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/tagr_db
-      MINIO_HOST: storage
-      STORAGE_ENDPOINT: http://storage:9000
-      INFERENCE_HOST: inference
-    ports:
-      - "${WEB_PORT:-8000}:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      storage:
-        condition: service_healthy
-      inference:
-        condition: service_started
-    volumes:
-      - ./app:/workspace/app
-
 volumes:
   postgres_data:
   minio_data:

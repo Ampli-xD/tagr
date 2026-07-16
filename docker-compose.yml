@@ -62,17 +62,20 @@ services:
     container_name: tagr-inference
     env_file: .env
     environment:
-      - INFERENCE_MODE=server
       - INFERENCE_DEVICE=cpu
-      - INFERENCE_HOST=0.0.0.0
-      - INFERENCE_PORT=8001
-      - PORT=8001
-      - PORT_HEALTH=8001
-      - HEALTH_CHECK_PATH=/ping
+    command:
+      - python
+      - -u
+      - main.py
+      - --rp_serve_api
+      - --rp_api_host
+      - 0.0.0.0
+      - --rp_api_port
+      - "8001"
     ports:
       - "${INFERENCE_PORT:-8001}:8001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/ping"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
       interval: 10s
       timeout: 5s
       retries: 10

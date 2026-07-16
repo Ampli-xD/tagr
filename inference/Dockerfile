@@ -1,5 +1,5 @@
-# Production RunPod serverless image (GPU).
-# Local CPU development:
+# RunPod serverless inference worker.
+# Local CPU dev:
 #   docker build --build-arg TARGET=dev -t tagr-inference:dev ./inference
 
 ARG TARGET=runpod
@@ -34,19 +34,16 @@ RUN if [ "$TARGET" = "runpod" ]; then \
       pip install --no-cache-dir -r requirements.txt; \
     else \
       pip install --no-cache-dir \
-        fastapi==0.111.0 uvicorn==0.30.1 httpx==0.27.0 numpy==1.26.4 \
+        httpx==0.27.0 numpy==1.26.4 \
         opencv-python-headless insightface onnxruntime runpod==1.7.12; \
     fi
 
-COPY core.py handler.py server.py main.py ./
+COPY core.py handler.py main.py ./
 
 ENV INFERENCE_DEVICE=gpu \
-    INFERENCE_MODE=runpod \
-    PYTHONUNBUFFERED=1 \
-    PORT=8000 \
-    PORT_HEALTH=8000 \
-    HEALTH_CHECK_PATH=/ping
+    PYTHONUNBUFFERED=1
 
-EXPOSE 8000
+EXPOSE 8001
 
+# Production RunPod queue worker. Local docker-compose overrides with --rp_serve_api.
 CMD ["python", "-u", "main.py"]

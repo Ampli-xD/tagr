@@ -139,19 +139,31 @@ async def enroll_face(
     import httpx
     async with httpx.AsyncClient() as client:
         predict_payload = {
-            "images": [{"image_id": str(user_id), "url": storage_url}]
+            "input": {
+                "images": [{"image_id": str(user_id), "url": storage_url}]
+            }
         }
         try:
-            resp = await client.post(f"{INFERENCE_SERVER_URL}/predict", json=predict_payload, timeout=30.0)
+            resp = await client.post(
+                f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync",
+                json=predict_payload,
+                timeout=30.0,
+            )
             if resp.status_code != 200:
                 raise HTTPException(status_code=500, detail=f"Inference service error: {resp.text}")
             
-            inference_data = resp.json()
-            results = inference_data.get("results", [])
+            job_result = resp.json()
+            output = job_result.get("output", {})
+            if job_result.get("error") or output.get("error"):
+                raise HTTPException(
+                    status_code=500,
+                    detail=output.get("error") or job_result.get("error"),
+                )
+
+            results = output.get("results", [])
             if not results or not results[0].get("faces"):
                 raise HTTPException(status_code=400, detail="No face detected in the enrollment image. Please try again with a clear photo of your face.")
             
-            # Take the first (largest/most prominent) face
             face = results[0]["faces"][0]
             real_embedding = face["embedding"]
             

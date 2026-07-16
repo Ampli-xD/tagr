@@ -1,20 +1,24 @@
 """
-RunPod serverless queue handler for Tagr face inference.
+RunPod serverless handler for Tagr face inference.
 
-Expected job input:
+Batch input (with callback):
 {
-  "images": [{"image_id": "<uuid>", "url": "<presigned-or-internal-url>"}],
+  "images": [{"image_id": "<uuid>", "url": "<url>"}],
   "batch_id": "<uuid>",
-  "callback_url": "https://<api-host>/api/v1/internal/inference-callback"
+  "callback_url": "https://<api>/api/v1/internal/inference-callback"
+}
+
+Sync input (enrollment / direct predict):
+{
+  "images": [{"image_id": "<uuid>", "url": "<url>"}]
 }
 """
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import httpx
-import runpod
 
 from core import format_callback_payload, get_face_analyzer, process_images
 
@@ -32,6 +36,16 @@ def _post_callback(callback_url: str, payload: Dict[str, Any]) -> Dict[str, Any]
         return response.json()
 
 
+def _format_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return [
+        {
+            "image_id": result["image_id"],
+            "faces": result["faces"],
+        }
+        for result in results
+    ]
+
+
 def handler(job: Dict[str, Any]) -> Dict[str, Any]:
     job_input = job.get("input", {})
     images = job_input.get("images", [])
@@ -40,23 +54,28 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
 
     if not images:
         return {"error": "Missing required field: images"}
-    if not batch_id:
-        return {"error": "Missing required field: batch_id"}
-    if not callback_url:
-        return {"error": "Missing required field: callback_url"}
 
     get_face_analyzer()
-    results = process_images(images)
-    callback_payload = format_callback_payload(batch_id, results)
-    callback_response = _post_callback(callback_url, callback_payload)
 
-    return {
-        "acknowledged": True,
-        "batch_id": batch_id,
-        "processed_images": len(results),
-        "callback_response": callback_response,
-    }
+    try:
+        results = process_images(images)
+    except Exception as exc:
+        logger.error("Inference failed: %s", exc)
+        return {"error": str(exc)}
 
+    if callback_url and batch_id:
+        callback_payload = format_callback_payload(batch_id, results)
+        try:
+            callback_response = _post_callback(callback_url, callback_payload)
+        except Exception as exc:
+            logger.error("Callback failed: %s", exc)
+            return {"error": f"Callback failed: {exc}"}
 
-if __name__ == "__main__":
-    runpod.serverless.start({"handler": handler})
+        return {
+            "acknowledged": True,
+            "batch_id": batch_id,
+            "processed_images": len(results),
+            "callback_response": callback_response,
+        }
+
+    return {"results": _format_results(results)}

@@ -54,19 +54,29 @@ services:
       - ./app:/workspace/app
 
   inference:
-    build: ./inference
+    build:
+      context: ./inference
+      dockerfile: Dockerfile
+      args:
+        TARGET: dev
     container_name: tagr-inference
     env_file: .env
-
+    environment:
+      - INFERENCE_MODE=server
+      - INFERENCE_DEVICE=cpu
+      - INFERENCE_HOST=0.0.0.0
+      - INFERENCE_PORT=8001
+      - PORT=8001
+      - PORT_HEALTH=8001
+      - HEALTH_CHECK_PATH=/ping
     ports:
       - "${INFERENCE_PORT:-8001}:8001"
-    volumes:
-      - ./inference:/workspace
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${INFERENCE_PORT:-8001}/"]
-      interval: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:8001/ping"]
+      interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 120s
 
 volumes:
   postgres_data:

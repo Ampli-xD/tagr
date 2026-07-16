@@ -44,7 +44,8 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 |---------------|------------------|-------------|--------------------------------------------------|
 | **db**        | `tagr-db`        | `5432`      | PostgreSQL 16 with pgvector extension             |
 | **storage**   | `tagr-storage`   | `9000/9001` | MinIO object storage (API / Console)              |
-| **web**       | `tagr-web`       | `8000`      | FastAPI app serving API + static frontend         |
+| **web**       | `tagr-web`       | `8000`      | FastAPI app serving API + static frontend *(legacy profile)* |
+| **worker**    | `tagr-worker`    | `8787`      | Cloudflare Worker API (Hono/Wrangler) — **default backend** |
 | **inference** | `tagr-inference` | `8001`      | Face detection & embedding service (InsightFace)  |
 
 ### 🖥️ Frontend Clients
@@ -123,6 +124,14 @@ The default `.env` ships with sensible development defaults:
 docker-compose up -d --build
 ```
 
+This starts **db**, **storage**, **inference**, and the **worker** API (Cloudflare Worker via Wrangler on port 8787).
+
+To run the legacy FastAPI backend instead:
+
+```bash
+docker-compose --profile legacy up -d --build web
+```
+
 Wait for all services to become healthy:
 
 ```bash
@@ -133,8 +142,9 @@ docker-compose ps
 
 | What                    | URL                                |
 |-------------------------|------------------------------------|
-| **Web UI (Static)**     | http://localhost:8000              |
-| **API Docs (Swagger)**  | http://localhost:8000/api/v1/docs  |
+| **Web UI (Static)**     | http://localhost:8787              |
+| **API Docs (Swagger)**  | http://localhost:8787/api/v1/health |
+| **Legacy FastAPI**      | http://localhost:8000 (`--profile legacy`) |
 | **MinIO Console**       | http://localhost:9001              |
 | **Inference Health**    | http://localhost:8001              |
 
@@ -144,7 +154,12 @@ docker-compose ps
 
 ```
 tagr/
-├── app/                        # FastAPI web application
+├── v1-migration-backend/       # Cloudflare Worker API (Hono + Wrangler)
+│   ├── src/                    # TypeScript routes, storage, batcher DO
+│   ├── public/                 # Static frontend (from app/static)
+│   ├── Dockerfile              # Local dev container (wrangler dev)
+│   └── wrangler.toml
+├── app/                        # Legacy FastAPI web application
 │   ├── main.py                 # App entrypoint, mounts routers & static files
 │   ├── database.py             # SQLAlchemy engine & session setup
 │   ├── models.py               # ORM models (User, Photo, FaceEmbedding, etc.)

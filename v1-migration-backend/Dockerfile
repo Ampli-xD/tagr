@@ -14,11 +14,11 @@ COPY pyproject.toml wrangler.toml ./
 COPY src ./src
 COPY public ./public
 
-RUN uv sync
+RUN uv sync --group dev
 
 COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 EXPOSE 8787
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]

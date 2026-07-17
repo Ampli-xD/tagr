@@ -11,7 +11,10 @@ After Pages is enabled (see below):
 ## One-time repo setup
 
 1. Open **GitHub → Settings → Pages**
-2. Under **Build and deployment**, set **Source** to **GitHub Actions**
+2. Under **Build and deployment**, set **Source** to **GitHub Actions** (recommended)
+
+   If Pages is set to **Deploy from a branch** (`v1-frontend` / root) instead, the repo must include a root `index.html` and `.nojekyll`. Without those, GitHub serves `README.md` as the homepage.
+
 3. Push to `v1-frontend` (or run the workflow manually from the Actions tab)
 
 The workflow file is `.github/workflows/deploy-v1-frontend-pages.yml`. It publishes `app/static/index.html` as the site root `index.html`.

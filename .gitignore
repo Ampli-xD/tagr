@@ -60,8 +60,12 @@ models/
 weights/
 
 # ==============================
-# Docker
+# Cloudflare Worker / Wrangler
 # ==============================
+.wrangler/
+.dev.vars
+v1-migration-backend/.dev.vars
+
 docker-compose.override.yml
 
 # ==============================

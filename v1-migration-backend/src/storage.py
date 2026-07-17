@@ -99,6 +99,7 @@ async def ensure_bucket(env) -> None:
     response = await fetch(url, method="PUT", headers=headers)
     if response.status in (200, 409):
         _bucket_ready = True
+        await _ensure_public_read(env)
         return
 
     list_url = f"{env.STORAGE_ENDPOINT.rstrip('/')}/"
@@ -115,6 +116,43 @@ async def ensure_bucket(env) -> None:
         text = await list_response.text()
         if f"<Name>{env.STORAGE_BUCKET}</Name>" in text:
             _bucket_ready = True
+            await _ensure_public_read(env)
+
+
+async def _ensure_public_read(env) -> None:
+    """Allow anonymous GetObject so the inference service can fetch images by
+    plain URL (no presigning). Without this, MinIO returns 403 and face
+    detection/enrollment fails. Best-effort: never blocks uploads."""
+    import json
+
+    policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": ["*"]},
+                    "Action": ["s3:GetObject"],
+                    "Resource": [f"arn:aws:s3:::{env.STORAGE_BUCKET}/*"],
+                }
+            ],
+        }
+    )
+    body = policy.encode("utf-8")
+    url = f"{env.STORAGE_ENDPOINT.rstrip('/')}/{env.STORAGE_BUCKET}?policy="
+    host = url.split("//", 1)[1].split("/", 1)[0]
+    try:
+        headers = _signed_headers(
+            "PUT",
+            url,
+            env.STORAGE_ACCESS_KEY,
+            env.STORAGE_SECRET_KEY,
+            {"host": host, "content-type": "application/json"},
+            hashlib.sha256(body).hexdigest(),
+        )
+        await fetch(url, method="PUT", headers=headers, body=body)
+    except Exception:
+        pass
 
 
 async def upload_image(env, file_bytes: bytes, filename: str, content_type: str) -> str:

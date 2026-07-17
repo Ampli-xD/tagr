@@ -64,7 +64,14 @@ CREATE TABLE face_embeddings (
 );
 
 CREATE INDEX idx_face_embeddings_user ON face_embeddings(user_id);
-CREATE INDEX idx_face_embeddings_vector ON face_embeddings USING ivfflat (embedding vector_cosine_ops);
+-- NOTE: No approximate (IVFFlat/HNSW) index on the embedding column.
+-- IVFFlat is an APPROXIMATE index: with a small/moderate number of vectors and
+-- the default single-probe search, "ORDER BY embedding <=> probe LIMIT 1" can
+-- return zero candidates, silently missing valid face matches. At this scale an
+-- exact sequential KNN scan is both correct and fast, so we intentionally omit
+-- the vector index. Reintroduce a tuned HNSW index only at large scale, e.g.:
+--   CREATE INDEX idx_face_embeddings_vector ON face_embeddings
+--     USING hnsw (embedding vector_cosine_ops);
 
 -- =====================================================================
 -- 5. photo_tags

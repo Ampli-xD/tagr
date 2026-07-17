@@ -30,7 +30,26 @@ docker compose up
 # open http://localhost:8000
 ```
 
-## Connecting the API on GitHub Pages
+## Demo mode (no backend)
+
+On GitHub Pages, **demo mode is on by default**. The UI uses filler data and never calls the API.
+
+1. Open the Pages URL
+2. Register or log in with **any** username, mobile, and OTP
+3. Gallery, friends, notifications, uploads, comments, and tags all work with mock data
+
+Force demo locally:
+
+```
+http://localhost:8000/?demo=1
+```
+
+Use the real API instead:
+
+```
+?demo=0&api=http://localhost:8000/api/v1
+```
+
 
 GitHub Pages only hosts static files. The backend still runs separately (e.g. `docker compose` locally or a cloud host later).
 

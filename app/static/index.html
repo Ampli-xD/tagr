@@ -462,6 +462,12 @@
             display: none;
         }
 
+        .api-banner.demo-banner {
+            background: rgba(45, 212, 191, 0.12);
+            border-bottom-color: rgba(45, 212, 191, 0.35);
+            color: #99F6E4;
+        }
+
         .api-banner code {
             background: rgba(0, 0, 0, 0.25);
             padding: 0.1rem 0.35rem;
@@ -471,7 +477,7 @@
 </head>
 <body>
     <header>
-        <div class="logo">Tagr <span>V1</span></div>
+        <div class="logo">Tagr <span>V1</span> <span id="demo-badge" style="display:none;">Demo</span></div>
         <nav>
             <button class="nav-btn active" onclick="switchTab('tab-auth')">Auth & Enrollment</button>
             <button class="nav-btn" onclick="switchTab('tab-upload')">Upload Pipeline</button>
@@ -505,7 +511,7 @@
 
                     <form id="otp-form" onsubmit="handleVerifyOTP(event)" style="margin-top: 2rem; display: none;">
                         <div class="form-group">
-                            <label>Enter verification code (Use 123456)</label>
+                            <label>Enter verification code (demo: anything works)</label>
                             <input type="text" id="otp-code" placeholder="123456" required>
                         </div>
                         <button type="submit" class="btn" style="width:100%">Verify OTP</button>
@@ -522,7 +528,7 @@
   </form>
   <form id="login-otp-form" onsubmit="handleLoginOTP(event)" style="display:none; margin-top:2rem;">
     <div class="form-group">
-      <label>Enter OTP (Use 123456)</label>
+      <label>Enter OTP (demo: anything works)</label>
       <input type="text" id="login-otp-code" placeholder="123456" required>
     </div>
     <button type="submit" class="btn" style="width:100%;">Login</button>
@@ -657,23 +663,404 @@
             return '';
         }
 
-        const API_URL = resolveApiUrl();
+        function resolveDemoMode() {
+            const params = new URLSearchParams(location.search);
+            const demoParam = params.get('demo');
+            if (demoParam === '1') {
+                localStorage.setItem('tagr_demo_mode', '1');
+                return true;
+            }
+            if (demoParam === '0') {
+                localStorage.setItem('tagr_demo_mode', '0');
+                return false;
+            }
+            if (params.get('api')) {
+                localStorage.setItem('tagr_demo_mode', '0');
+                return false;
+            }
+            if (location.hostname.includes('github.io')) {
+                return demoParam !== '0';
+            }
+            const stored = localStorage.getItem('tagr_demo_mode');
+            if (stored === '1') return true;
+            if (stored === '0') return false;
+            return !API_URL;
+        }
 
-        function showApiBannerIfNeeded() {
-            if (API_URL) return;
+        const API_URL = resolveApiUrl();
+        const DEMO_MODE = resolveDemoMode();
+        let demoState = null;
+
+        function isoDaysAgo(days) {
+            return new Date(Date.now() - days * 86400000).toISOString();
+        }
+
+        function buildDemoSeed() {
+            const photos = [
+                {
+                    photo_id: 'demo-photo-1',
+                    url: 'https://picsum.photos/seed/tagr-party/900/700',
+                    uploaded_at: isoDaysAgo(1),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-1', username: 'Alex Kim' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-1a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.18, y: 0.12, width: 0.22, height: 0.34 }, confidence: 0.97, source: 'auto' },
+                        { tag_id: 'demo-tag-1b', user_id: 'demo-friend-1', username: 'Alex Kim', bbox: { x: 0.55, y: 0.15, width: 0.2, height: 0.32 }, confidence: 0.94, source: 'auto' }
+                    ],
+                    comments: [
+                        { comment_id: 'demo-c-1', user_id: 'demo-friend-1', username: 'Alex Kim', text: 'Great shot from the rooftop!', created_at: isoDaysAgo(1) }
+                    ]
+                },
+                {
+                    photo_id: 'demo-photo-2',
+                    url: 'https://picsum.photos/seed/tagr-brunch/900/700',
+                    uploaded_at: isoDaysAgo(3),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-2', username: 'Sam Rivera' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-2a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.35, y: 0.2, width: 0.18, height: 0.28 }, confidence: 0.96, source: 'auto' },
+                        { tag_id: 'demo-tag-2b', user_id: 'demo-friend-2', username: 'Sam Rivera', bbox: { x: 0.62, y: 0.22, width: 0.17, height: 0.27 }, confidence: 0.91, source: 'auto' }
+                    ],
+                    comments: [
+                        { comment_id: 'demo-c-2', user_id: 'demo-friend-2', username: 'Sam Rivera', text: 'Sunday brunch crew', created_at: isoDaysAgo(2) }
+                    ]
+                },
+                {
+                    photo_id: 'demo-photo-3',
+                    url: 'https://picsum.photos/seed/tagr-hike/900/700',
+                    uploaded_at: isoDaysAgo(5),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-3', username: 'Jordan Lee' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-3a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.28, y: 0.18, width: 0.2, height: 0.3 }, confidence: 0.95, source: 'auto' }
+                    ],
+                    comments: []
+                },
+                {
+                    photo_id: 'demo-photo-4',
+                    url: 'https://picsum.photos/seed/tagr-concert/900/700',
+                    uploaded_at: isoDaysAgo(7),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-1', username: 'Alex Kim' },
+                        { user_id: 'demo-friend-3', username: 'Jordan Lee' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-4a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.12, y: 0.25, width: 0.16, height: 0.24 }, confidence: 0.93, source: 'auto' },
+                        { tag_id: 'demo-tag-4b', user_id: 'demo-friend-1', username: 'Alex Kim', bbox: { x: 0.4, y: 0.2, width: 0.15, height: 0.23 }, confidence: 0.9, source: 'auto' },
+                        { tag_id: 'demo-tag-4c', user_id: 'demo-friend-3', username: 'Jordan Lee', bbox: { x: 0.68, y: 0.22, width: 0.14, height: 0.22 }, confidence: 0.88, source: 'auto' }
+                    ],
+                    comments: [
+                        { comment_id: 'demo-c-3', user_id: 'demo-friend-3', username: 'Jordan Lee', text: 'Best night', created_at: isoDaysAgo(6) }
+                    ]
+                },
+                {
+                    photo_id: 'demo-photo-5',
+                    url: 'https://picsum.photos/seed/tagr-office/900/700',
+                    uploaded_at: isoDaysAgo(10),
+                    status: 'processed',
+                    tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                    tags: [
+                        { tag_id: 'demo-tag-5a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.42, y: 0.16, width: 0.19, height: 0.29 }, confidence: 0.92, source: 'manual' }
+                    ],
+                    comments: []
+                },
+                {
+                    photo_id: 'demo-photo-6',
+                    url: 'https://picsum.photos/seed/tagr-beach/900/700',
+                    uploaded_at: isoDaysAgo(14),
+                    status: 'processing',
+                    tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                    tags: [],
+                    comments: []
+                }
+            ];
+
+            return {
+                friends: [
+                    { user_id: 'demo-friend-1', username: 'Alex Kim' },
+                    { user_id: 'demo-friend-2', username: 'Sam Rivera' },
+                    { user_id: 'demo-friend-3', username: 'Jordan Lee' }
+                ],
+                suggestions: [
+                    { user_id: 'demo-suggest-1', username: 'Priya Patel', mutual_photo_count: 4 },
+                    { user_id: 'demo-suggest-2', username: 'Morgan Chen', mutual_photo_count: 2 }
+                ],
+                notifications: [
+                    { notification_id: 'demo-n-1', type: 'tag', photo_id: 'demo-photo-1', actor_user_id: 'demo-friend-1', actor_username: 'Alex Kim', created_at: isoDaysAgo(1), read: false },
+                    { notification_id: 'demo-n-2', type: 'tag', photo_id: 'demo-photo-2', actor_user_id: 'demo-friend-2', actor_username: 'Sam Rivera', created_at: isoDaysAgo(2), read: false },
+                    { notification_id: 'demo-n-3', type: 'tag', photo_id: 'demo-photo-4', actor_user_id: 'demo-friend-3', actor_username: 'Jordan Lee', created_at: isoDaysAgo(4), read: true }
+                ],
+                photos
+            };
+        }
+
+        function getDemoState() {
+            if (!demoState) demoState = buildDemoSeed();
+            return demoState;
+        }
+
+        function resetDemoState() {
+            demoState = buildDemoSeed();
+        }
+
+        function personalizeDemoValue(value, username) {
+            return value === '{{me}}' ? username : value;
+        }
+
+        function personalizeDemoPhoto(photo, username) {
+            const clone = JSON.parse(JSON.stringify(photo));
+            clone.tagged_users = clone.tagged_users.map(u => ({
+                ...u,
+                username: personalizeDemoValue(u.username, username)
+            }));
+            clone.tags = (clone.tags || []).map(t => ({
+                ...t,
+                username: personalizeDemoValue(t.username, username)
+            }));
+            return clone;
+        }
+
+        function demoGalleryForUser(username) {
+            const state = getDemoState();
+            return {
+                photos: state.photos
+                    .filter(p => p.tagged_users.some(u => u.user_id === 'demo-user-me'))
+                    .map(p => {
+                        const personalized = personalizeDemoPhoto(p, username);
+                        return {
+                            photo_id: personalized.photo_id,
+                            url: personalized.url,
+                            uploaded_by: 'demo-user-me',
+                            uploaded_at: personalized.uploaded_at,
+                            tagged_users: personalized.tagged_users
+                        };
+                    })
+                    .sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at))
+            };
+        }
+
+        function demoPhotoDetail(photoId, username) {
+            const state = getDemoState();
+            const photo = state.photos.find(p => p.photo_id === photoId);
+            if (!photo) return null;
+            const personalized = personalizeDemoPhoto(photo, username);
+            return {
+                photo_id: personalized.photo_id,
+                url: personalized.url,
+                owner_id: 'demo-user-me',
+                status: personalized.status,
+                tags: personalized.tags,
+                comments: personalized.comments
+            };
+        }
+
+        function demoDelay() {
+            return new Promise(resolve => setTimeout(resolve, 180 + Math.random() * 320));
+        }
+
+        function mockResponse(body, ok = true, status = 200) {
+            return {
+                ok,
+                status,
+                json: async () => body
+            };
+        }
+
+        async function mockFetch(path, options = {}) {
+            await demoDelay();
+            const method = (options.method || 'GET').toUpperCase();
+            const state = getDemoState();
+            const username = currentUsername || 'You';
+            const parts = path.replace(/^\//, '').split('/');
+
+            if (parts[0] === 'auth' && parts[1] === 'register' && method === 'POST') {
+                return mockResponse({ user_id: 'demo-user-me' });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'verify-otp' && method === 'POST') {
+                return mockResponse({ token: 'demo-token-' + Date.now() });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'request-login-otp' && method === 'POST') {
+                return mockResponse({ sent: true });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'login' && method === 'POST') {
+                return mockResponse({ token: 'demo-token-' + Date.now() });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'enroll-face' && method === 'POST') {
+                return mockResponse({ enrolled: true });
+            }
+
+            if (parts[0] === 'photos' && parts[1] === 'upload' && method === 'POST') {
+                const files = [];
+                if (options.body instanceof FormData) {
+                    for (const [key, value] of options.body.entries()) {
+                        if (key === 'images' && value instanceof File) files.push(value);
+                    }
+                }
+                const count = Math.max(files.length, 1);
+                for (let i = 0; i < count; i++) {
+                    const file = files[i];
+                    const photoId = 'demo-upload-' + Date.now() + '-' + i;
+                    const url = file ? URL.createObjectURL(file) : `https://picsum.photos/seed/${photoId}/900/700`;
+                    state.photos.unshift({
+                        photo_id: photoId,
+                        url,
+                        uploaded_at: new Date().toISOString(),
+                        status: 'processing',
+                        tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                        tags: [],
+                        comments: []
+                    });
+                    setTimeout(() => {
+                        const photo = state.photos.find(p => p.photo_id === photoId);
+                        if (!photo) return;
+                        photo.status = 'processed';
+                        photo.tags = [{
+                            tag_id: photoId + '-tag',
+                            user_id: 'demo-user-me',
+                            username: '{{me}}',
+                            bbox: { x: 0.3, y: 0.2, width: 0.2, height: 0.3 },
+                            confidence: 0.95,
+                            source: 'auto'
+                        }];
+                    }, 2500);
+                }
+                return mockResponse({ queued: count, photo_ids: [] });
+            }
+
+            if (parts[0] === 'users' && parts[2] === 'gallery' && method === 'GET') {
+                return mockResponse(demoGalleryForUser(username));
+            }
+
+            if (parts[0] === 'photos' && parts.length === 2 && method === 'GET') {
+                const detail = demoPhotoDetail(parts[1], username);
+                if (!detail) return mockResponse({ detail: 'Photo not found' }, false, 404);
+                return mockResponse(detail);
+            }
+
+            if (parts[0] === 'photos' && parts[2] === 'tags' && method === 'PATCH') {
+                const photoId = parts[1];
+                const tagId = parts[3];
+                const photo = state.photos.find(p => p.photo_id === photoId);
+                if (photo) {
+                    photo.tags = photo.tags.filter(t => t.tag_id !== tagId);
+                    photo.tagged_users = photo.tagged_users.filter(u =>
+                        photo.tags.some(t => t.user_id === u.user_id)
+                    );
+                }
+                return mockResponse({ updated: true });
+            }
+
+            if (parts[0] === 'photos' && parts[2] === 'comments' && method === 'POST') {
+                const photoId = parts[1];
+                const photo = state.photos.find(p => p.photo_id === photoId);
+                let text = '';
+                try {
+                    text = JSON.parse(options.body).text;
+                } catch (_) {}
+                if (photo && text) {
+                    photo.comments.push({
+                        comment_id: 'demo-c-' + Date.now(),
+                        user_id: 'demo-user-me',
+                        username,
+                        text,
+                        created_at: new Date().toISOString()
+                    });
+                }
+                return mockResponse({ comment_id: 'demo-c-' + Date.now(), created: true });
+            }
+
+            if (parts[0] === 'notifications' && method === 'GET') {
+                return mockResponse({ notifications: state.notifications });
+            }
+
+            if (parts[0] === 'friends' && parts[1] === 'suggestions' && method === 'GET') {
+                return mockResponse({ suggestions: state.suggestions });
+            }
+
+            if (parts[0] === 'friends' && parts[1] === 'request' && method === 'POST') {
+                let targetUserId = '';
+                try {
+                    targetUserId = JSON.parse(options.body).target_user_id;
+                } catch (_) {}
+                const idx = state.suggestions.findIndex(s => s.user_id === targetUserId);
+                if (idx >= 0) {
+                    const [added] = state.suggestions.splice(idx, 1);
+                    state.friends.push({ user_id: added.user_id, username: added.username });
+                }
+                return mockResponse({ request_id: 'demo-fr-' + Date.now(), created: true });
+            }
+
+            if (parts[0] === 'friends' && parts.length === 1 && method === 'GET') {
+                return mockResponse({ friends: state.friends });
+            }
+
+            return mockResponse({ detail: 'Demo route not implemented: ' + path }, false, 404);
+        }
+
+        async function apiFetch(path, options = {}) {
+            if (DEMO_MODE) return mockFetch(path, options);
+            return fetch(`${API_URL}${path}`, options);
+        }
+
+        function showModeBanner() {
             const banner = document.getElementById('api-banner');
-            banner.style.display = 'block';
-            banner.innerHTML = `
-                Backend not configured. Point this UI at your API with
-                <code>?api=https://your-host/api/v1</code>
-                (saved in this browser for next visit).
-            `;
+            const badge = document.getElementById('demo-badge');
+            if (DEMO_MODE) {
+                badge.style.display = 'inline';
+                banner.style.display = 'block';
+                banner.classList.add('demo-banner');
+                banner.innerHTML = `
+                    <strong>Demo mode</strong> — filler data only, no backend calls.
+                    Type anything to register or log in. Add <code>?demo=0&api=http://localhost:8000/api/v1</code> to use the real API.
+                `;
+                return;
+            }
+            if (!API_URL) {
+                banner.style.display = 'block';
+                banner.innerHTML = `
+                    Backend not configured. Point this UI at your API with
+                    <code>?api=https://your-host/api/v1</code>
+                    or use <code>?demo=1</code> for filler data.
+                `;
+            }
         }
 
         function requireApi() {
-            if (API_URL) return true;
-            alert('Set your API URL first, e.g. ?api=http://localhost:8000/api/v1');
+            if (DEMO_MODE || API_URL) return true;
+            alert('Set your API URL first, e.g. ?api=http://localhost:8000/api/v1 — or use ?demo=1');
             return false;
+        }
+
+        function ensureDemoUserFromLogin(mobileValue) {
+            if (!currentUserId) {
+                currentUserId = 'demo-user-me';
+                localStorage.setItem('user_id', currentUserId);
+            }
+            if (!currentUsername) {
+                currentUsername = mobileValue.trim() || 'You';
+                localStorage.setItem('username', currentUsername);
+            }
+        }
+
+        function finishDemoAuth(message) {
+            updateAuthUI();
+            alert(message);
+            document.getElementById('login-section').style.display = 'none';
+            loadGallery();
+            loadNotifications();
+            loadFriendSuggestions();
+            loadFriendsList();
         }
 
         let currentToken = localStorage.getItem('token') || '';
@@ -713,10 +1100,15 @@
         }
 
         function logout() {
+            const demoFlag = localStorage.getItem('tagr_demo_mode');
+            const apiUrl = localStorage.getItem('tagr_api_url');
             localStorage.clear();
+            if (demoFlag) localStorage.setItem('tagr_demo_mode', demoFlag);
+            if (apiUrl) localStorage.setItem('tagr_api_url', apiUrl);
             currentToken = '';
             currentUserId = '';
             currentUsername = '';
+            resetDemoState();
             updateAuthUI();
             location.reload();
         }
@@ -735,7 +1127,13 @@
         async function captureAndEnroll() {
             if (!requireApi()) return;
             if (!currentUserId) {
-                alert('Please register first!');
+                alert('Please register or log in first!');
+                return;
+            }
+            if (DEMO_MODE) {
+                const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
+                const data = await response.json();
+                alert(data.enrolled ? 'Face enrolled successfully! (demo)' : 'Enrollment failed');
                 return;
             }
             const video = document.getElementById('video');
@@ -752,7 +1150,7 @@
                 formData.append('image', blob, 'enrollment.jpg');
                 
                 try {
-                    const response = await fetch(`${API_URL}/auth/enroll-face`, {
+                    const response = await apiFetch('/auth/enroll-face', {
                         method: 'POST',
                         body: formData
                     });
@@ -779,7 +1177,7 @@
             formData.append('username', username);
             formData.append('mobile_number', mobile);
             
-            const response = await fetch(`${API_URL}/auth/register`, {
+            const response = await apiFetch('/auth/register', {
                 method: 'POST',
                 body: formData
             });
@@ -790,7 +1188,7 @@
                 localStorage.setItem('username', username);
                 currentUsername = username;
                 document.getElementById('otp-form').style.display = 'block';
-                alert('OTP code generated (123456). Complete verification below.');
+                alert(DEMO_MODE ? 'Demo: enter any OTP code to continue.' : 'OTP code generated (123456). Complete verification below.');
             } else {
                 alert('Registration failed: ' + data.detail);
             }
@@ -806,7 +1204,7 @@
             formData.append('mobile_number', mobile);
             formData.append('otp', otp);
             
-            const response = await fetch(`${API_URL}/auth/verify-otp`, {
+            const response = await apiFetch('/auth/verify-otp', {
                 method: 'POST',
                 body: formData
             });
@@ -814,8 +1212,12 @@
             if (response.ok) {
                 currentToken = data.token;
                 localStorage.setItem('token', currentToken);
-                updateAuthUI();
-                alert('Authentication successful!');
+                if (DEMO_MODE) {
+                    finishDemoAuth('Welcome! Demo gallery and social data are ready.');
+                } else {
+                    updateAuthUI();
+                    alert('Authentication successful!');
+                }
             } else {
                 alert('OTP verify failed: ' + data.detail);
             }
@@ -828,7 +1230,7 @@ async function handleLoginRequest(e) {
     const mobile = document.getElementById('login-mobile').value;
     const formData = new FormData();
     formData.append('mobile_number', mobile);
-    const response = await fetch(`${API_URL}/auth/request-login-otp`, {
+    const response = await apiFetch('/auth/request-login-otp', {
         method: 'POST',
         body: formData
     });
@@ -836,7 +1238,7 @@ async function handleLoginRequest(e) {
     if (response.ok) {
         document.getElementById('login-request-form').style.display = 'none';
         document.getElementById('login-otp-form').style.display = 'block';
-        alert('OTP sent (123456).');
+        alert(DEMO_MODE ? 'Demo: enter any OTP to log in.' : 'OTP sent (123456).');
     } else {
         alert('Login OTP request failed: ' + data.detail);
     }
@@ -851,7 +1253,7 @@ async function handleLoginOTP(e) {
     const formData = new FormData();
     formData.append('mobile_number', mobile);
     formData.append('otp', otp);
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await apiFetch('/auth/login', {
         method: 'POST',
         body: formData
     });
@@ -859,10 +1261,14 @@ async function handleLoginOTP(e) {
     if (response.ok) {
         currentToken = data.token;
         localStorage.setItem('token', currentToken);
-        updateAuthUI();
-        alert('Login successful!');
-        // Optionally hide login UI
-        document.getElementById('login-section').style.display = 'none';
+        ensureDemoUserFromLogin(document.getElementById('login-mobile').value);
+        if (DEMO_MODE) {
+            finishDemoAuth('Logged in with demo data — explore Gallery and Social tabs.');
+        } else {
+            updateAuthUI();
+            alert('Login successful!');
+            document.getElementById('login-section').style.display = 'none';
+        }
     } else {
         alert('Login failed: ' + data.detail);
     }
@@ -901,7 +1307,7 @@ async function handleLoginOTP(e) {
             queueList.appendChild(item);
 
             try {
-                const response = await fetch(`${API_URL}/photos/upload`, {
+                const response = await apiFetch('/photos/upload', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${currentToken}` },
                     body: formData
@@ -925,7 +1331,7 @@ async function handleLoginOTP(e) {
             if (!currentUserId) return;
             document.getElementById('gallery-username-title').innerText = `Gallery for ${currentUsername}`;
             
-            const response = await fetch(`${API_URL}/users/${currentUserId}/gallery`, {
+            const response = await apiFetch(`/users/${currentUserId}/gallery`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
@@ -960,7 +1366,7 @@ async function handleLoginOTP(e) {
             const lightbox = document.getElementById('lightbox');
             lightbox.style.display = 'flex';
             
-            const res = await fetch(`${API_URL}/photos/${photoId}`, {
+            const res = await apiFetch(`/photos/${photoId}`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const photo = await res.json();
@@ -1025,7 +1431,7 @@ async function handleLoginOTP(e) {
 
         async function removeTag(tagId) {
             if (confirm("Remove this tag?")) {
-                const response = await fetch(`${API_URL}/photos/${activePhotoId}/tags/${tagId}`, {
+                const response = await apiFetch(`/photos/${activePhotoId}/tags/${tagId}`, {
                     method: 'PATCH',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -1061,7 +1467,7 @@ async function handleLoginOTP(e) {
             const commentVal = textInput.value;
             if (!commentVal) return;
             
-            const response = await fetch(`${API_URL}/photos/${activePhotoId}/comments`, {
+            const response = await apiFetch(`/photos/${activePhotoId}/comments`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -1078,7 +1484,7 @@ async function handleLoginOTP(e) {
 
         // Social alerts & Friend suggestions
         async function loadNotifications() {
-            const response = await fetch(`${API_URL}/notifications`, {
+            const response = await apiFetch('/notifications', {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
@@ -1104,7 +1510,7 @@ async function handleLoginOTP(e) {
         }
 
         async function loadFriendSuggestions() {
-            const response = await fetch(`${API_URL}/friends/suggestions`, {
+            const response = await apiFetch('/friends/suggestions', {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
@@ -1130,7 +1536,7 @@ async function handleLoginOTP(e) {
         }
 
         async function sendFriendRequest(targetUserId) {
-            const response = await fetch(`${API_URL}/friends/request`, {
+            const response = await apiFetch('/friends/request', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -1139,13 +1545,14 @@ async function handleLoginOTP(e) {
                 body: JSON.stringify({ target_user_id: targetUserId })
             });
             if (response.ok) {
-                alert('Friend request sent!');
+                alert(DEMO_MODE ? 'Friend added! (demo)' : 'Friend request sent!');
                 loadFriendSuggestions();
+                loadFriendsList();
             }
         }
 
         async function loadFriendsList() {
-            const response = await fetch(`${API_URL}/friends`, {
+            const response = await apiFetch('/friends', {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
@@ -1165,7 +1572,13 @@ async function handleLoginOTP(e) {
         }
 
         // Initialize UI
-        showApiBannerIfNeeded();
+        showModeBanner();
+        if (DEMO_MODE && currentToken) {
+            loadGallery();
+            loadNotifications();
+            loadFriendSuggestions();
+            loadFriendsList();
+        }
         updateAuthUI();
     </script>
 </body>

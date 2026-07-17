@@ -1094,7 +1094,7 @@
                 return '';
             }
 
-            // Served by the worker (localhost, tunnel, or prod): use same origin.
+            // Served by the backend (localhost, tunnel, or prod): use same origin.
             return '/api/v1';
         }
 
@@ -1585,11 +1585,20 @@
             const canvas = document.getElementById('canvas');
             const context = canvas.getContext('2d');
 
+            if (!video.videoWidth || !video.videoHeight) {
+                alert('Start the camera first, then wait a moment for the preview before capturing.');
+                return;
+            }
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    alert('Could not capture a frame. Make sure the camera preview is visible and try again.');
+                    return;
+                }
                 const formData = new FormData();
                 formData.append('user_id', currentUserId);
                 formData.append('image', blob, 'enrollment.jpg');
@@ -1600,10 +1609,10 @@
                         body: formData
                     });
                     const data = await response.json();
-                    if (data.enrolled) {
+                    if (response.ok && data.enrolled) {
                         alert('Face enrolled successfully.');
                     } else {
-                        alert('Enrollment failed: ' + data.reason);
+                        alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
                     }
                 } catch (err) {
                     alert('Error submitting enrollment: ' + err.message);
@@ -1704,6 +1713,10 @@
             if (response.ok) {
                 currentToken = data.token;
                 localStorage.setItem('token', currentToken);
+                if (data.user_id) {
+                    currentUserId = data.user_id;
+                    localStorage.setItem('user_id', currentUserId);
+                }
                 ensureDemoUserFromLogin(document.getElementById('login-mobile').value);
                 if (DEMO_MODE) {
                     finishDemoAuth('Signed in with demo data.');
@@ -1725,6 +1738,40 @@
 
         function handleFileSelect(e) {
             uploadFiles(e.target.files);
+        }
+
+        async function pollUploadStatus(ids, item, attempt = 0) {
+            if (!ids || ids.length === 0) {
+                setTimeout(() => loadGallery(), 1500);
+                return;
+            }
+            const maxAttempts = 20;
+            try {
+                const statuses = await Promise.all(ids.map(async (id) => {
+                    try {
+                        const r = await apiFetch(`/photos/${id}/status`, {
+                            headers: { 'Authorization': `Bearer ${currentToken}` }
+                        });
+                        const d = await r.json();
+                        return d.status || 'pending';
+                    } catch (_) { return 'pending'; }
+                }));
+
+                const done = statuses.every(s => s === 'processed' || s === 'failed');
+                if (done || attempt >= maxAttempts) {
+                    const anyFailed = statuses.some(s => s === 'failed');
+                    item.innerHTML = `
+                        <div class="list-item-content">
+                            <div class="list-item-title">${ids.length} photo${ids.length > 1 ? 's' : ''} ${anyFailed ? 'processed with issues' : 'processed'}</div>
+                            <div class="list-item-meta">${anyFailed ? 'Some images could not be read.' : 'Faces matching your enrolled photo are tagged and appear in your gallery.'}</div>
+                        </div>
+                        <span class="status-badge ${anyFailed ? 'status-failed' : 'status-processed'}">${anyFailed ? 'Done' : 'Done'}</span>
+                    `;
+                    loadGallery();
+                    return;
+                }
+            } catch (_) { /* keep polling */ }
+            setTimeout(() => pollUploadStatus(ids, item, attempt + 1), 1500);
         }
 
         async function uploadFiles(files) {
@@ -1758,14 +1805,15 @@
                 const data = await response.json();
 
                 if (response.ok) {
+                    const ids = data.upload_ids || data.photo_ids || [];
                     item.innerHTML = `
                         <div class="list-item-content">
                             <div class="list-item-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
-                            <div class="list-item-meta">Queued for face detection</div>
+                            <div class="list-item-meta">Detecting faces…</div>
                         </div>
-                        <span class="status-badge status-processed">Queued</span>
+                        <span class="status-badge status-processing">Processing</span>
                     `;
-                    setTimeout(() => loadGallery(), 4000);
+                    pollUploadStatus(ids, item);
                 } else {
                     item.innerHTML = `
                         <div class="list-item-content">

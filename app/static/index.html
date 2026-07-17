@@ -452,6 +452,21 @@
             align-items: center;
             gap: 0.5rem;
         }
+
+        .api-banner {
+            background: rgba(245, 158, 11, 0.12);
+            border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+            color: #FCD34D;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .api-banner code {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -467,6 +482,8 @@
             Not Logged In
         </div>
     </header>
+
+    <div class="api-banner" id="api-banner"></div>
 
     <main>
         <!-- Tab 1: Authentication & Enrollment -->
@@ -620,7 +637,45 @@
     </div>
 
     <script>
-        const API_URL = '/api/v1';
+        function resolveApiUrl() {
+            const params = new URLSearchParams(location.search);
+            const fromParam = params.get('api');
+            if (fromParam) {
+                const normalized = fromParam.replace(/\/$/, '');
+                localStorage.setItem('tagr_api_url', normalized);
+                return normalized;
+            }
+
+            const stored = localStorage.getItem('tagr_api_url');
+            if (stored) return stored;
+
+            const host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') {
+                return '/api/v1';
+            }
+
+            return '';
+        }
+
+        const API_URL = resolveApiUrl();
+
+        function showApiBannerIfNeeded() {
+            if (API_URL) return;
+            const banner = document.getElementById('api-banner');
+            banner.style.display = 'block';
+            banner.innerHTML = `
+                Backend not configured. Point this UI at your API with
+                <code>?api=https://your-host/api/v1</code>
+                (saved in this browser for next visit).
+            `;
+        }
+
+        function requireApi() {
+            if (API_URL) return true;
+            alert('Set your API URL first, e.g. ?api=http://localhost:8000/api/v1');
+            return false;
+        }
+
         let currentToken = localStorage.getItem('token') || '';
         let currentUserId = localStorage.getItem('user_id') || '';
         let currentUsername = localStorage.getItem('username') || '';
@@ -678,6 +733,7 @@
         }
 
         async function captureAndEnroll() {
+            if (!requireApi()) return;
             if (!currentUserId) {
                 alert('Please register first!');
                 return;
@@ -715,6 +771,7 @@
         // Auth handlers
         async function handleRegister(e) {
             e.preventDefault();
+            if (!requireApi()) return;
             const username = document.getElementById('reg-username').value;
             const mobile = document.getElementById('reg-mobile').value;
             
@@ -741,6 +798,7 @@
 
         async function handleVerifyOTP(e) {
             e.preventDefault();
+            if (!requireApi()) return;
             const otp = document.getElementById('otp-code').value;
             const mobile = document.getElementById('reg-mobile').value;
             
@@ -766,6 +824,7 @@
 // Login request - request OTP
 async function handleLoginRequest(e) {
     e.preventDefault();
+    if (!requireApi()) return;
     const mobile = document.getElementById('login-mobile').value;
     const formData = new FormData();
     formData.append('mobile_number', mobile);
@@ -786,6 +845,7 @@ async function handleLoginRequest(e) {
 // Login OTP verification
 async function handleLoginOTP(e) {
     e.preventDefault();
+    if (!requireApi()) return;
     const mobile = document.getElementById('login-mobile').value;
     const otp = document.getElementById('login-otp-code').value;
     const formData = new FormData();
@@ -824,6 +884,7 @@ async function handleLoginOTP(e) {
         }
 
         async function uploadFiles(files) {
+            if (!requireApi()) return;
             if (!currentToken) {
                 alert('Please authenticate before uploading.');
                 return;
@@ -1104,6 +1165,7 @@ async function handleLoginOTP(e) {
         }
 
         // Initialize UI
+        showApiBannerIfNeeded();
         updateAuthUI();
     </script>
 </body>

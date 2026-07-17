@@ -1089,13 +1089,12 @@
             const stored = localStorage.getItem('tagr_api_url');
             if (stored) return stored;
 
-            // GitHub Pages has no backend on the same origin -> demo mode.
-            if (location.hostname.includes('github.io')) {
-                return '';
+            const host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') {
+                return '/api/v1';
             }
 
-            // Served by the worker (localhost, tunnel, or prod): use same origin.
-            return '/api/v1';
+            return '';
         }
 
         function resolveDemoMode() {

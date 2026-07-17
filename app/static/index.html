@@ -2,353 +2,752 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tagr — Face Recognition Gallery</title>
-    <!-- Google Fonts -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0A0A0A">
+    <title>tagr</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,900;1,9..144,700;1,9..144,900&family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-base: #0B0F19;
-            --bg-card: rgba(17, 24, 39, 0.7);
-            --border-glow: rgba(99, 102, 241, 0.25);
-            --accent-primary: #818CF8;
-            --accent-secondary: #2DD4BF;
-            --text-primary: #F3F4F6;
-            --text-muted: #9CA3AF;
-            --danger: #EF4444;
-            --success: #10B981;
+            --black: #0A0A0A;
+            --ink-90: #1C1C1C;
+            --ink-70: #3A3A3A;
+            --gray-50: #8A8A8A;
+            --gray-30: #C7C7C7;
+            --gray-10: #EFEFEF;
+            --white: #FFFFFF;
+            --overlay: rgba(0, 0, 0, 0.45);
+            --glass: rgba(255, 255, 255, 0.06);
+            --glass-strong: rgba(255, 255, 255, 0.11);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --header-h: 56px;
+            --nav-h: 72px;
+            --radius-sm: 14px;
+            --radius-md: 20px;
+            --radius-lg: 24px;
+            --radius-pill: 100px;
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Outfit', sans-serif;
-            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            height: 100%;
+            background: var(--black);
         }
 
         body {
-            background-color: var(--bg-base);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            min-height: 100%;
+            min-height: 100dvh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--white);
+            background: var(--black);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
-                radial-gradient(at 90% 80%, rgba(45, 212, 191, 0.08) 0px, transparent 50%);
+            overscroll-behavior: none;
         }
 
-        /* Glassmorphism Header */
-        header {
-            backdrop-filter: blur(12px);
-            background: rgba(15, 23, 42, 0.6);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        button, input {
+            font-family: inherit;
+        }
+
+        .app-shell {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* ── Header ── */
+        .app-header {
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 1rem 2rem;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
+            padding: calc(12px + var(--safe-top)) 20px 12px;
+            background: rgba(10, 10, 10, 0.72);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .logo {
+        .wordmark {
+            font-family: 'Fraunces', serif;
+            font-weight: 900;
+            font-style: italic;
+            font-size: 26px;
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-status {
+            font-size: 12px;
+            color: var(--gray-50);
+            text-align: right;
+            max-width: 160px;
+            line-height: 1.35;
+        }
+
+        .auth-status strong {
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        .auth-status a {
+            color: var(--gray-30);
+            text-decoration: none;
+            font-size: 11px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+
+        .avatar-chip {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--ink-70);
+            border: 1.5px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
             font-weight: 700;
-            font-size: 1.5rem;
-            letter-spacing: -0.025em;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            flex-shrink: 0;
         }
 
-        .logo span {
-            background: rgba(129, 140, 248, 0.1);
-            color: var(--accent-primary);
-            font-size: 0.75rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 6px;
-            border: 1px solid rgba(129, 140, 248, 0.2);
-            -webkit-text-fill-color: var(--accent-primary);
-        }
-
-        nav {
-            display: flex;
-            gap: 1.5rem;
-        }
-
-        .nav-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-btn:hover, .nav-btn.active {
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .nav-btn.active {
-            border-bottom: 2px solid var(--accent-primary);
-            border-radius: 8px 8px 0 0;
-        }
-
-        /* Container & Grid layout */
-        main {
+        /* ── Main content ── */
+        .app-main {
             flex: 1;
-            max-width: 1200px;
-            width: 100%;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
+            padding: 20px 16px calc(var(--nav-h) + var(--safe-bottom) + 24px);
+        }
+
+        @media (min-width: 768px) {
+            .app-main {
+                padding: 28px 32px calc(var(--nav-h) + var(--safe-bottom) + 32px);
+            }
         }
 
         .tab-content {
             display: none;
-            animation: fadeIn 0.4s ease-out forwards;
+            animation: fadeUp 0.35s ease-out forwards;
         }
 
         .tab-content.active {
             display: block;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Cards and Elements */
-        .glass-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(16px);
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        /* ── Typography ── */
+        .screen-eyebrow {
+            font-family: 'Oswald', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--gray-50);
+            margin-bottom: 8px;
+        }
+
+        .screen-title {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 28px;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            margin-bottom: 6px;
+        }
+
+        .screen-sub {
+            font-size: 14px;
+            color: var(--gray-50);
+            line-height: 1.55;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Glass surfaces ── */
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            border: 1px solid var(--glass-border);
+        }
+
+        .glass-strong {
+            background: var(--glass-strong);
+            backdrop-filter: blur(26px) saturate(150%);
+            -webkit-backdrop-filter: blur(26px) saturate(150%);
+            border: 1px solid var(--glass-border);
+        }
+
+        .card {
+            background: var(--ink-90);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 16px;
         }
 
         .grid-2 {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
+            grid-template-columns: 1fr;
+            gap: 16px;
         }
 
-        @media (max-width: 768px) {
+        @media (min-width: 900px) {
             .grid-2 {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
             }
         }
 
-        h2 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: var(--text-primary);
-        }
-
-        /* Forms inputs */
+        /* ── Forms ── */
         .form-group {
-            margin-bottom: 1.25rem;
+            margin-bottom: 16px;
         }
 
         label {
             display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-            font-size: 0.875rem;
+            margin-bottom: 6px;
+            color: var(--gray-50);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
         }
 
-        input {
+        input[type="text"] {
             width: 100%;
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            color: var(--text-primary);
-            font-size: 1rem;
-            transition: border-color 0.3s;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            color: var(--white);
+            font-size: 16px;
+            transition: border-color var(--transition), background var(--transition);
+            -webkit-appearance: none;
+            appearance: none;
         }
 
-        input:focus {
+        input[type="text"]:focus {
             outline: none;
-            border-color: var(--accent-primary);
+            border-color: rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.07);
         }
 
+        input[type="text"]::placeholder {
+            color: var(--gray-50);
+        }
+
+        /* ── Buttons ── */
         .btn {
-            background: linear-gradient(135deg, var(--accent-primary), rgba(99, 102, 241, 0.8));
-            color: #fff;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.2s;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 8px;
+            background: var(--white);
+            color: var(--black);
+            border: none;
+            padding: 14px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: opacity var(--transition), transform 0.12s ease;
+            touch-action: manipulation;
+            white-space: nowrap;
         }
 
-        .btn:hover {
-            opacity: 0.9;
+        .btn:hover { opacity: 0.92; }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--white);
+            border: 1.5px solid rgba(255, 255, 255, 0.28);
         }
 
-        .btn:active {
-            transform: scale(0.98);
+        .btn-ghost {
+            background: var(--glass);
+            color: var(--white);
+            border: 1px solid var(--glass-border);
         }
 
-        /* Camera stream */
+        .btn-danger {
+            background: var(--ink-70);
+            color: var(--white);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .btn-block { width: 100%; }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Camera ── */
         .camera-container {
             position: relative;
             width: 100%;
-            aspect-ratio: 4/3;
+            aspect-ratio: 3/4;
+            max-height: 420px;
             background: #000;
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
         }
 
         video, canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            filter: grayscale(100%);
         }
 
         .camera-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             pointer-events: none;
-            border: 3px solid transparent;
-            box-sizing: border-box;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
         }
 
         .face-oval {
-            width: 50%;
-            height: 70%;
-            border: 2px dashed rgba(255, 255, 255, 0.6);
+            width: 52%;
+            height: 62%;
+            border: 2px dashed rgba(255, 255, 255, 0.55);
             border-radius: 50%;
         }
 
-        /* Drag and Drop Zone */
-        .upload-zone {
-            border: 2px dashed rgba(129, 140, 248, 0.3);
-            border-radius: 16px;
-            padding: 3rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: rgba(129, 140, 248, 0.02);
+        .locked-overlay {
+            opacity: 0.45;
+            pointer-events: none;
+            filter: grayscale(0.3);
         }
 
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: var(--accent-primary);
-            background: rgba(129, 140, 248, 0.05);
+        /* ── Upload zone ── */
+        .upload-zone {
+            border: 1.5px dashed rgba(255, 255, 255, 0.18);
+            border-radius: var(--radius-lg);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .upload-zone svg {
-            margin-bottom: 1rem;
-            color: var(--accent-primary);
+            margin-bottom: 14px;
+            color: var(--white);
+            opacity: 0.8;
         }
 
-        /* Gallery and Photos */
+        .upload-zone p {
+            font-size: 14px;
+            color: var(--gray-50);
+            line-height: 1.5;
+        }
+
+        .upload-zone strong {
+            color: var(--white);
+            font-weight: 600;
+        }
+
+        /* ── Gallery ── */
+        .gallery-header {
+            margin-bottom: 20px;
+        }
+
         .photo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (min-width: 600px) {
+            .photo-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .photo-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
 
         .photo-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            position: relative;
+            border-radius: var(--radius-lg);
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.3s, border-color 0.3s;
-            position: relative;
+            aspect-ratio: 3/4;
+            background: var(--ink-90);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: transform var(--transition), border-color var(--transition);
         }
 
         .photo-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(129, 140, 248, 0.4);
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .photo-card:active {
+            transform: scale(0.98);
         }
 
         .photo-card img {
             width: 100%;
-            aspect-ratio: 1;
+            height: 100%;
             object-fit: cover;
+            filter: grayscale(100%);
+            display: block;
         }
 
-        .photo-meta {
-            padding: 1rem;
-        }
-
-        .status-badge {
+        .photo-card-overlay {
             position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 35%, rgba(0,0,0,0.65) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 14px;
+        }
+
+        .photo-card-tags {
+            font-family: 'Fraunces', serif;
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 1.25;
+            margin-bottom: 3px;
+        }
+
+        .photo-card-time {
+            font-size: 10.5px;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--gray-50);
+            font-size: 14px;
+            line-height: 1.6;
+            border-radius: var(--radius-lg);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            grid-column: 1 / -1;
+        }
+
+        .empty-state svg {
+            margin-bottom: 14px;
+            opacity: 0.4;
+        }
+
+        /* ── List items ── */
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+        }
+
+        .list-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-title {
+            font-size: 13.5px;
             font-weight: 600;
+            line-height: 1.35;
+        }
+
+        .list-item-meta {
+            font-size: 11px;
+            color: var(--gray-50);
+            margin-top: 3px;
+        }
+
+        .notif-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+        }
+
+        .notif-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--ink-70);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-50);
+        }
+
+        .notif-body { flex: 1; min-width: 0; }
+
+        .notif-text {
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .notif-time {
+            font-size: 10.5px;
+            color: var(--gray-50);
+            margin-top: 4px;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+        }
+
+        .friend-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--ink-70);
+            border: 1.5px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .friend-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* ── Status badges ── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            background: var(--glass-strong);
+            border: 1px solid var(--glass-border);
+            color: var(--white);
+            flex-shrink: 0;
+        }
+
+        .status-pending { opacity: 0.7; }
+        .status-processing { background: var(--white); color: var(--black); border-color: var(--white); }
+        .status-processed { background: var(--white); color: var(--black); }
+        .status-failed { background: var(--ink-70); color: var(--gray-30); }
+
+        /* ── Bottom navigation ── */
+        .bottom-nav {
+            position: fixed;
+            bottom: calc(12px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px;
+            border-radius: var(--radius-pill);
+            width: calc(100% - 32px);
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        @media (min-width: 768px) {
+            .bottom-nav {
+                max-width: 480px;
+            }
+        }
+
+        .nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px 4px;
+            background: none;
+            border: none;
+            color: var(--gray-50);
+            cursor: pointer;
+            border-radius: var(--radius-pill);
+            transition: all var(--transition);
+            touch-action: manipulation;
+        }
+
+        .nav-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .nav-btn span {
+            font-family: 'Oswald', sans-serif;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
-        .status-pending { background: #F59E0B; color: #000; }
-        .status-processing { background: var(--accent-primary); color: #fff; }
-        .status-processed { background: var(--success); color: #fff; }
-        .status-failed { background: var(--danger); color: #fff; }
+        .nav-btn:hover {
+            color: var(--gray-30);
+        }
 
-        /* Lightbox tagger overlay */
+        .nav-btn.active {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* ── Lightbox ── */
         .lightbox {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(12px);
+            inset: 0;
             z-index: 1000;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             display: none;
-            justify-content: center;
+            flex-direction: column;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .lightbox-header {
+            display: flex;
             align-items: center;
-            padding: 2rem;
+            justify-content: space-between;
+            padding: calc(12px + var(--safe-top)) 16px 12px;
+            flex-shrink: 0;
         }
 
-        .lightbox-content {
-            background: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            max-width: 1000px;
-            width: 100%;
-            max-height: 90vh;
-            display: grid;
-            grid-template-columns: 3fr 2fr;
-            overflow: hidden;
+        .lightbox-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
 
-        @media (max-width: 800px) {
-            .lightbox-content {
-                grid-template-columns: 1fr;
-                max-height: 95vh;
-                overflow-y: auto;
+        .lightbox-body {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 16px calc(16px + var(--safe-bottom));
+        }
+
+        @media (min-width: 900px) {
+            .lightbox {
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+            }
+
+            .lightbox-panel {
+                display: grid;
+                grid-template-columns: 1.4fr 1fr;
+                max-width: 1100px;
+                width: 100%;
+                max-height: 90vh;
+                background: var(--ink-90);
+                border-radius: var(--radius-lg);
+                border: 1px solid var(--glass-border);
+                overflow: hidden;
+            }
+
+            .lightbox-body {
+                display: contents;
+                padding: 0;
+                overflow: visible;
+            }
+
+            .lightbox-header {
+                display: none;
             }
         }
 
@@ -358,723 +757,370 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 280px;
+        }
+
+        @media (min-width: 900px) {
+            .viewer-container {
+                min-height: 400px;
+            }
         }
 
         .viewer-image {
             max-width: 100%;
-            max-height: 70vh;
+            max-height: 55vh;
             display: block;
+            filter: grayscale(100%);
+        }
+
+        @media (min-width: 900px) {
+            .viewer-image {
+                max-height: 70vh;
+            }
         }
 
         .face-overlay-box {
             position: absolute;
-            border: 2px solid var(--accent-secondary);
-            background: rgba(45, 212, 191, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.08);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background var(--transition);
+            border-radius: 4px;
         }
 
         .face-overlay-box:hover {
-            background: rgba(45, 212, 191, 0.3);
-            border-color: #fff;
+            background: rgba(255, 255, 255, 0.18);
         }
 
         .face-overlay-box span {
             position: absolute;
-            bottom: 100%;
+            bottom: calc(100% + 4px);
             left: 50%;
             transform: translateX(-50%);
-            background: var(--accent-secondary);
-            color: #000;
-            padding: 0.1rem 0.4rem;
-            font-size: 0.75rem;
+            background: var(--glass-strong);
+            backdrop-filter: blur(12px);
+            color: var(--white);
+            padding: 4px 10px;
+            font-size: 11px;
             font-weight: 600;
             white-space: nowrap;
-            border-radius: 4px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--glass-border);
         }
 
         .sidebar {
-            padding: 1.5rem;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            border-left: 1px solid rgba(255, 255, 255, 0.05);
-            max-height: 70vh;
-            overflow-y: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        @media (min-width: 900px) {
+            .sidebar {
+                border-top: none;
+                border-left: 1px solid rgba(255, 255, 255, 0.06);
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+        }
+
+        .sidebar h3 {
+            font-family: 'Fraunces', serif;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .sidebar h4 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gray-50);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .photo-status-line {
+            font-size: 12px;
+            color: var(--gray-50);
+            margin-bottom: 4px;
         }
 
         .comments-section {
-            margin-top: 1.5rem;
+            margin-top: 8px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 10px;
         }
 
         .comments-list {
             flex: 1;
             overflow-y: auto;
-            max-height: 250px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 1rem;
+            max-height: 180px;
+            padding-top: 8px;
         }
 
         .comment-item {
-            margin-bottom: 0.75rem;
-            font-size: 0.875rem;
+            margin-bottom: 10px;
+            font-size: 13px;
+            line-height: 1.45;
         }
 
         .comment-author {
-            font-weight: 600;
-            color: var(--accent-primary);
+            font-weight: 700;
+            color: var(--white);
         }
 
-        /* Notifications & Friends suggestions styles */
-        .notif-item, .friend-item {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
+        .comment-input-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
         }
 
-        .btn-sm {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.875rem;
+        .comment-input-row input {
+            flex: 1;
         }
 
-        .auth-status {
-            font-size: 0.875rem;
-            color: var(--accent-secondary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 20px 0;
         }
 
-        .api-banner {
-            background: rgba(245, 158, 11, 0.12);
-            border-bottom: 1px solid rgba(245, 158, 11, 0.35);
-            color: #FCD34D;
-            padding: 0.75rem 1.5rem;
-            font-size: 0.875rem;
-            display: none;
+        .icon {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
-        .api-banner.demo-banner {
-            background: rgba(45, 212, 191, 0.12);
-            border-bottom-color: rgba(45, 212, 191, 0.35);
-            color: #99F6E4;
-        }
+        .hidden { display: none !important; }
 
-        .api-banner code {
-            background: rgba(0, 0, 0, 0.25);
-            padding: 0.1rem 0.35rem;
-            border-radius: 4px;
+        /* Desktop polish */
+        @media (min-width: 1200px) {
+            body {
+                background:
+                    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.04), transparent),
+                    var(--black);
+            }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="logo">Tagr <span>V1</span> <span id="demo-badge" style="display:none;">Demo</span></div>
-        <nav>
-            <button class="nav-btn active" onclick="switchTab('tab-auth')">Auth & Enrollment</button>
-            <button class="nav-btn" onclick="switchTab('tab-upload')">Upload Pipeline</button>
-            <button class="nav-btn" onclick="switchTab('tab-gallery')">Gallery</button>
-            <button class="nav-btn" onclick="switchTab('tab-social')">Social & Alerts</button>
-        </nav>
-        <div class="auth-status" id="header-auth-status">
-            Not Logged In
-        </div>
-    </header>
+    <div class="app-shell">
+        <header class="app-header">
+            <div class="wordmark">tagr</div>
+            <div class="header-right">
+                <div class="auth-status" id="header-auth-status">Not signed in</div>
+                <div class="avatar-chip hidden" id="header-avatar">?</div>
+            </div>
+        </header>
 
-    <div class="api-banner" id="api-banner"></div>
+        <main class="app-main">
+            <!-- Auth & Account -->
+            <div id="tab-auth" class="tab-content active">
+                <div class="screen-eyebrow">Account</div>
+                <h1 class="screen-title">Get started</h1>
+                <p class="screen-sub">Register or sign in, then capture your face so photos can find you.</p>
 
-    <main>
-        <!-- Tab 1: Authentication & Enrollment -->
-        <div id="tab-auth" class="tab-content active">
-            <div class="grid-2">
-                <div class="glass-card">
-                    <h2>🔑 Register & Verify</h2>
-                    <form id="register-form" onsubmit="handleRegister(event)">
-                        <div class="form-group">
-                            <label>Username</label>
-                            <input type="text" id="reg-username" placeholder="e.g. johndoe" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Mobile Number</label>
-                            <input type="text" id="reg-mobile" placeholder="e.g. +1234567890" required>
-                        </div>
-                        <button type="submit" class="btn" style="width:100%">Register & Send OTP</button>
-                    </form>
+                <div class="grid-2">
+                    <div class="card">
+                        <h2 class="section-title">Register</h2>
+                        <form id="register-form" onsubmit="handleRegister(event)">
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" id="reg-username" placeholder="johndoe" required autocomplete="username">
+                            </div>
+                            <div class="form-group">
+                                <label>Mobile number</label>
+                                <input type="text" id="reg-mobile" placeholder="+1234567890" required autocomplete="tel">
+                            </div>
+                            <button type="submit" class="btn btn-block">Register and send code</button>
+                        </form>
 
-                    <form id="otp-form" onsubmit="handleVerifyOTP(event)" style="margin-top: 2rem; display: none;">
-                        <div class="form-group">
-                            <label>Enter verification code (demo: anything works)</label>
-                            <input type="text" id="otp-code" placeholder="123456" required>
-                        </div>
-                        <button type="submit" class="btn" style="width:100%">Verify OTP</button>
-                    </form>
+                        <form id="otp-form" onsubmit="handleVerifyOTP(event)" class="hidden" style="margin-top: 24px;">
+                            <div class="form-group">
+                                <label>Verification code (use 123456)</label>
+                                <input type="text" id="otp-code" placeholder="123456" required inputmode="numeric">
+                            </div>
+                            <button type="submit" class="btn btn-block">Verify code</button>
+                        </form>
+                    </div>
+
+                    <div class="card" id="login-section">
+                        <h2 class="section-title">Sign in</h2>
+                        <form id="login-request-form" onsubmit="handleLoginRequest(event)">
+                            <div class="form-group">
+                                <label>Mobile number</label>
+                                <input type="text" id="login-mobile" placeholder="+1234567890" required autocomplete="tel">
+                            </div>
+                            <button type="submit" class="btn btn-block btn-outline">Request code</button>
+                        </form>
+                        <form id="login-otp-form" onsubmit="handleLoginOTP(event)" class="hidden" style="margin-top: 24px;">
+                            <div class="form-group">
+                                <label>Enter code (use 123456)</label>
+                                <input type="text" id="login-otp-code" placeholder="123456" required inputmode="numeric">
+                            </div>
+                            <button type="submit" class="btn btn-block">Sign in</button>
+                        </form>
+                    </div>
                 </div>
-<div class="glass-card" id="login-section" style="margin-top:2rem;">
-  <h2>🔐 Login</h2>
-  <form id="login-request-form" onsubmit="handleLoginRequest(event)" style="margin-bottom:1rem;">
-    <div class="form-group">
-      <label>Mobile Number</label>
-      <input type="text" id="login-mobile" placeholder="e.g. +1234567890" required>
-    </div>
-    <button type="submit" class="btn" style="width:100%;">Request OTP</button>
-  </form>
-  <form id="login-otp-form" onsubmit="handleLoginOTP(event)" style="display:none; margin-top:2rem;">
-    <div class="form-group">
-      <label>Enter OTP (demo: anything works)</label>
-      <input type="text" id="login-otp-code" placeholder="123456" required>
-    </div>
-    <button type="submit" class="btn" style="width:100%;">Login</button>
-  </form>
-</div>
 
-                <div class="glass-card" id="enrollment-section" style="opacity: 0.5; pointer-events: none;">
-                    <h2>📸 Live Face Capture</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Capture your enrollment image to complete registration.</p>
+                <div class="card locked-overlay" id="enrollment-section" style="margin-top: 16px;">
+                    <h2 class="section-title">Face enrollment</h2>
+                    <p class="screen-sub" style="margin-bottom: 16px;">Look at the camera for a second. This is how friends' photos find you.</p>
                     <div class="camera-container">
-                        <video id="video" autoplay playinline muted></video>
-                        <canvas id="canvas" style="display:none;"></canvas>
+                        <video id="video" autoplay playsinline muted></video>
+                        <canvas id="canvas" class="hidden"></canvas>
                         <div class="camera-overlay">
                             <div class="face-oval"></div>
                         </div>
                     </div>
-                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                        <button class="btn" onclick="startCamera()">Start Camera</button>
-                        <button class="btn" style="background: linear-gradient(135deg, var(--accent-secondary), #0d9488); color:#000;" onclick="captureAndEnroll()">Enroll Face</button>
+                    <div class="btn-row" style="margin-top: 16px;">
+                        <button type="button" class="btn btn-ghost" onclick="startCamera()">Start camera</button>
+                        <button type="button" class="btn" onclick="captureAndEnroll()">Capture my face</button>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tab 2: Upload Pipeline -->
-        <div id="tab-upload" class="tab-content">
-            <div class="glass-card">
-                <h2>📤 Drag & Drop Upload</h2>
-                <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="handleDrop(event)">
-                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    <p>Drag and drop multiple photos here or click to select files</p>
-                    <input type="file" id="file-input" multiple style="display:none;" onchange="handleFileSelect(event)">
-                </div>
+            <!-- Upload -->
+            <div id="tab-upload" class="tab-content">
+                <div class="screen-eyebrow">Upload</div>
+                <h1 class="screen-title">Add photos</h1>
+                <p class="screen-sub">Drop images here and we'll scan them for faces you know.</p>
 
-                <div style="margin-top: 2rem;">
-                    <h3>Upload Queue</h3>
-                    <div id="upload-queue-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                        <!-- Uploading progress list -->
+                <div class="card">
+                    <div class="upload-zone" id="drop-zone"
+                         onclick="document.getElementById('file-input').click()"
+                         ondragover="event.preventDefault(); this.classList.add('dragover');"
+                         ondragleave="this.classList.remove('dragover');"
+                         ondrop="handleDrop(event)">
+                        <svg class="icon" width="40" height="40" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                        <p><strong>Tap to choose</strong> or drag photos here</p>
+                        <p style="margin-top: 6px; font-size: 12px;">Supports multiple files</p>
+                        <input type="file" id="file-input" multiple class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div style="margin-top: 24px;">
+                        <div class="screen-eyebrow" style="margin-bottom: 12px;">Queue</div>
+                        <div id="upload-queue-list"></div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tab 3: Gallery -->
-        <div id="tab-gallery" class="tab-content">
-            <div class="glass-card">
-                <h2>🖼️ Photo Gallery</h2>
-                <div id="gallery-username-title" style="margin-bottom: 1rem; font-weight: 500;">Please log in to view your gallery.</div>
-                <div class="photo-grid" id="photo-grid">
-                    <!-- Photos load here -->
+            <!-- Gallery -->
+            <div id="tab-gallery" class="tab-content">
+                <div class="gallery-header">
+                    <div class="screen-eyebrow">Gallery</div>
+                    <h1 class="screen-title">Your photos</h1>
+                    <p class="screen-sub" id="gallery-username-title">Sign in to view your gallery.</p>
+                </div>
+                <div class="photo-grid" id="photo-grid"></div>
+            </div>
+
+            <!-- Social & Alerts -->
+            <div id="tab-social" class="tab-content">
+                <div class="screen-eyebrow">Social</div>
+                <h1 class="screen-title">Alerts</h1>
+                <p class="screen-sub">Notifications, friend suggestions, and connections.</p>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h2 class="section-title">Notifications</h2>
+                        <div id="notifications-list"></div>
+                    </div>
+
+                    <div>
+                        <div class="card">
+                            <h2 class="section-title">Suggestions</h2>
+                            <div id="friend-suggestions-list"></div>
+                        </div>
+
+                        <div class="card" style="margin-top: 16px;">
+                            <h2 class="section-title">Friends</h2>
+                            <div id="friends-list"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
 
-        <!-- Tab 4: Social & Alerts -->
-        <div id="tab-social" class="tab-content">
-            <div class="grid-2">
-                <!-- Notifications -->
-                <div class="glass-card">
-                    <h2>🔔 Notifications</h2>
-                    <div id="notifications-list">
-                        <!-- Notifications load here -->
-                    </div>
-                </div>
+        <nav class="bottom-nav glass-strong" aria-label="Main navigation">
+            <button class="nav-btn" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                <span>Gallery</span>
+            </button>
+            <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <span>Upload</span>
+            </button>
+            <button class="nav-btn" data-tab="tab-social" onclick="switchTab('tab-social', this)">
+                <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                <span>Alerts</span>
+            </button>
+            <button class="nav-btn active" data-tab="tab-auth" onclick="switchTab('tab-auth', this)">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Account</span>
+            </button>
+        </nav>
+    </div>
 
-                <!-- Friends suggestions -->
-                <div class="glass-card">
-                    <h2>👥 Co-Appearance Suggestions</h2>
-                    <div id="friend-suggestions-list">
-                        <!-- Suggestions load here -->
-                    </div>
-                    
-                    <h2 style="margin-top:2rem">🔗 Current Friends</h2>
-                    <div id="friends-list">
-                        <!-- Friends list -->
-                    </div>
-                </div>
+    <!-- Photo detail lightbox -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+        <div class="lightbox-panel">
+            <div class="lightbox-header">
+                <div class="screen-eyebrow" style="margin: 0;">Photo detail</div>
+                <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
             </div>
-        </div>
-    </main>
-
-    <!-- Lightbox photo detail tagger -->
-    <div class="lightbox" id="lightbox">
-        <div class="lightbox-content">
-            <div class="viewer-container" id="viewer-container">
-                <img src="" class="viewer-image" id="viewer-image" alt="Full size">
-                <!-- Bounding boxes will render dynamically relative to this container -->
-            </div>
-            <div class="sidebar">
-                <h3 id="photo-detail-id">Photo Details</h3>
-                <div id="photo-detail-status" style="font-size:0.875rem; margin: 0.5rem 0;">Status: Pending</div>
-                
-                <h4 style="margin-top: 1.5rem;">Tagged Faces</h4>
-                <div id="photo-detail-tags" style="margin-top: 0.5rem; display:flex; flex-direction:column; gap:0.5rem;">
-                    <!-- Tags render here -->
+            <div class="lightbox-body">
+                <div class="viewer-container" id="viewer-container">
+                    <img src="" class="viewer-image" id="viewer-image" alt="Full size photo">
                 </div>
+                <div class="sidebar">
+                    <h3 id="photo-detail-id">Photo</h3>
+                    <div class="photo-status-line" id="photo-detail-status">Status: pending</div>
 
-                <div class="comments-section">
-                    <h4>Comments</h4>
-                    <div class="comments-list" id="photo-comments-list">
-                        <!-- Comments render here -->
+                    <h4>Tagged faces</h4>
+                    <div id="photo-detail-tags"></div>
+
+                    <div class="comments-section">
+                        <h4>Comments</h4>
+                        <div class="comments-list" id="photo-comments-list"></div>
+                        <div class="comment-input-row">
+                            <input type="text" id="new-comment-text" placeholder="Write a comment…">
+                            <button class="btn btn-sm" onclick="submitComment()">Post</button>
+                        </div>
                     </div>
-                    <div style="display:flex; gap:0.5rem;">
-                        <input type="text" id="new-comment-text" placeholder="Write comment...">
-                        <button class="btn btn-sm" onclick="submitComment()">Post</button>
-                    </div>
+
+                    <button class="btn btn-danger btn-block" style="margin-top: 20px;" onclick="closeLightbox()">Close</button>
                 </div>
-                
-                <button class="btn" style="margin-top: 1.5rem; background:var(--danger);" onclick="closeLightbox()">Close</button>
             </div>
         </div>
     </div>
 
     <script>
-        function resolveApiUrl() {
-            const params = new URLSearchParams(location.search);
-            const fromParam = params.get('api');
-            if (fromParam) {
-                const normalized = fromParam.replace(/\/$/, '');
-                localStorage.setItem('tagr_api_url', normalized);
-                return normalized;
-            }
-
-            const stored = localStorage.getItem('tagr_api_url');
-            if (stored) return stored;
-
-            const host = location.hostname;
-            if (host === 'localhost' || host === '127.0.0.1') {
-                return '/api/v1';
-            }
-
-            return '';
-        }
-
-        function resolveDemoMode() {
-            const params = new URLSearchParams(location.search);
-            const demoParam = params.get('demo');
-            if (demoParam === '1') {
-                localStorage.setItem('tagr_demo_mode', '1');
-                return true;
-            }
-            if (demoParam === '0') {
-                localStorage.setItem('tagr_demo_mode', '0');
-                return false;
-            }
-            if (params.get('api')) {
-                localStorage.setItem('tagr_demo_mode', '0');
-                return false;
-            }
-            if (location.hostname.includes('github.io')) {
-                return demoParam !== '0';
-            }
-            const stored = localStorage.getItem('tagr_demo_mode');
-            if (stored === '1') return true;
-            if (stored === '0') return false;
-            return !API_URL;
-        }
-
-        const API_URL = resolveApiUrl();
-        const DEMO_MODE = resolveDemoMode();
-        let demoState = null;
-
-        function isoDaysAgo(days) {
-            return new Date(Date.now() - days * 86400000).toISOString();
-        }
-
-        function buildDemoSeed() {
-            const photos = [
-                {
-                    photo_id: 'demo-photo-1',
-                    url: 'https://picsum.photos/seed/tagr-party/900/700',
-                    uploaded_at: isoDaysAgo(1),
-                    status: 'processed',
-                    tagged_users: [
-                        { user_id: 'demo-user-me', username: '{{me}}' },
-                        { user_id: 'demo-friend-1', username: 'Alex Kim' }
-                    ],
-                    tags: [
-                        { tag_id: 'demo-tag-1a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.18, y: 0.12, width: 0.22, height: 0.34 }, confidence: 0.97, source: 'auto' },
-                        { tag_id: 'demo-tag-1b', user_id: 'demo-friend-1', username: 'Alex Kim', bbox: { x: 0.55, y: 0.15, width: 0.2, height: 0.32 }, confidence: 0.94, source: 'auto' }
-                    ],
-                    comments: [
-                        { comment_id: 'demo-c-1', user_id: 'demo-friend-1', username: 'Alex Kim', text: 'Great shot from the rooftop!', created_at: isoDaysAgo(1) }
-                    ]
-                },
-                {
-                    photo_id: 'demo-photo-2',
-                    url: 'https://picsum.photos/seed/tagr-brunch/900/700',
-                    uploaded_at: isoDaysAgo(3),
-                    status: 'processed',
-                    tagged_users: [
-                        { user_id: 'demo-user-me', username: '{{me}}' },
-                        { user_id: 'demo-friend-2', username: 'Sam Rivera' }
-                    ],
-                    tags: [
-                        { tag_id: 'demo-tag-2a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.35, y: 0.2, width: 0.18, height: 0.28 }, confidence: 0.96, source: 'auto' },
-                        { tag_id: 'demo-tag-2b', user_id: 'demo-friend-2', username: 'Sam Rivera', bbox: { x: 0.62, y: 0.22, width: 0.17, height: 0.27 }, confidence: 0.91, source: 'auto' }
-                    ],
-                    comments: [
-                        { comment_id: 'demo-c-2', user_id: 'demo-friend-2', username: 'Sam Rivera', text: 'Sunday brunch crew', created_at: isoDaysAgo(2) }
-                    ]
-                },
-                {
-                    photo_id: 'demo-photo-3',
-                    url: 'https://picsum.photos/seed/tagr-hike/900/700',
-                    uploaded_at: isoDaysAgo(5),
-                    status: 'processed',
-                    tagged_users: [
-                        { user_id: 'demo-user-me', username: '{{me}}' },
-                        { user_id: 'demo-friend-3', username: 'Jordan Lee' }
-                    ],
-                    tags: [
-                        { tag_id: 'demo-tag-3a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.28, y: 0.18, width: 0.2, height: 0.3 }, confidence: 0.95, source: 'auto' }
-                    ],
-                    comments: []
-                },
-                {
-                    photo_id: 'demo-photo-4',
-                    url: 'https://picsum.photos/seed/tagr-concert/900/700',
-                    uploaded_at: isoDaysAgo(7),
-                    status: 'processed',
-                    tagged_users: [
-                        { user_id: 'demo-user-me', username: '{{me}}' },
-                        { user_id: 'demo-friend-1', username: 'Alex Kim' },
-                        { user_id: 'demo-friend-3', username: 'Jordan Lee' }
-                    ],
-                    tags: [
-                        { tag_id: 'demo-tag-4a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.12, y: 0.25, width: 0.16, height: 0.24 }, confidence: 0.93, source: 'auto' },
-                        { tag_id: 'demo-tag-4b', user_id: 'demo-friend-1', username: 'Alex Kim', bbox: { x: 0.4, y: 0.2, width: 0.15, height: 0.23 }, confidence: 0.9, source: 'auto' },
-                        { tag_id: 'demo-tag-4c', user_id: 'demo-friend-3', username: 'Jordan Lee', bbox: { x: 0.68, y: 0.22, width: 0.14, height: 0.22 }, confidence: 0.88, source: 'auto' }
-                    ],
-                    comments: [
-                        { comment_id: 'demo-c-3', user_id: 'demo-friend-3', username: 'Jordan Lee', text: 'Best night', created_at: isoDaysAgo(6) }
-                    ]
-                },
-                {
-                    photo_id: 'demo-photo-5',
-                    url: 'https://picsum.photos/seed/tagr-office/900/700',
-                    uploaded_at: isoDaysAgo(10),
-                    status: 'processed',
-                    tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
-                    tags: [
-                        { tag_id: 'demo-tag-5a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.42, y: 0.16, width: 0.19, height: 0.29 }, confidence: 0.92, source: 'manual' }
-                    ],
-                    comments: []
-                },
-                {
-                    photo_id: 'demo-photo-6',
-                    url: 'https://picsum.photos/seed/tagr-beach/900/700',
-                    uploaded_at: isoDaysAgo(14),
-                    status: 'processing',
-                    tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
-                    tags: [],
-                    comments: []
-                }
-            ];
-
-            return {
-                friends: [
-                    { user_id: 'demo-friend-1', username: 'Alex Kim' },
-                    { user_id: 'demo-friend-2', username: 'Sam Rivera' },
-                    { user_id: 'demo-friend-3', username: 'Jordan Lee' }
-                ],
-                suggestions: [
-                    { user_id: 'demo-suggest-1', username: 'Priya Patel', mutual_photo_count: 4 },
-                    { user_id: 'demo-suggest-2', username: 'Morgan Chen', mutual_photo_count: 2 }
-                ],
-                notifications: [
-                    { notification_id: 'demo-n-1', type: 'tag', photo_id: 'demo-photo-1', actor_user_id: 'demo-friend-1', actor_username: 'Alex Kim', created_at: isoDaysAgo(1), read: false },
-                    { notification_id: 'demo-n-2', type: 'tag', photo_id: 'demo-photo-2', actor_user_id: 'demo-friend-2', actor_username: 'Sam Rivera', created_at: isoDaysAgo(2), read: false },
-                    { notification_id: 'demo-n-3', type: 'tag', photo_id: 'demo-photo-4', actor_user_id: 'demo-friend-3', actor_username: 'Jordan Lee', created_at: isoDaysAgo(4), read: true }
-                ],
-                photos
-            };
-        }
-
-        function getDemoState() {
-            if (!demoState) demoState = buildDemoSeed();
-            return demoState;
-        }
-
-        function resetDemoState() {
-            demoState = buildDemoSeed();
-        }
-
-        function personalizeDemoValue(value, username) {
-            return value === '{{me}}' ? username : value;
-        }
-
-        function personalizeDemoPhoto(photo, username) {
-            const clone = JSON.parse(JSON.stringify(photo));
-            clone.tagged_users = clone.tagged_users.map(u => ({
-                ...u,
-                username: personalizeDemoValue(u.username, username)
-            }));
-            clone.tags = (clone.tags || []).map(t => ({
-                ...t,
-                username: personalizeDemoValue(t.username, username)
-            }));
-            return clone;
-        }
-
-        function demoGalleryForUser(username) {
-            const state = getDemoState();
-            return {
-                photos: state.photos
-                    .filter(p => p.tagged_users.some(u => u.user_id === 'demo-user-me'))
-                    .map(p => {
-                        const personalized = personalizeDemoPhoto(p, username);
-                        return {
-                            photo_id: personalized.photo_id,
-                            url: personalized.url,
-                            uploaded_by: 'demo-user-me',
-                            uploaded_at: personalized.uploaded_at,
-                            tagged_users: personalized.tagged_users
-                        };
-                    })
-                    .sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at))
-            };
-        }
-
-        function demoPhotoDetail(photoId, username) {
-            const state = getDemoState();
-            const photo = state.photos.find(p => p.photo_id === photoId);
-            if (!photo) return null;
-            const personalized = personalizeDemoPhoto(photo, username);
-            return {
-                photo_id: personalized.photo_id,
-                url: personalized.url,
-                owner_id: 'demo-user-me',
-                status: personalized.status,
-                tags: personalized.tags,
-                comments: personalized.comments
-            };
-        }
-
-        function demoDelay() {
-            return new Promise(resolve => setTimeout(resolve, 180 + Math.random() * 320));
-        }
-
-        function mockResponse(body, ok = true, status = 200) {
-            return {
-                ok,
-                status,
-                json: async () => body
-            };
-        }
-
-        async function mockFetch(path, options = {}) {
-            await demoDelay();
-            const method = (options.method || 'GET').toUpperCase();
-            const state = getDemoState();
-            const username = currentUsername || 'You';
-            const parts = path.replace(/^\//, '').split('/');
-
-            if (parts[0] === 'auth' && parts[1] === 'register' && method === 'POST') {
-                return mockResponse({ user_id: 'demo-user-me' });
-            }
-            if (parts[0] === 'auth' && parts[1] === 'verify-otp' && method === 'POST') {
-                return mockResponse({ token: 'demo-token-' + Date.now() });
-            }
-            if (parts[0] === 'auth' && parts[1] === 'request-login-otp' && method === 'POST') {
-                return mockResponse({ sent: true });
-            }
-            if (parts[0] === 'auth' && parts[1] === 'login' && method === 'POST') {
-                return mockResponse({ token: 'demo-token-' + Date.now() });
-            }
-            if (parts[0] === 'auth' && parts[1] === 'enroll-face' && method === 'POST') {
-                return mockResponse({ enrolled: true });
-            }
-
-            if (parts[0] === 'photos' && parts[1] === 'upload' && method === 'POST') {
-                const files = [];
-                if (options.body instanceof FormData) {
-                    for (const [key, value] of options.body.entries()) {
-                        if (key === 'images' && value instanceof File) files.push(value);
-                    }
-                }
-                const count = Math.max(files.length, 1);
-                for (let i = 0; i < count; i++) {
-                    const file = files[i];
-                    const photoId = 'demo-upload-' + Date.now() + '-' + i;
-                    const url = file ? URL.createObjectURL(file) : `https://picsum.photos/seed/${photoId}/900/700`;
-                    state.photos.unshift({
-                        photo_id: photoId,
-                        url,
-                        uploaded_at: new Date().toISOString(),
-                        status: 'processing',
-                        tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
-                        tags: [],
-                        comments: []
-                    });
-                    setTimeout(() => {
-                        const photo = state.photos.find(p => p.photo_id === photoId);
-                        if (!photo) return;
-                        photo.status = 'processed';
-                        photo.tags = [{
-                            tag_id: photoId + '-tag',
-                            user_id: 'demo-user-me',
-                            username: '{{me}}',
-                            bbox: { x: 0.3, y: 0.2, width: 0.2, height: 0.3 },
-                            confidence: 0.95,
-                            source: 'auto'
-                        }];
-                    }, 2500);
-                }
-                return mockResponse({ queued: count, photo_ids: [] });
-            }
-
-            if (parts[0] === 'users' && parts[2] === 'gallery' && method === 'GET') {
-                return mockResponse(demoGalleryForUser(username));
-            }
-
-            if (parts[0] === 'photos' && parts.length === 2 && method === 'GET') {
-                const detail = demoPhotoDetail(parts[1], username);
-                if (!detail) return mockResponse({ detail: 'Photo not found' }, false, 404);
-                return mockResponse(detail);
-            }
-
-            if (parts[0] === 'photos' && parts[2] === 'tags' && method === 'PATCH') {
-                const photoId = parts[1];
-                const tagId = parts[3];
-                const photo = state.photos.find(p => p.photo_id === photoId);
-                if (photo) {
-                    photo.tags = photo.tags.filter(t => t.tag_id !== tagId);
-                    photo.tagged_users = photo.tagged_users.filter(u =>
-                        photo.tags.some(t => t.user_id === u.user_id)
-                    );
-                }
-                return mockResponse({ updated: true });
-            }
-
-            if (parts[0] === 'photos' && parts[2] === 'comments' && method === 'POST') {
-                const photoId = parts[1];
-                const photo = state.photos.find(p => p.photo_id === photoId);
-                let text = '';
-                try {
-                    text = JSON.parse(options.body).text;
-                } catch (_) {}
-                if (photo && text) {
-                    photo.comments.push({
-                        comment_id: 'demo-c-' + Date.now(),
-                        user_id: 'demo-user-me',
-                        username,
-                        text,
-                        created_at: new Date().toISOString()
-                    });
-                }
-                return mockResponse({ comment_id: 'demo-c-' + Date.now(), created: true });
-            }
-
-            if (parts[0] === 'notifications' && method === 'GET') {
-                return mockResponse({ notifications: state.notifications });
-            }
-
-            if (parts[0] === 'friends' && parts[1] === 'suggestions' && method === 'GET') {
-                return mockResponse({ suggestions: state.suggestions });
-            }
-
-            if (parts[0] === 'friends' && parts[1] === 'request' && method === 'POST') {
-                let targetUserId = '';
-                try {
-                    targetUserId = JSON.parse(options.body).target_user_id;
-                } catch (_) {}
-                const idx = state.suggestions.findIndex(s => s.user_id === targetUserId);
-                if (idx >= 0) {
-                    const [added] = state.suggestions.splice(idx, 1);
-                    state.friends.push({ user_id: added.user_id, username: added.username });
-                }
-                return mockResponse({ request_id: 'demo-fr-' + Date.now(), created: true });
-            }
-
-            if (parts[0] === 'friends' && parts.length === 1 && method === 'GET') {
-                return mockResponse({ friends: state.friends });
-            }
-
-            return mockResponse({ detail: 'Demo route not implemented: ' + path }, false, 404);
-        }
-
-        async function apiFetch(path, options = {}) {
-            if (DEMO_MODE) return mockFetch(path, options);
-            return fetch(`${API_URL}${path}`, options);
-        }
-
-        function showModeBanner() {
-            const banner = document.getElementById('api-banner');
-            const badge = document.getElementById('demo-badge');
-            if (DEMO_MODE) {
-                badge.style.display = 'inline';
-                banner.style.display = 'block';
-                banner.classList.add('demo-banner');
-                banner.innerHTML = `
-                    <strong>Demo mode</strong> — filler data only, no backend calls.
-                    Type anything to register or log in. Add <code>?demo=0&api=http://localhost:8000/api/v1</code> to use the real API.
-                `;
-                return;
-            }
-            if (!API_URL) {
-                banner.style.display = 'block';
-                banner.innerHTML = `
-                    Backend not configured. Point this UI at your API with
-                    <code>?api=https://your-host/api/v1</code>
-                    or use <code>?demo=1</code> for filler data.
-                `;
-            }
-        }
-
-        function requireApi() {
-            if (DEMO_MODE || API_URL) return true;
-            alert('Set your API URL first, e.g. ?api=http://localhost:8000/api/v1 — or use ?demo=1');
-            return false;
-        }
-
-        function ensureDemoUserFromLogin(mobileValue) {
-            if (!currentUserId) {
-                currentUserId = 'demo-user-me';
-                localStorage.setItem('user_id', currentUserId);
-            }
-            if (!currentUsername) {
-                currentUsername = mobileValue.trim() || 'You';
-                localStorage.setItem('username', currentUsername);
-            }
-        }
-
-        function finishDemoAuth(message) {
-            updateAuthUI();
-            alert(message);
-            document.getElementById('login-section').style.display = 'none';
-            loadGallery();
-            loadNotifications();
-            loadFriendSuggestions();
-            loadFriendsList();
-        }
-
+        const API_URL = '/api/v1';
         let currentToken = localStorage.getItem('token') || '';
         let currentUserId = localStorage.getItem('user_id') || '';
         let currentUsername = localStorage.getItem('username') || '';
         let activePhotoId = null;
 
-        // Switch Tabs
-        function switchTab(tabId) {
+        function switchTab(tabId, btnEl) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            
+
             document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+
+            const btn = btnEl || document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
+            if (btn) btn.classList.add('active');
 
             if (tabId === 'tab-gallery') {
                 loadGallery();
@@ -1085,39 +1131,37 @@
             }
         }
 
-        // Setup Headers
         function updateAuthUI() {
             const statusDiv = document.getElementById('header-auth-status');
+            const avatar = document.getElementById('header-avatar');
+            const enrollment = document.getElementById('enrollment-section');
+
             if (currentToken) {
-                statusDiv.innerHTML = `👤 Logged In: <strong>${currentUsername}</strong> <a href="#" onclick="logout()" style="color:var(--danger); margin-left: 0.5rem; font-size:0.75rem;">Logout</a>`;
-                document.getElementById('enrollment-section').style.opacity = '1';
-                document.getElementById('enrollment-section').style.pointerEvents = 'all';
+                const initial = (currentUsername || '?').charAt(0).toUpperCase();
+                statusDiv.innerHTML = `Signed in as <strong>${currentUsername || 'you'}</strong><br><a href="#" onclick="logout(); return false;">Sign out</a>`;
+                avatar.textContent = initial;
+                avatar.classList.remove('hidden');
+                enrollment.classList.remove('locked-overlay');
             } else {
-                statusDiv.innerHTML = 'Not Logged In';
-                document.getElementById('enrollment-section').style.opacity = '0.5';
-                document.getElementById('enrollment-section').style.pointerEvents = 'none';
+                statusDiv.textContent = 'Not signed in';
+                avatar.classList.add('hidden');
+                enrollment.classList.add('locked-overlay');
             }
         }
 
         function logout() {
-            const demoFlag = localStorage.getItem('tagr_demo_mode');
-            const apiUrl = localStorage.getItem('tagr_api_url');
             localStorage.clear();
-            if (demoFlag) localStorage.setItem('tagr_demo_mode', demoFlag);
-            if (apiUrl) localStorage.setItem('tagr_api_url', apiUrl);
             currentToken = '';
             currentUserId = '';
             currentUsername = '';
-            resetDemoState();
             updateAuthUI();
             location.reload();
         }
 
-        // Camera functions
         let stream = null;
         async function startCamera() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 document.getElementById('video').srcObject = stream;
             } catch (err) {
                 alert('Could not start camera: ' + err.message);
@@ -1125,38 +1169,31 @@
         }
 
         async function captureAndEnroll() {
-            if (!requireApi()) return;
             if (!currentUserId) {
-                alert('Please register or log in first!');
-                return;
-            }
-            if (DEMO_MODE) {
-                const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
-                const data = await response.json();
-                alert(data.enrolled ? 'Face enrolled successfully! (demo)' : 'Enrollment failed');
+                alert('Please register first.');
                 return;
             }
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
             const context = canvas.getContext('2d');
-            
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
+
             canvas.toBlob(async (blob) => {
                 const formData = new FormData();
                 formData.append('user_id', currentUserId);
                 formData.append('image', blob, 'enrollment.jpg');
-                
+
                 try {
-                    const response = await apiFetch('/auth/enroll-face', {
+                    const response = await fetch(`${API_URL}/auth/enroll-face`, {
                         method: 'POST',
                         body: formData
                     });
                     const data = await response.json();
                     if (data.enrolled) {
-                        alert('Face vector enrolled successfully!');
+                        alert('Face enrolled successfully.');
                     } else {
                         alert('Enrollment failed: ' + data.reason);
                     }
@@ -1166,18 +1203,16 @@
             }, 'image/jpeg');
         }
 
-        // Auth handlers
         async function handleRegister(e) {
             e.preventDefault();
-            if (!requireApi()) return;
             const username = document.getElementById('reg-username').value;
             const mobile = document.getElementById('reg-mobile').value;
-            
+
             const formData = new FormData();
             formData.append('username', username);
             formData.append('mobile_number', mobile);
-            
-            const response = await apiFetch('/auth/register', {
+
+            const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 body: formData
             });
@@ -1187,8 +1222,9 @@
                 localStorage.setItem('user_id', currentUserId);
                 localStorage.setItem('username', username);
                 currentUsername = username;
-                document.getElementById('otp-form').style.display = 'block';
-                alert(DEMO_MODE ? 'Demo: enter any OTP code to continue.' : 'OTP code generated (123456). Complete verification below.');
+                document.getElementById('otp-form').classList.remove('hidden');
+                updateAuthUI();
+                alert('Code generated (123456). Complete verification below.');
             } else {
                 alert('Registration failed: ' + data.detail);
             }
@@ -1196,15 +1232,14 @@
 
         async function handleVerifyOTP(e) {
             e.preventDefault();
-            if (!requireApi()) return;
             const otp = document.getElementById('otp-code').value;
             const mobile = document.getElementById('reg-mobile').value;
-            
+
             const formData = new FormData();
             formData.append('mobile_number', mobile);
             formData.append('otp', otp);
-            
-            const response = await apiFetch('/auth/verify-otp', {
+
+            const response = await fetch(`${API_URL}/auth/verify-otp`, {
                 method: 'POST',
                 body: formData
             });
@@ -1212,87 +1247,69 @@
             if (response.ok) {
                 currentToken = data.token;
                 localStorage.setItem('token', currentToken);
-                if (DEMO_MODE) {
-                    finishDemoAuth('Welcome! Demo gallery and social data are ready.');
-                } else {
-                    updateAuthUI();
-                    alert('Authentication successful!');
-                }
+                updateAuthUI();
+                alert('You are signed in.');
             } else {
-                alert('OTP verify failed: ' + data.detail);
+                alert('Verification failed: ' + data.detail);
             }
         }
 
-// Login request - request OTP
-async function handleLoginRequest(e) {
-    e.preventDefault();
-    if (!requireApi()) return;
-    const mobile = document.getElementById('login-mobile').value;
-    const formData = new FormData();
-    formData.append('mobile_number', mobile);
-    const response = await apiFetch('/auth/request-login-otp', {
-        method: 'POST',
-        body: formData
-    });
-    const data = await response.json();
-    if (response.ok) {
-        document.getElementById('login-request-form').style.display = 'none';
-        document.getElementById('login-otp-form').style.display = 'block';
-        alert(DEMO_MODE ? 'Demo: enter any OTP to log in.' : 'OTP sent (123456).');
-    } else {
-        alert('Login OTP request failed: ' + data.detail);
-    }
-}
-
-// Login OTP verification
-async function handleLoginOTP(e) {
-    e.preventDefault();
-    if (!requireApi()) return;
-    const mobile = document.getElementById('login-mobile').value;
-    const otp = document.getElementById('login-otp-code').value;
-    const formData = new FormData();
-    formData.append('mobile_number', mobile);
-    formData.append('otp', otp);
-    const response = await apiFetch('/auth/login', {
-        method: 'POST',
-        body: formData
-    });
-    const data = await response.json();
-    if (response.ok) {
-        currentToken = data.token;
-        localStorage.setItem('token', currentToken);
-        ensureDemoUserFromLogin(document.getElementById('login-mobile').value);
-        if (DEMO_MODE) {
-            finishDemoAuth('Logged in with demo data — explore Gallery and Social tabs.');
-        } else {
-            updateAuthUI();
-            alert('Login successful!');
-            document.getElementById('login-section').style.display = 'none';
+        async function handleLoginRequest(e) {
+            e.preventDefault();
+            const mobile = document.getElementById('login-mobile').value;
+            const formData = new FormData();
+            formData.append('mobile_number', mobile);
+            const response = await fetch(`${API_URL}/auth/request-login-otp`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById('login-request-form').classList.add('hidden');
+                document.getElementById('login-otp-form').classList.remove('hidden');
+                alert('Code sent (123456).');
+            } else {
+                alert('Request failed: ' + data.detail);
+            }
         }
-    } else {
-        alert('Login failed: ' + data.detail);
-    }
-}
 
-// Drag & Drop / Photo uploads
+        async function handleLoginOTP(e) {
+            e.preventDefault();
+            const mobile = document.getElementById('login-mobile').value;
+            const otp = document.getElementById('login-otp-code').value;
+            const formData = new FormData();
+            formData.append('mobile_number', mobile);
+            formData.append('otp', otp);
+            const response = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                currentToken = data.token;
+                localStorage.setItem('token', currentToken);
+                updateAuthUI();
+                alert('Signed in successfully.');
+                document.getElementById('login-section').classList.add('hidden');
+            } else {
+                alert('Sign in failed: ' + data.detail);
+            }
+        }
 
-        // Drag & Drop / Photo uploads
         function handleDrop(e) {
             e.preventDefault();
             document.getElementById('drop-zone').classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            uploadFiles(files);
+            uploadFiles(e.dataTransfer.files);
         }
 
         function handleFileSelect(e) {
-            const files = e.target.files;
-            uploadFiles(files);
+            uploadFiles(e.target.files);
         }
 
         async function uploadFiles(files) {
-            if (!requireApi()) return;
             if (!currentToken) {
-                alert('Please authenticate before uploading.');
+                alert('Please sign in before uploading.');
+                switchTab('tab-auth');
                 return;
             }
             const formData = new FormData();
@@ -1302,283 +1319,317 @@ async function handleLoginOTP(e) {
 
             const queueList = document.getElementById('upload-queue-list');
             const item = document.createElement('div');
-            item.className = 'notif-item';
-            item.innerHTML = `Uploading ${files.length} images... <span class="status-badge status-processing">Uploading</span>`;
-            queueList.appendChild(item);
+            item.className = 'list-item';
+            item.innerHTML = `
+                <div class="list-item-content">
+                    <div class="list-item-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
+                </div>
+                <span class="status-badge status-processing">Uploading</span>
+            `;
+            queueList.prepend(item);
 
             try {
-                const response = await apiFetch('/photos/upload', {
+                const response = await fetch(`${API_URL}/photos/upload`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${currentToken}` },
                     body: formData
                 });
                 const data = await response.json();
-                
+
                 if (response.ok) {
-                    item.innerHTML = `Uploaded batch of ${files.length} images! <span class="status-badge status-processed">Queued for Inference</span>`;
-                    // Check status after 4 seconds
+                    item.innerHTML = `
+                        <div class="list-item-content">
+                            <div class="list-item-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
+                            <div class="list-item-meta">Queued for face detection</div>
+                        </div>
+                        <span class="status-badge status-processed">Queued</span>
+                    `;
                     setTimeout(() => loadGallery(), 4000);
                 } else {
-                    item.innerHTML = `Upload failed: ${data.detail} <span class="status-badge status-failed">Error</span>`;
+                    item.innerHTML = `
+                        <div class="list-item-content">
+                            <div class="list-item-title">Upload failed</div>
+                            <div class="list-item-meta">${data.detail}</div>
+                        </div>
+                        <span class="status-badge status-failed">Error</span>
+                    `;
                 }
             } catch (err) {
-                item.innerHTML = `Error: ${err.message} <span class="status-badge status-failed">Error</span>`;
+                item.innerHTML = `
+                    <div class="list-item-content">
+                        <div class="list-item-title">Upload error</div>
+                        <div class="list-item-meta">${err.message}</div>
+                    </div>
+                    <span class="status-badge status-failed">Error</span>
+                `;
             }
         }
 
-        // Load Gallery
         async function loadGallery() {
             if (!currentUserId) return;
-            document.getElementById('gallery-username-title').innerText = `Gallery for ${currentUsername}`;
-            
-            const response = await apiFetch(`/users/${currentUserId}/gallery`, {
+            document.getElementById('gallery-username-title').textContent = `Photos where ${currentUsername} appears.`;
+
+            const response = await fetch(`${API_URL}/users/${currentUserId}/gallery`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
             const grid = document.getElementById('photo-grid');
             grid.innerHTML = '';
-            
+
             if (data.photos && data.photos.length > 0) {
                 data.photos.forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'photo-card';
                     card.onclick = () => openLightbox(p.photo_id);
-                    
-                    const tagsStr = p.tagged_users.map(u => u.username).join(', ');
-                    
+
+                    const tagsStr = p.tagged_users.map(u => u.username).join(', ') || 'No tags yet';
+                    const timeStr = new Date(p.uploaded_at).toLocaleDateString(undefined, {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+
                     card.innerHTML = `
-                        <img src="${p.url}" alt="Gallery Photo">
-                        <div class="photo-meta">
-                            <div style="font-weight:600; font-size:0.875rem;">Tagged: ${tagsStr || 'None'}</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top: 0.25rem;">${new Date(p.uploaded_at).toLocaleString()}</div>
+                        <img src="${p.url}" alt="Gallery photo" loading="lazy">
+                        <div class="photo-card-overlay">
+                            <div class="photo-card-tags">${tagsStr}</div>
+                            <div class="photo-card-time">${timeStr}</div>
                         </div>
                     `;
                     grid.appendChild(card);
                 });
             } else {
-                grid.innerHTML = '<div style="color:var(--text-muted)">No tagged photos yet. Try uploading photos containing your face!</div>';
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="icon" width="36" height="36" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        <p>No tagged photos yet.<br>Upload photos with your face to get started.</p>
+                    </div>
+                `;
             }
         }
 
-        // Lightbox and interactive tags
         async function openLightbox(photoId) {
             activePhotoId = photoId;
-            const lightbox = document.getElementById('lightbox');
-            lightbox.style.display = 'flex';
-            
-            const res = await apiFetch(`/photos/${photoId}`, {
+            document.getElementById('lightbox').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            const res = await fetch(`${API_URL}/photos/${photoId}`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const photo = await res.json();
-            
+
             document.getElementById('viewer-image').src = photo.url;
-            document.getElementById('photo-detail-id').innerText = `Photo: ${photoId.substring(0,8)}...`;
-            document.getElementById('photo-detail-status').innerText = `Status: ${photo.status}`;
-            
-            // Render comments
+            document.getElementById('photo-detail-id').textContent = `Photo ${photoId.substring(0, 8)}…`;
+            document.getElementById('photo-detail-status').textContent = `Status: ${photo.status}`;
+
             renderComments(photo.comments);
-            
-            // Wait for image load to measure dimensions and overlay bounding boxes
+
             const img = document.getElementById('viewer-image');
             img.onload = () => drawFaceOverlays(photo.tags);
-            // In case it's cached:
-            if (img.complete) {
-                drawFaceOverlays(photo.tags);
-            }
+            if (img.complete) drawFaceOverlays(photo.tags);
         }
 
         function drawFaceOverlays(tags) {
             const container = document.getElementById('viewer-container');
-            // Remove existing overlay boxes
             container.querySelectorAll('.face-overlay-box').forEach(el => el.remove());
-            
+
             const img = document.getElementById('viewer-image');
             const rect = img.getBoundingClientRect();
-            
             const detailTagsDiv = document.getElementById('photo-detail-tags');
             detailTagsDiv.innerHTML = '';
 
             tags.forEach(tag => {
                 const box = document.createElement('div');
                 box.className = 'face-overlay-box';
-                
-                // Box coords are stored as relative floats (0.0 to 1.0)
-                // Adjust position on screen relative to the natural bounding client rect
+
                 const x = tag.bbox.x * rect.width;
                 const y = tag.bbox.y * rect.height;
                 const width = tag.bbox.width * rect.width;
                 const height = tag.bbox.height * rect.height;
-                
+
                 box.style.left = `${img.offsetLeft + x}px`;
                 box.style.top = `${img.offsetTop + y}px`;
                 box.style.width = `${width}px`;
                 box.style.height = `${height}px`;
-                
-                box.innerHTML = `<span>${tag.username} (${tag.source})</span>`;
+                box.innerHTML = `<span>${tag.username}</span>`;
                 container.appendChild(box);
 
-                // Add sidebar list representation
                 const tagItem = document.createElement('div');
                 tagItem.className = 'friend-item';
-                tagItem.style.padding = '0.5rem';
                 tagItem.innerHTML = `
-                    <div><strong>${tag.username}</strong> <span style="font-size:0.75rem; color:var(--text-muted)">(${tag.source})</span></div>
-                    <button class="btn btn-sm" style="background:var(--danger); padding:0.2rem 0.5rem;" onclick="removeTag('${tag.tag_id}')">X</button>
+                    <div class="friend-avatar">${tag.username.charAt(0).toUpperCase()}</div>
+                    <div class="friend-info">
+                        <div class="list-item-title">${tag.username}</div>
+                        <div class="list-item-meta">${tag.source}</div>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="removeTag('${tag.tag_id}')">Remove</button>
                 `;
                 detailTagsDiv.appendChild(tagItem);
             });
         }
 
         async function removeTag(tagId) {
-            if (confirm("Remove this tag?")) {
-                const response = await apiFetch(`/photos/${activePhotoId}/tags/${tagId}`, {
-                    method: 'PATCH',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${currentToken}` 
-                    },
-                    body: JSON.stringify({ action: "remove" })
-                });
-                if (response.ok) {
-                    openLightbox(activePhotoId);
-                    loadGallery();
-                }
+            if (!confirm('Remove this tag?')) return;
+            const response = await fetch(`${API_URL}/photos/${activePhotoId}/tags/${tagId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify({ action: 'remove' })
+            });
+            if (response.ok) {
+                openLightbox(activePhotoId);
+                loadGallery();
             }
         }
 
         function closeLightbox() {
             document.getElementById('lightbox').style.display = 'none';
+            document.body.style.overflow = '';
         }
 
-        // Comments logic
         function renderComments(comments) {
             const list = document.getElementById('photo-comments-list');
             list.innerHTML = '';
+            if (!comments.length) {
+                list.innerHTML = '<div class="list-item-meta">No comments yet.</div>';
+                return;
+            }
             comments.forEach(c => {
                 const item = document.createElement('div');
                 item.className = 'comment-item';
-                item.innerHTML = `<span class="comment-author">${c.username}:</span> ${c.text}`;
+                item.innerHTML = `<span class="comment-author">${c.username}</span> ${c.text}`;
                 list.appendChild(item);
             });
         }
 
         async function submitComment() {
             const textInput = document.getElementById('new-comment-text');
-            const commentVal = textInput.value;
+            const commentVal = textInput.value.trim();
             if (!commentVal) return;
-            
-            const response = await apiFetch(`/photos/${activePhotoId}/comments`, {
+
+            const response = await fetch(`${API_URL}/photos/${activePhotoId}/comments`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentToken}` 
+                    'Authorization': `Bearer ${currentToken}`
                 },
                 body: JSON.stringify({ text: commentVal })
             });
-            
+
             if (response.ok) {
                 textInput.value = '';
                 openLightbox(activePhotoId);
             }
         }
 
-        // Social alerts & Friend suggestions
         async function loadNotifications() {
-            const response = await apiFetch('/notifications', {
+            if (!currentToken) {
+                document.getElementById('notifications-list').innerHTML = '<div class="empty-state" style="padding:24px;"><p>Sign in to see notifications.</p></div>';
+                return;
+            }
+            const response = await fetch(`${API_URL}/notifications`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
             const list = document.getElementById('notifications-list');
             list.innerHTML = '';
-            
+
             if (data.notifications && data.notifications.length > 0) {
                 data.notifications.forEach(n => {
                     const item = document.createElement('div');
                     item.className = 'notif-item';
                     item.innerHTML = `
-                        <div>
-                            <strong>${n.actor_username || 'Someone'}</strong> tagged you in a photo!
-                            <div style="font-size:0.75rem; color:var(--text-muted)">${new Date(n.created_at).toLocaleString()}</div>
+                        <div class="notif-thumb">
+                            <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                         </div>
-                        <button class="btn btn-sm btn-sm" onclick="openLightbox('${n.photo_id}'); switchTab('tab-gallery')">View Photo</button>
+                        <div class="notif-body">
+                            <div class="notif-text"><strong>${n.actor_username || 'Someone'}</strong> tagged you in a photo</div>
+                            <div class="notif-time">${new Date(n.created_at).toLocaleString()}</div>
+                        </div>
+                        <button class="btn btn-sm btn-ghost" onclick="openLightbox('${n.photo_id}')">View</button>
                     `;
                     list.appendChild(item);
                 });
             } else {
-                list.innerHTML = '<div style="color:var(--text-muted)">No new notifications.</div>';
+                list.innerHTML = '<div class="empty-state" style="padding:24px;"><p>No new notifications.</p></div>';
             }
         }
 
         async function loadFriendSuggestions() {
-            const response = await apiFetch('/friends/suggestions', {
+            if (!currentToken) return;
+            const response = await fetch(`${API_URL}/friends/suggestions`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
             const list = document.getElementById('friend-suggestions-list');
             list.innerHTML = '';
-            
+
             if (data.suggestions && data.suggestions.length > 0) {
                 data.suggestions.forEach(s => {
                     const item = document.createElement('div');
                     item.className = 'friend-item';
                     item.innerHTML = `
-                        <div>
-                            <strong>${s.username}</strong>
-                            <div style="font-size:0.75rem; color:var(--text-muted)">Co-appeared in ${s.mutual_photo_count} photos</div>
+                        <div class="friend-avatar">${s.username.charAt(0).toUpperCase()}</div>
+                        <div class="friend-info">
+                            <div class="list-item-title">${s.username}</div>
+                            <div class="list-item-meta">Co-appeared in ${s.mutual_photo_count} photos</div>
                         </div>
-                        <button class="btn btn-sm" onclick="sendFriendRequest('${s.user_id}')">Add Friend</button>
+                        <button class="btn btn-sm" onclick="sendFriendRequest('${s.user_id}')">Add</button>
                     `;
                     list.appendChild(item);
                 });
             } else {
-                list.innerHTML = '<div style="color:var(--text-muted)">No suggestions available. Suggestions appear when you co-appear with other users in photos.</div>';
+                list.innerHTML = '<div class="list-item-meta" style="padding: 8px 0;">No suggestions yet. Co-appear with others in photos to get matches.</div>';
             }
         }
 
         async function sendFriendRequest(targetUserId) {
-            const response = await apiFetch('/friends/request', {
+            const response = await fetch(`${API_URL}/friends/request`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${currentToken}` 
+                    'Authorization': `Bearer ${currentToken}`
                 },
                 body: JSON.stringify({ target_user_id: targetUserId })
             });
             if (response.ok) {
-                alert(DEMO_MODE ? 'Friend added! (demo)' : 'Friend request sent!');
+                alert('Friend request sent.');
                 loadFriendSuggestions();
-                loadFriendsList();
             }
         }
 
         async function loadFriendsList() {
-            const response = await apiFetch('/friends', {
+            if (!currentToken) return;
+            const response = await fetch(`${API_URL}/friends`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
             const list = document.getElementById('friends-list');
             list.innerHTML = '';
-            
+
             if (data.friends && data.friends.length > 0) {
                 data.friends.forEach(f => {
                     const item = document.createElement('div');
                     item.className = 'friend-item';
-                    item.innerHTML = `<div><strong>${f.username}</strong></div>`;
+                    item.innerHTML = `
+                        <div class="friend-avatar">${f.username.charAt(0).toUpperCase()}</div>
+                        <div class="friend-info"><div class="list-item-title">${f.username}</div></div>
+                    `;
                     list.appendChild(item);
                 });
             } else {
-                list.innerHTML = '<div style="color:var(--text-muted)">No friends added yet.</div>';
+                list.innerHTML = '<div class="list-item-meta" style="padding: 8px 0;">No friends added yet.</div>';
             }
         }
 
-        // Initialize UI
-        showModeBanner();
-        if (DEMO_MODE && currentToken) {
-            loadGallery();
-            loadNotifications();
-            loadFriendSuggestions();
-            loadFriendsList();
-        }
+        document.getElementById('lightbox').addEventListener('click', (e) => {
+            if (e.target.id === 'lightbox') closeLightbox();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
         updateAuthUI();
     </script>
 </body>

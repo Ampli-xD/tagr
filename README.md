@@ -1,6 +1,6 @@
 # 🏷️ Tagr — AI-Powered Photo Tagging Platform
 
-Tagr is a self-hosted, AI-powered photo tagging platform that automatically detects and identifies faces in uploaded photos using deep learning. It combines a **FastAPI** backend with an **InsightFace** inference service, **PostgreSQL + pgvector** for face embedding storage & similarity search, and **MinIO** for S3-compatible object storage — all orchestrated via **Docker Compose**.
+Tagr is a self-hosted, AI-powered photo tagging platform that automatically detects and identifies faces in uploaded photos using deep learning. It combines a **Python Cloudflare Worker** API with an **InsightFace** inference service, **PostgreSQL + pgvector** for face embedding storage & similarity search, and **MinIO** for S3-compatible object storage — all orchestrated via **Docker Compose**.
 
 ---
 
@@ -14,7 +14,7 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 - **Social Graph** — Friend suggestions based on photo co-appearances, friend requests, and friendships
 - **Gallery & Comments** — Browse tagged photos per user, view photo details, and leave comments
 - **Notifications** — Real-time notification system for tags, friend requests, and social interactions
-- **Static Frontend** — Built-in HTML/JS frontend served directly by FastAPI
+- **Static Frontend** — Built-in HTML/JS frontend served by the Worker
 
 ---
 
@@ -23,9 +23,9 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 ```
 ┌──────────────┐       ┌──────────────┐       ┌──────────────────┐
 │              │       │              │       │                  │
-│   Frontend   │◄─────►│   Web (API)  │◄─────►│   PostgreSQL     │
-│  (Static UI) │       │   FastAPI    │       │   + pgvector     │
-│  Port 8000   │       │   Port 8000  │       │   Port 5432      │
+│   Frontend   │◄─────►│ Worker (API) │◄─────►│   PostgreSQL     │
+│  (Static UI) │       │ Python / CF  │       │   + pgvector     │
+│  Port 8787   │       │   Port 8787  │       │   Port 5432      │
 │              │       │              │       │                  │
 └──────────────┘       └──────┬───────┘       └──────────────────┘
                               │
@@ -44,7 +44,7 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 |---------------|------------------|-------------|--------------------------------------------------|
 | **db**        | `tagr-db`        | `5432`      | PostgreSQL 16 with pgvector extension             |
 | **storage**   | `tagr-storage`   | `9000/9001` | MinIO object storage (API / Console)              |
-| **web**       | `tagr-web`       | `8000`      | FastAPI app serving API + static frontend         |
+| **worker**    | `tagr-worker`    | `8787`      | Python Cloudflare Worker API (pywrangler)        |
 | **inference** | `tagr-inference` | `8001`      | Face detection & embedding service (InsightFace)  |
 
 ### 🖥️ Frontend Clients
@@ -63,9 +63,8 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 
 | Layer           | Technology                                                          |
 |-----------------|---------------------------------------------------------------------|
-| **API**         | Python 3.11, FastAPI, Uvicorn                                       |
+| **API**         | Python 3.12, Cloudflare Workers (pywrangler), pg8000, PyJWT          |
 | **Database**    | PostgreSQL 16 + pgvector (cosine similarity search)                 |
-| **ORM**         | SQLAlchemy 2.0                                                      |
 | **Auth**        | JWT (PyJWT) with mock OTP flow                                      |
 | **ML/Inference**| InsightFace (`buffalo_l`), ONNX Runtime, OpenCV                     |
 | **Storage**     | MinIO (S3-compatible), Boto3                                        |
@@ -111,7 +110,7 @@ The default `.env` ships with sensible development defaults:
 | `MINIO_CONSOLE_PORT`  | `9001`                   | MinIO console port             |
 | `MINIO_ROOT_USER`     | `minioadmin`             | MinIO access key               |
 | `MINIO_ROOT_PASSWORD` | `minioadmin`             | MinIO secret key               |
-| `WEB_PORT`            | `8000`                   | Web service port               |
+| `WORKER_PORT`         | `8787`                   | Worker API port                |
 | `INFERENCE_PORT`      | `8001`                   | Inference service port         |
 | `INFERENCE_DEVICE`    | `cpu`                    | `cpu` or `gpu`                 |
 
@@ -135,8 +134,8 @@ docker-compose ps
 
 | What                    | URL                                |
 |-------------------------|------------------------------------|
-| **Web UI (Static)**     | http://localhost:8000              |
-| **API Docs (Swagger)**  | http://localhost:8000/api/v1/docs  |
+| **Web UI (Static)**     | http://localhost:8787              |
+| **API Health**          | http://localhost:8787/api/v1/health |
 | **MinIO Console**       | http://localhost:9001              |
 | **Inference Health**    | http://localhost:8001              |
 
@@ -146,18 +145,12 @@ docker-compose ps
 
 ```
 tagr/
-├── app/                        # FastAPI web application
-│   ├── main.py                 # App entrypoint, mounts routers & static files
-│   ├── database.py             # SQLAlchemy engine & session setup
-│   ├── models.py               # ORM models (User, Photo, FaceEmbedding, etc.)
-│   ├── auth.py                 # Auth routes: register, OTP verify, login, enroll face
-│   ├── photos.py               # Photo upload, status polling, tag CRUD
-│   ├── social.py               # Gallery, comments, friends, notifications
-│   ├── internal.py             # Internal inference callback endpoint
-│   ├── batcher.py              # In-memory photo batch queue for inference
-│   ├── storage.py              # MinIO/S3 upload & URL generation
-│   └── static/                 # Static frontend (HTML/CSS/JS served at /)
-│       └── index.html
+├── v1-migration-backend/       # Python Cloudflare Worker API
+│   ├── src/                    # Worker routes, storage, batcher DO
+│   ├── public/                 # Static frontend
+│   ├── Dockerfile              # pywrangler dev container
+│   ├── pyproject.toml
+│   └── wrangler.toml
 ├── frontend/                   # Optional React Native/Expo frontend (Not in Docker)
 ├── inference/                  # Face detection & embedding microservice
 │   ├── main.py                 # RunPod-compatible inference worker
@@ -166,8 +159,6 @@ tagr/
 │   ├── requirements.txt        # Python dependencies for inference
 │   └── Dockerfile              # Inference container build
 ├── docker-compose.yml          # Multi-service orchestration
-├── Dockerfile                  # Web service container build
-├── requirements.txt            # Python dependencies for web service
 ├── tagr_schema_v1.sql          # Database schema (auto-applied on first run)
 ├── .env                        # Environment configuration
 └── .gitignore                  # Git ignore rules
@@ -263,14 +254,14 @@ All API endpoints are prefixed with `/api/v1`. Interactive docs available at `/a
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f web
+docker-compose logs -f worker
 docker-compose logs -f inference
 ```
 
 ### Rebuild a Single Service
 
 ```bash
-docker-compose up -d --build web
+docker-compose up -d --build worker
 ```
 
 ### Reset Database
@@ -280,17 +271,17 @@ docker-compose down -v   # Removes volumes (data)
 docker-compose up -d --build
 ```
 
-### Run Without Docker (Local Dev)
+### Run Worker Without Docker (host pywrangler)
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the web server
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+docker compose up -d db storage inference
+cd v1-migration-backend
+cp .dev.vars.example .dev.vars
+uv sync
+uv run pywrangler dev
 ```
 
-> Make sure PostgreSQL and MinIO are running locally and `.env` has `localhost` hostnames.
+> Make sure PostgreSQL and MinIO are running (via Docker Compose) and `.dev.vars` points at `localhost`.
 
 ---
 

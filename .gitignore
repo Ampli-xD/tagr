@@ -59,6 +59,16 @@ web-build/
 models/
 weights/
 
+.wrangler/
+.dev.vars
+v1-migration-backend/.dev.vars
+v1-migration-backend/.venv
+v1-migration-backend/.venv-workers
+v1-migration-backend/node_modules
+v1-migration-backend/python_modules
+v1-migration-backend/pylock.toml
+v1-migration-backend/src/vendor
+
 docker-compose.override.yml
 
 # ==============================

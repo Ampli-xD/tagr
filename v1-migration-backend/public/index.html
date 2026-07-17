@@ -1457,7 +1457,7 @@
                 banner.classList.add('demo-banner');
                 banner.innerHTML = `
                     <strong>Demo mode</strong> — filler data only, no backend calls.
-                    Type anything to register or log in. Add <code>?demo=0&api=http://localhost:8000/api/v1</code> to use the real API.
+                    Type anything to register or log in. Add <code>?demo=0&api=http://localhost:8787/api/v1</code> to use the real API.
                 `;
                 return;
             }
@@ -1473,7 +1473,7 @@
 
         function requireApi() {
             if (DEMO_MODE || API_URL) return true;
-            alert('Set your API URL first, e.g. ?api=http://localhost:8000/api/v1 — or use ?demo=1');
+            alert('Set your API URL first, e.g. ?api=http://localhost:8787/api/v1 — or use ?demo=1');
             return false;
         }
 

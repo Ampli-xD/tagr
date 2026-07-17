@@ -49,8 +49,8 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 
 ### 🖥️ Frontend Clients
 
-* **FastAPI Static Frontend (Active/Primary)**: The primary web UI is in [app/static/](app/static/). It is served by the `web` service on `http://localhost:8000/`.
-* **React Native Frontend (Optional)**: A React Native / Expo codebase exists in [frontend/](file:///c:/Workspace/face-rec-sm/frontend/). This mobile/client build is **not** included in the Docker Compose configuration. If you wish to run or work on it, you can do so manually by navigating to `frontend/`, installing node modules, and starting the Expo server:
+* **Static Web UI (Active/Primary)**: The mobile-first web UI is in [v1-migration-backend/public/index.html](v1-migration-backend/public/index.html). It is served by the `worker` service at `http://localhost:8787/`. A copy also lives at the repo root as `index.html` for GitHub Pages.
+* **React Native Frontend (Optional)**: A React Native / Expo codebase exists in [frontend/](frontend/). This mobile/client build is **not** included in the Docker Compose configuration. If you wish to run or work on it, you can do so manually by navigating to `frontend/`, installing node modules, and starting the Expo server:
   ```bash
   cd frontend
   npm install
@@ -68,7 +68,7 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 | **Auth**        | JWT (PyJWT) with mock OTP flow                                      |
 | **ML/Inference**| InsightFace (`buffalo_l`), ONNX Runtime, OpenCV                     |
 | **Storage**     | MinIO (S3-compatible), Boto3                                        |
-| **Frontend**    | Vanilla HTML/CSS/JS (served as static files in FastAPI)             |
+| **Frontend**    | Vanilla HTML/CSS/JS (mobile-first UI served by the Worker)          |
 | **Mobile App**  | React Native & Expo (optional client under `frontend/`)             |
 | **Infra**       | Docker, Docker Compose                                              |
 
@@ -122,7 +122,7 @@ The default `.env` ships with sensible development defaults:
 docker-compose up -d --build
 ```
 
-This starts **db**, **storage**, **inference**, and the **web** API (FastAPI on port 8000).
+This starts **db**, **storage**, **inference**, and the **worker** API on port **8787**.
 
 Wait for all services to become healthy:
 

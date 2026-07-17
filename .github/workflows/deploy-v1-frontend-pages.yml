@@ -2,7 +2,7 @@ name: Deploy V1 Frontend to GitHub Pages
 
 on:
   push:
-    branches: [v1-frontend]
+    branches: [v1, v1-frontend]
   workflow_dispatch:
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site
-          cp app/static/index.html _site/index.html
+          cp v1-migration-backend/public/index.html _site/index.html
           touch _site/.nojekyll
 
       - name: Upload Pages artifact

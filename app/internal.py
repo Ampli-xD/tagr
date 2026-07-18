@@ -7,10 +7,9 @@ from sqlalchemy import text
 
 from .database import get_db
 from .models import Photo, PhotoTag, FaceEmbedding, Notification, User, UnknownFace
+from .config import SIMILARITY_THRESHOLD
 
 router = APIRouter(prefix="/internal", tags=["Internal Callbacks"])
-
-SIMILARITY_THRESHOLD = 0.35
 
 @router.post("/inference-callback")
 async def inference_callback(payload: dict, db: Session = Depends(get_db)):

@@ -1,19 +1,22 @@
 import asyncio
-import os
 import httpx
 import logging
 from typing import List, Dict, Tuple
 from sqlalchemy.orm import Session
 from .database import SessionLocal
+from .config import (
+    BATCH_SIZE,
+    BATCH_TIMEOUT_MS as _BATCH_TIMEOUT_MS,
+    INFERENCE_SERVER_URL,
+    INFERENCE_BATCH_TIMEOUT_SECONDS,
+    API_CALLBACK_URL,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tagr-batcher")
 
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "10"))
-BATCH_TIMEOUT_MS = float(os.getenv("BATCH_TIMEOUT_MS", "50")) / 1000.0  # convert to seconds
-INFERENCE_SERVER_URL = os.getenv("INFERENCE_SERVER_URL", "http://inference:8001")
-API_CALLBACK_URL = os.getenv("API_CALLBACK_URL", "http://web:8000/api/v1/internal/inference-callback")
+BATCH_TIMEOUT_MS = _BATCH_TIMEOUT_MS / 1000.0  # seconds used by asyncio.sleep
 
 class PhotoBatcher:
     def __init__(self):
@@ -93,7 +96,7 @@ class PhotoBatcher:
             
             async with httpx.AsyncClient() as client:
                 logger.info(f"Sending payload to inference: {runsync_url}")
-                response = await client.post(runsync_url, json=payload, timeout=120.0)
+                response = await client.post(runsync_url, json=payload, timeout=INFERENCE_BATCH_TIMEOUT_SECONDS)
                 
                 if response.status_code != 200:
                     logger.error(f"Inference failed with status {response.status_code}: {response.text}")

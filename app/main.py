@@ -9,6 +9,7 @@ from .photos import router as photos_router
 from .internal import router as internal_router
 from .social import router as social_router
 from .database import get_db, engine
+from .config import CORS_ALLOW_ORIGINS
 
 # Idempotent bootstrap for schema additions that must land on databases whose
 # volume was already initialized (the init SQL only runs on a fresh volume).
@@ -43,10 +44,10 @@ def ensure_schema():
     except Exception as exc:
         print(f"WARNING: unknown_faces schema bootstrap failed: {exc}")
 
-# Allow CORS for easy debugging
+# Allow CORS (origins configurable via CORS_ALLOW_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,7 +57,7 @@ app.add_middleware(
 api_v1 = FastAPI(title="Tagr API", version="1.0")
 api_v1.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ALLOW_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

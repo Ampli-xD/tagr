@@ -10,11 +10,9 @@ from .models import Photo, PhotoTag, FaceEmbedding, User, Notification, UnknownF
 from .storage import upload_image, get_image_url
 from .batcher import photo_batcher
 from .auth import get_current_user_id
+from .config import SIMILARITY_THRESHOLD
 
 router = APIRouter(prefix="/photos", tags=["Photos & Tagging"])
-
-# Cosine Similarity threshold for face matching (1 - cosine_distance >= threshold)
-SIMILARITY_THRESHOLD = 0.60
 
 # -------------------------------------------------------------
 # FR2.1: Upload one or more photos

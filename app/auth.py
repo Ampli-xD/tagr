@@ -1,4 +1,3 @@
-import os
 import uuid
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -10,17 +9,25 @@ from sqlalchemy import select, text
 from .database import get_db
 from .models import User, OTPRequest, FaceEmbedding, UnknownFace, PhotoTag, Notification, Photo
 from .storage import upload_image, get_image_url
-from .internal import SIMILARITY_THRESHOLD
+from .config import (
+    JWT_SECRET,
+    JWT_ALGORITHM,
+    JWT_EXPIRY_DAYS,
+    MOCK_OTP_CODE,
+    OTP_EXPIRY_MINUTES,
+    INFERENCE_SERVER_URL,
+    INFERENCE_TIMEOUT_SECONDS,
+    SIMILARITY_THRESHOLD,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Enrollment"])
 
-JWT_SECRET = os.getenv("JWT_SECRET", "tagr-super-secret-key-12345")
-JWT_ALGORITHM = "HS256"
 security = HTTPBearer()
-INFERENCE_SERVER_URL = os.getenv("INFERENCE_SERVER_URL", "http://inference:8001")
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(days=7)):
+def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
+    if expires_delta is None:
+        expires_delta = timedelta(days=JWT_EXPIRY_DAYS)
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -55,10 +62,9 @@ async def register(mobile_number: str = Form(...), username: str = Form(...), db
     )
     db.add(new_user)
     
-    # Mock OTP flow: create a dummy OTP request
-    # Code is always 123456 for V1 testing simplicity
-    otp_code = "123456"
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    # Mock OTP flow: create a dummy OTP request (code/expiry are env-driven).
+    otp_code = MOCK_OTP_CODE
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
     
     otp_req = OTPRequest(
         mobile_number=mobile_number,
@@ -70,7 +76,7 @@ async def register(mobile_number: str = Form(...), username: str = Form(...), db
     db.refresh(new_user)
     
     # Log to console per FR1.1 spec
-    print(f"--- MOCK OTP --- Sent OTP {otp_code} to {mobile_number} (expires in 5 minutes)")
+    print(f"--- MOCK OTP --- Sent OTP {otp_code} to {mobile_number} (expires in {OTP_EXPIRY_MINUTES} minutes)")
     
     return {
         "user_id": str(new_user.id),
@@ -148,7 +154,7 @@ async def enroll_face(
             resp = await client.post(
                 f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync",
                 json=predict_payload,
-                timeout=30.0,
+                timeout=INFERENCE_TIMEOUT_SECONDS,
             )
             if resp.status_code != 200:
                 raise HTTPException(status_code=500, detail=f"Inference service error: {resp.text}")
@@ -328,9 +334,9 @@ async def request_login_otp(mobile_number: str = Form(...), db: Session = Depend
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not user.is_verified:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not verified")
-    # Mock OTP generation (same dummy code as registration)
-    otp_code = "123456"
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    # Mock OTP generation (same dummy code as registration, env-driven).
+    otp_code = MOCK_OTP_CODE
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRY_MINUTES)
     otp_req = OTPRequest(
         mobile_number=mobile_number,
         otp_code=otp_code,
@@ -338,5 +344,5 @@ async def request_login_otp(mobile_number: str = Form(...), db: Session = Depend
     )
     db.add(otp_req)
     db.commit()
-    print(f"--- MOCK OTP --- Sent OTP {otp_code} to {mobile_number} (expires in 5 minutes)")
+    print(f"--- MOCK OTP --- Sent OTP {otp_code} to {mobile_number} (expires in {OTP_EXPIRY_MINUTES} minutes)")
     return {"otp_sent": True}

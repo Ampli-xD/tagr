@@ -1,16 +1,16 @@
-import os
 import json
 import boto3
 from botocore.client import Config
 
-STORAGE_ENDPOINT = os.getenv("STORAGE_ENDPOINT", "http://storage:9000")
-STORAGE_PUBLIC_ENDPOINT = os.getenv(
-    "STORAGE_PUBLIC_ENDPOINT",
-    STORAGE_ENDPOINT.replace("http://storage:", "http://localhost:"),
+from .config import (
+    STORAGE_ENDPOINT,
+    STORAGE_PUBLIC_ENDPOINT,
+    STORAGE_ACCESS_KEY,
+    STORAGE_SECRET_KEY,
+    STORAGE_BUCKET,
+    STORAGE_REGION,
+    STORAGE_SIGNATURE_VERSION,
 )
-STORAGE_ACCESS_KEY = os.getenv("STORAGE_ACCESS_KEY", "minioadmin")
-STORAGE_SECRET_KEY = os.getenv("STORAGE_SECRET_KEY", "minioadmin")
-STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "tagr-bucket")
 
 # Create a session client
 s3_client = boto3.client(
@@ -18,8 +18,8 @@ s3_client = boto3.client(
     endpoint_url=STORAGE_ENDPOINT,
     aws_access_key_id=STORAGE_ACCESS_KEY,
     aws_secret_access_key=STORAGE_SECRET_KEY,
-    config=Config(signature_version="s3v4"),
-    region_name="us-east-1"
+    config=Config(signature_version=STORAGE_SIGNATURE_VERSION),
+    region_name=STORAGE_REGION,
 )
 
 def _ensure_public_read() -> None:

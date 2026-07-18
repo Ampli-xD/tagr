@@ -114,6 +114,30 @@ services:
     volumes:
       - ./app:/workspace/app
 
+  # Optional: Cloudflare Tunnel (public HTTPS URL without opening ports)
+  # Quick tunnel (no account):  docker compose --profile tunnel up cloudflared
+  # Named tunnel (your domain): set CLOUDFLARE_TUNNEL_TOKEN in .env, then:
+  #   docker compose --profile tunnel up cloudflared-named
+  # Or run locally:             ./scripts/cloudflare-tunnel.sh
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: tagr-cloudflared
+    profiles: ["tunnel"]
+    network_mode: host
+    depends_on:
+      - web
+    command: tunnel --no-autoupdate --url http://127.0.0.1:8787
+
+  cloudflared-named:
+    image: cloudflare/cloudflared:latest
+    container_name: tagr-cloudflared-named
+    profiles: ["tunnel"]
+    network_mode: host
+    env_file: .env
+    environment:
+      CLOUDFLARE_TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    command: tunnel run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+
 volumes:
   # postgres_data:   # re-enable with the local `db` service above
   minio_data:

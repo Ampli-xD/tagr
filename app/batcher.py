@@ -1,7 +1,9 @@
 import asyncio
 import httpx
 import logging
-from typing import List, Dict, Tuple
+import os
+import uuid
+from typing import List, Tuple
 from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .config import (
@@ -126,7 +128,6 @@ class PhotoBatcher:
     def _update_photos_status(self, photo_ids: List[str], status: str):
         db = SessionLocal()
         try:
-            import uuid
             from .models import Photo
             ids = [uuid.UUID(pid) for pid in photo_ids]
             db.query(Photo).filter(Photo.id.in_(ids)).update({"status": status})

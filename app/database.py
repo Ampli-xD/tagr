@@ -3,7 +3,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import DATABASE_URL, DB_POOL_PRE_PING, DB_ECHO, DB_PREPARE_THRESHOLD
 
-_connect_args = {}
+_connect_args = {"connect_timeout": 10}
 if DB_PREPARE_THRESHOLD is not None:
     _connect_args["prepare_threshold"] = DB_PREPARE_THRESHOLD
 

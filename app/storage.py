@@ -12,13 +12,19 @@ from .config import (
     STORAGE_SIGNATURE_VERSION,
 )
 
-# Create a session client
+# Create a session client (short timeouts so a unreachable storage service cannot
+# block API startup indefinitely inside Docker).
 s3_client = boto3.client(
     "s3",
     endpoint_url=STORAGE_ENDPOINT,
     aws_access_key_id=STORAGE_ACCESS_KEY,
     aws_secret_access_key=STORAGE_SECRET_KEY,
-    config=Config(signature_version=STORAGE_SIGNATURE_VERSION),
+    config=Config(
+        signature_version=STORAGE_SIGNATURE_VERSION,
+        connect_timeout=5,
+        read_timeout=10,
+        retries={"max_attempts": 2},
+    ),
     region_name=STORAGE_REGION,
 )
 

@@ -3062,7 +3062,50 @@
             setTimeout(() => pollUploadStatus(ids, item, attempt + 1), 2000);
         }
 
-        async function uploadFilesViaProxy(files, item) {
+        const UPLOAD_BATCH_SIZE = 20;
+
+        function filesToArray(files) {
+            return Array.from(files || []);
+        }
+
+        function chunkFiles(files, size = UPLOAD_BATCH_SIZE) {
+            const arr = filesToArray(files);
+            const chunks = [];
+            for (let i = 0; i < arr.length; i += size) {
+                chunks.push(arr.slice(i, i + size));
+            }
+            return chunks;
+        }
+
+        function guessImageContentType(file) {
+            if (file.type && file.type.startsWith('image/')) return file.type;
+            const name = (file.name || '').toLowerCase();
+            if (name.endsWith('.png')) return 'image/png';
+            if (name.endsWith('.webp')) return 'image/webp';
+            if (name.endsWith('.gif')) return 'image/gif';
+            if (name.endsWith('.heic') || name.endsWith('.heif')) return 'image/heic';
+            if (name.endsWith('.bmp')) return 'image/bmp';
+            return 'image/jpeg';
+        }
+
+        function batchProgressLabel(batchIndex, batchCount, doneInBatch, batchLen, totalFiles, doneTotal) {
+            if (batchCount <= 1) {
+                return `Uploading ${doneTotal}/${totalFiles}…`;
+            }
+            return `Batch ${batchIndex + 1}/${batchCount} · ${doneInBatch}/${batchLen} (${doneTotal}/${totalFiles} total)…`;
+        }
+
+        async function uploadFilesViaProxy(files, item, batchIndex = 0, batchCount = 1, doneBefore = 0, totalFiles = files.length) {
+            const metaEl = item.querySelector('.row-meta');
+            const setMeta = (doneInBatch) => {
+                if (metaEl) {
+                    metaEl.textContent = batchProgressLabel(
+                        batchIndex, batchCount, doneInBatch, files.length, totalFiles, doneBefore
+                    );
+                }
+            };
+            setMeta(0);
+
             const formData = new FormData();
             for (let i = 0; i < files.length; i++) {
                 formData.append('images', files[i]);
@@ -3090,6 +3133,7 @@
                         : (data.detail ? JSON.stringify(data.detail) : `HTTP ${response.status}`);
                     throw new Error(detail);
                 }
+                setMeta(files.length);
                 return data.upload_ids || data.photo_ids || [];
             } catch (err) {
                 clearTimeout(uploadTimeout);
@@ -3097,18 +3141,27 @@
             }
         }
 
-        async function uploadFilesDirect(files, item) {
+        async function uploadFilesDirect(files, item, batchIndex = 0, batchCount = 1, doneBefore = 0, totalFiles = files.length) {
             const metaEl = item.querySelector('.row-meta');
-            const setMeta = (text) => { if (metaEl) metaEl.textContent = text; };
+            const setMeta = (doneInBatch, extra) => {
+                if (!metaEl) return;
+                if (extra) {
+                    metaEl.textContent = extra;
+                    return;
+                }
+                metaEl.textContent = batchProgressLabel(
+                    batchIndex, batchCount, doneInBatch, files.length, totalFiles, doneBefore + doneInBatch
+                );
+            };
 
-            setMeta('Preparing upload…');
+            setMeta(0, 'Preparing upload…');
             const presignResp = await apiFetch('/photos/upload/presign', {
                 method: 'POST',
                 headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     files: Array.from(files).map((file) => ({
                         filename: file.name || 'photo.jpg',
-                        content_type: file.type || 'image/jpeg',
+                        content_type: guessImageContentType(file),
                     })),
                 }),
             });
@@ -3131,20 +3184,20 @@
             }
 
             let finished = 0;
-            setMeta(`Uploading 0/${files.length} directly to storage…`);
+            setMeta(0);
 
             await Promise.all(uploads.map(async (entry, index) => {
                 const file = files[index];
                 if (entry.upload_url === 'demo-direct-upload') {
                     finished += 1;
-                    setMeta(`Uploading ${finished}/${files.length} directly to storage…`);
+                    setMeta(finished);
                     return;
                 }
                 let putResp;
                 try {
                     putResp = await fetch(entry.upload_url, {
                         method: 'PUT',
-                        headers: { 'Content-Type': entry.content_type || file.type || 'image/jpeg' },
+                        headers: { 'Content-Type': entry.content_type || guessImageContentType(file) },
                         body: file,
                     });
                 } catch (networkErr) {
@@ -3155,10 +3208,12 @@
                     throw new Error(`Storage upload failed (${putResp.status}). Check bucket CORS allows PUT from this site.`);
                 }
                 finished += 1;
-                setMeta(`Uploading ${finished}/${files.length} directly to storage…`);
+                setMeta(finished);
             }));
 
-            setMeta('Starting face detection…');
+            setMeta(files.length, batchCount > 1
+                ? `Batch ${batchIndex + 1}/${batchCount} · starting face detection…`
+                : 'Starting face detection…');
             const completeResp = await apiFetch('/photos/upload/complete', {
                 method: 'POST',
                 headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -3179,6 +3234,25 @@
             return completeData.upload_ids || uploads.map((entry) => entry.photo_id);
         }
 
+        async function uploadBatchWithFallback(batch, item, batchIndex, batchCount, doneBefore, totalFiles) {
+            try {
+                if (DEMO_MODE) {
+                    return await uploadFilesViaProxy(batch, item, batchIndex, batchCount, doneBefore, totalFiles);
+                }
+                return await uploadFilesDirect(batch, item, batchIndex, batchCount, doneBefore, totalFiles);
+            } catch (directErr) {
+                if (DEMO_MODE) throw directErr;
+                const metaEl = item.querySelector('.row-meta');
+                if (metaEl) {
+                    metaEl.textContent = `Batch ${batchIndex + 1}/${batchCount} · retrying via server…`;
+                }
+                if (batchIndex === 0) {
+                    toast('Direct upload unavailable. Sending via server instead.');
+                }
+                return await uploadFilesViaProxy(batch, item, batchIndex, batchCount, doneBefore, totalFiles);
+            }
+        }
+
         async function uploadFiles(files) {
             if (!files || !files.length) return;
             if (!requireApi()) return;
@@ -3188,12 +3262,16 @@
                 return;
             }
 
+            const allFiles = filesToArray(files);
+            const batches = chunkFiles(allFiles, UPLOAD_BATCH_SIZE);
+            const batchCount = batches.length;
+
             const queueList = document.getElementById('upload-queue-list');
             const item = document.createElement('div');
             item.className = 'queue-row';
             item.innerHTML = `
                 <div style="flex:1;">
-                    <div class="row-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
+                    <div class="row-title">Uploading ${allFiles.length} image${allFiles.length > 1 ? 's' : ''}${batchCount > 1 ? ` in ${batchCount} batches` : ''}</div>
                     <div class="row-meta">Preparing upload…</div>
                 </div>
                 <span class="status-badge status-processing">Uploading</span>
@@ -3201,29 +3279,23 @@
             queueList.prepend(item);
 
             try {
-                let ids;
-                try {
-                    ids = DEMO_MODE
-                        ? await uploadFilesViaProxy(files, item)
-                        : await uploadFilesDirect(files, item);
-                } catch (directErr) {
-                    if (DEMO_MODE) throw directErr;
-                    const msg = directErr && directErr.message ? directErr.message : String(directErr);
-                    const metaEl = item.querySelector('.row-meta');
-                    if (metaEl) metaEl.textContent = 'Direct upload blocked — retrying via server…';
-                    toast('Direct upload unavailable. Sending via server instead.');
-                    ids = await uploadFilesViaProxy(files, item);
+                const allIds = [];
+                for (let b = 0; b < batches.length; b++) {
+                    const batchIds = await uploadBatchWithFallback(
+                        batches[b], item, b, batchCount, allIds.length, allFiles.length
+                    );
+                    allIds.push(...batchIds);
                 }
 
                 item.innerHTML = `
                     <div style="flex:1;">
-                        <div class="row-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
+                        <div class="row-title">${allFiles.length} image${allFiles.length > 1 ? 's' : ''} uploaded</div>
                         <div class="row-meta">Detecting faces…</div>
                     </div>
-                    <span class="status-badge status-processing">Processing (0/${ids.length || files.length})</span>
+                    <span class="status-badge status-processing">Processing (0/${allIds.length})</span>
                 `;
-                pollUploadStatus(ids, item);
-                toast('Upload queued.');
+                pollUploadStatus(allIds, item);
+                toast(batchCount > 1 ? `Upload queued in ${batchCount} batches.` : 'Upload queued.');
             } catch (err) {
                 const message = err.name === 'AbortError'
                     ? 'Upload timed out. Try fewer or smaller photos.'

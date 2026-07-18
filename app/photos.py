@@ -16,6 +16,29 @@ router = APIRouter(prefix="/photos", tags=["Photos & Tagging"])
 
 _MAX_PRESIGN_BATCH = 20
 _ALLOWED_IMAGE_PREFIX = "image/"
+_IMAGE_EXT_MIME = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".heic": "image/heic",
+    ".heif": "image/heif",
+    ".bmp": "image/bmp",
+}
+
+
+def _normalize_content_type(filename: str, content_type: str) -> str:
+    ct = (content_type or "").strip().lower()
+    if ct.startswith(_ALLOWED_IMAGE_PREFIX):
+        return ct
+    lower_name = filename.lower()
+    for ext, mime in _IMAGE_EXT_MIME.items():
+        if lower_name.endswith(ext):
+            return mime
+    if ct in ("", "application/octet-stream", "binary/octet-stream"):
+        return "image/jpeg"
+    raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type or 'unknown'}")
 
 
 def _storage_key_for_photo(photo_id: uuid.UUID, filename: str) -> str:
@@ -42,9 +65,7 @@ async def presign_photo_uploads(
     uploads = []
     for entry in files:
         filename = (entry.get("filename") or "photo.jpg").strip() or "photo.jpg"
-        content_type = (entry.get("content_type") or "image/jpeg").strip() or "image/jpeg"
-        if not content_type.startswith(_ALLOWED_IMAGE_PREFIX):
-            raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type}")
+        content_type = _normalize_content_type(filename, entry.get("content_type") or "")
 
         photo_id = uuid.uuid4()
         storage_key = _storage_key_for_photo(photo_id, filename)

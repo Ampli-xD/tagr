@@ -289,7 +289,9 @@
             background: var(--surface);
             overflow: hidden;
             cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
+        .thumb { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .photo-card img {
             width: 100%;
             height: 100%;
@@ -688,6 +690,137 @@
         .comment-input-row { display: flex; gap: 8px; }
         .comment-input-row .input-line { font-size: 14px; padding: 10px; }
 
+        .section-head-row {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .section-head-row .btn-row { margin: 0; flex-shrink: 0; }
+
+        .upload-layout { display: flex; flex-direction: column; gap: 14px; }
+        .friends-panels { display: flex; flex-direction: column; gap: 12px; }
+
+        .enrollment-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: rgba(17, 17, 17, 0.28);
+            backdrop-filter: blur(4px);
+        }
+        .enrollment-overlay.show { display: flex; }
+        .enrollment-panel {
+            width: min(100%, var(--app-w));
+            max-height: calc(100dvh - 24px);
+            overflow-y: auto;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
+        }
+        .enrollment-panel .camera-container { max-height: min(52vh, 420px); }
+
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        @media (min-width: 440px) {
+            .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (min-width: 520px) {
+            .section-head-row {
+                flex-direction: row;
+                align-items: flex-end;
+                justify-content: space-between;
+            }
+            .upload-layout {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+                align-items: start;
+            }
+            .upload-layout .upload-zone { grid-column: 1 / -1; }
+            .upload-layout .queue-head { grid-column: 1 / -1; }
+            .upload-layout #upload-queue-list { grid-column: 1 / -1; }
+            .friends-panels {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .friends-panels .stack-gap { margin-top: 10px; }
+            .profile-signed-in-wrap {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                gap: 12px;
+                align-items: start;
+            }
+            .profile-signed-in-wrap .profile-card { height: 100%; }
+        }
+
+        @media (min-width: 900px) {
+            .status-bar { display: none; }
+            .stage { padding: 20px 24px; align-items: center; }
+            .phone-frame {
+                min-height: min(100dvh - 40px, 920px);
+                max-height: calc(100dvh - 40px);
+            }
+            .app-main {
+                padding-left: 22px;
+                padding-right: 22px;
+                padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 18px);
+            }
+            .top-bar { padding: 14px 22px 10px; }
+            .bottom-nav {
+                border-radius: 0 0 30px 30px;
+                overflow: hidden;
+            }
+            .display-title { font-size: 38px; }
+            .featured-card .photo-body { max-height: 480px; }
+            .enrollment-panel { border-radius: 24px; }
+            .btn:hover { filter: brightness(0.97); }
+            .nav-btn:hover { background: rgba(125, 184, 174, 0.35); }
+            .photo-card:hover,
+            .thumb:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(17, 17, 17, 0.08); }
+            .friend-row:hover,
+            .notif-row:hover,
+            .queue-row:hover { background: rgba(255, 255, 255, 0.72); }
+            .lightbox { padding: 24px; }
+            .lightbox-panel { border-radius: 24px; max-height: calc(100dvh - 48px); }
+            .viewer-image { max-height: 78vh; }
+            .sidebar { padding: 20px; }
+            .comments-list { max-height: 220px; }
+        }
+
+        @media (min-width: 1200px) {
+            .stage::after {
+                content: "tagr";
+                position: fixed;
+                left: 4vw;
+                top: 50%;
+                transform: translateY(-50%);
+                font-family: Georgia, 'Times New Roman', serif;
+                font-size: clamp(72px, 8vw, 120px);
+                line-height: 0.9;
+                letter-spacing: -0.04em;
+                color: rgba(17, 17, 17, 0.05);
+                pointer-events: none;
+                user-select: none;
+            }
+        }
+
+        @media (hover: none) {
+            .photo-card:hover,
+            .thumb:hover { transform: none; box-shadow: none; }
+        }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -711,14 +844,16 @@
 
             <main class="app-main">
                 <section id="tab-gallery" class="tab-content active">
-                    <div class="section-head">
-                        <p class="eyebrow">Home</p>
-                        <h1 class="display-title">Hi, <span id="gallery-greeting-name">there</span></h1>
-                        <p class="subtext" id="gallery-username-title">Sign in to see your tagged photos.</p>
-                    </div>
-                    <div class="btn-row">
-                        <button type="button" class="btn btn-accent" onclick="openSheet('upload-sheet')">Upload photos</button>
-                        <button type="button" class="btn btn-outline" onclick="switchTab('tab-upload')">Open Upload tab</button>
+                    <div class="section-head-row">
+                        <div class="section-head" style="margin-bottom: 0;">
+                            <p class="eyebrow">Home</p>
+                            <h1 class="display-title">Hi, <span id="gallery-greeting-name">there</span></h1>
+                            <p class="subtext" id="gallery-username-title">Sign in to see your tagged photos.</p>
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn btn-accent" onclick="openSheet('upload-sheet')">Upload</button>
+                            <button type="button" class="btn btn-outline" onclick="switchTab('tab-upload')">Upload tab</button>
+                        </div>
                     </div>
                     <div id="story-rings" class="story-strip"></div>
                     <div id="photo-grid" class="gallery-stack"></div>
@@ -739,21 +874,23 @@
                         <h1 class="display-title">New post</h1>
                         <p class="subtext">Take a photo or choose from your library.</p>
                     </div>
-                    <div class="btn-row">
-                        <button type="button" class="btn btn-accent btn-block" onclick="toast('Camera flow starts in native app.')">Take photo</button>
-                        <button type="button" class="btn btn-outline btn-block" onclick="document.getElementById('file-input').click()">Choose from library</button>
+                    <div class="upload-layout">
+                        <div class="btn-row" style="margin: 0;">
+                            <button type="button" class="btn btn-accent btn-block" onclick="toast('Camera flow starts in native app.')">Take photo</button>
+                            <button type="button" class="btn btn-outline btn-block" onclick="document.getElementById('file-input').click()">Choose from library</button>
+                        </div>
+                        <div class="upload-zone" id="drop-zone"
+                             onclick="document.getElementById('file-input').click()"
+                             ondragover="event.preventDefault(); this.classList.add('dragover');"
+                             ondragleave="this.classList.remove('dragover');"
+                             ondrop="handleDrop(event)">
+                            <p><strong>Tap to choose</strong> or drag photos here</p>
+                            <p>Multiple files supported.</p>
+                            <input type="file" id="file-input" multiple class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                        </div>
+                        <div class="queue-head">Queue</div>
+                        <div id="upload-queue-list" class="stack-gap"></div>
                     </div>
-                    <div class="upload-zone" id="drop-zone"
-                         onclick="document.getElementById('file-input').click()"
-                         ondragover="event.preventDefault(); this.classList.add('dragover');"
-                         ondragleave="this.classList.remove('dragover');"
-                         ondrop="handleDrop(event)">
-                        <p><strong>Tap to choose</strong> or drag photos here</p>
-                        <p>Multiple files supported.</p>
-                        <input type="file" id="file-input" multiple class="hidden" accept="image/*" onchange="handleFileSelect(event)">
-                    </div>
-                    <div class="queue-head">Queue</div>
-                    <div id="upload-queue-list" class="stack-gap"></div>
                 </section>
 
                 <section id="tab-friends" class="tab-content">
@@ -762,13 +899,15 @@
                         <h1 class="display-title">People</h1>
                         <p class="subtext">Suggestions and your current friends list.</p>
                     </div>
-                    <div class="frame" style="padding: 12px;">
-                        <div class="eyebrow">Suggestions</div>
-                        <div id="friend-suggestions-list" class="stack-gap" style="margin-top: 10px;"></div>
-                    </div>
-                    <div class="frame" style="padding: 12px; margin-top: 12px;">
-                        <div class="eyebrow">Friends</div>
-                        <div id="friends-list" class="stack-gap" style="margin-top: 10px;"></div>
+                    <div class="friends-panels">
+                        <div class="frame" style="padding: 12px;">
+                            <div class="eyebrow">Suggestions</div>
+                            <div id="friend-suggestions-list" class="stack-gap" style="margin-top: 10px;"></div>
+                        </div>
+                        <div class="frame" style="padding: 12px;">
+                            <div class="eyebrow">Friends</div>
+                            <div id="friends-list" class="stack-gap" style="margin-top: 10px;"></div>
+                        </div>
                     </div>
                 </section>
 
@@ -778,14 +917,24 @@
                         <h1 class="display-title">Your account</h1>
                     </div>
 
-                    <div id="profile-signed-in" class="hidden">
+                    <div id="profile-signed-in" class="hidden profile-signed-in-wrap">
                         <div class="frame profile-card">
                             <div class="profile-avatar" id="profile-avatar">?</div>
                             <h2 class="section-title" style="margin-top: 0;" id="profile-name">You</h2>
-                            <p class="subtext" style="margin-top: 6px;">Signed in and ready to tag.</p>
+                            <p class="subtext" style="margin-top: 6px;" id="profile-status-line">Signed in and ready to tag.</p>
+                            <span id="face-enrolled-badge" class="chip hidden" style="margin-top: 10px; background: var(--sage-soft);">Face enrolled</span>
                             <div class="btn-row" style="margin-top: 10px; justify-content: center;">
                                 <button type="button" class="btn btn-outline btn-sm" onclick="switchTab('tab-gallery')">Go home</button>
                                 <button type="button" class="btn btn-filled btn-sm" onclick="logout()">Sign out</button>
+                            </div>
+                        </div>
+                        <div class="frame" style="padding: 12px;">
+                            <p class="eyebrow">Face setup</p>
+                            <h2 class="section-title" style="margin-top: 6px; font-size: 22px;">Your enrollment</h2>
+                            <p class="subtext" style="margin-top: 8px;">Your face photo powers automatic tagging in shared albums.</p>
+                            <div class="profile-actions">
+                                <button type="button" id="btn-recapture-face" class="btn btn-outline btn-block hidden" onclick="showEnrollmentOverlay(true)">Capture my face again</button>
+                                <button type="button" id="btn-enroll-face" class="btn btn-accent btn-block hidden" onclick="showEnrollmentOverlay(false)">Complete face setup</button>
                             </div>
                         </div>
                     </div>
@@ -843,20 +992,6 @@
                         </div>
                     </div>
 
-                    <div class="frame locked-overlay" id="enrollment-section" style="padding: 12px; margin-top: 12px;">
-                        <p class="eyebrow">Face enrollment</p>
-                        <h2 class="section-title">Capture my face</h2>
-                        <p class="subtext" style="margin-bottom: 10px;">One clear capture helps find you in shared photos.</p>
-                        <div class="camera-container">
-                            <video id="video" autoplay playsinline muted></video>
-                            <canvas id="canvas" class="hidden"></canvas>
-                            <div class="camera-overlay"><div class="face-oval"></div></div>
-                        </div>
-                        <div class="btn-row" style="margin-top: 10px;">
-                            <button type="button" class="btn btn-outline" onclick="startCamera()">Start camera</button>
-                            <button type="button" class="btn btn-accent" onclick="captureAndEnroll()">Capture</button>
-                        </div>
-                    </div>
                 </section>
             </main>
 
@@ -869,6 +1004,26 @@
                     <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
                 </div>
             </nav>
+        </div>
+    </div>
+
+    <div id="enrollment-overlay" class="enrollment-overlay" aria-hidden="true">
+        <div class="enrollment-panel" role="dialog" aria-modal="true" aria-labelledby="enrollment-title">
+            <div class="section-head" style="margin-bottom: 12px;">
+                <p class="eyebrow">Face setup</p>
+                <h2 class="section-title" id="enrollment-title">Enroll your face</h2>
+                <p class="subtext" id="enrollment-subtitle">Center your face in the frame. This helps tag you automatically in photos.</p>
+            </div>
+            <div class="camera-container">
+                <video id="video" autoplay playsinline muted></video>
+                <canvas id="canvas" class="hidden"></canvas>
+                <div class="camera-overlay"><div class="face-oval"></div></div>
+            </div>
+            <div class="btn-row" style="margin-top: 12px;">
+                <button type="button" class="btn btn-outline" onclick="startCamera()">Start camera</button>
+                <button type="button" class="btn btn-accent" onclick="captureAndEnroll()">Save face</button>
+            </div>
+            <button type="button" id="enrollment-skip-btn" class="btn btn-outline btn-block hidden" style="margin-top: 10px;" onclick="hideEnrollmentOverlay()">Not now</button>
         </div>
     </div>
 
@@ -1378,13 +1533,97 @@
             loadNotifications();
             loadFriendSuggestions();
             loadFriendsList();
-            switchTab('tab-gallery');
+            maybeShowOnboarding();
         }
 
         let currentToken = localStorage.getItem('token') || '';
         let currentUserId = localStorage.getItem('user_id') || '';
         let currentUsername = localStorage.getItem('username') || '';
         let activePhotoId = null;
+        let enrollmentDismissedForSession = false;
+
+        function faceEnrolledKey() {
+            return currentUserId ? `tagr_face_enrolled_${currentUserId}` : 'tagr_face_enrolled';
+        }
+
+        function isFaceEnrolled() {
+            return localStorage.getItem(faceEnrolledKey()) === '1';
+        }
+
+        function setFaceEnrolled(enrolled) {
+            if (enrolled) {
+                localStorage.setItem(faceEnrolledKey(), '1');
+            } else {
+                localStorage.removeItem(faceEnrolledKey());
+            }
+            updateEnrollmentUI();
+        }
+
+        function showEnrollmentOverlay(allowDismiss = true) {
+            const overlay = document.getElementById('enrollment-overlay');
+            const skipBtn = document.getElementById('enrollment-skip-btn');
+            const subtitle = document.getElementById('enrollment-subtitle');
+            if (!overlay) return;
+            overlay.classList.add('show');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            if (skipBtn) skipBtn.classList.toggle('hidden', !allowDismiss);
+            if (subtitle) {
+                subtitle.textContent = allowDismiss
+                    ? 'Update your face photo for better automatic tagging.'
+                    : 'Center your face in the frame. This helps tag you automatically in photos.';
+            }
+            startCamera().catch(() => {});
+        }
+
+        function hideEnrollmentOverlay() {
+            const overlay = document.getElementById('enrollment-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('show');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            enrollmentDismissedForSession = true;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        function maybeShowOnboarding() {
+            if (!currentToken || isFaceEnrolled() || enrollmentDismissedForSession) {
+                switchTab('tab-gallery');
+                return;
+            }
+            switchTab('tab-profile');
+            showEnrollmentOverlay(false);
+        }
+
+        function updateEnrollmentUI() {
+            const enrolled = isFaceEnrolled();
+            const signedIn = !!currentToken;
+            const badge = document.getElementById('face-enrolled-badge');
+            const recaptureBtn = document.getElementById('btn-recapture-face');
+            const enrollBtn = document.getElementById('btn-enroll-face');
+            const statusLine = document.getElementById('profile-status-line');
+
+            if (badge) badge.classList.toggle('hidden', !enrolled || !signedIn);
+            if (recaptureBtn) recaptureBtn.classList.toggle('hidden', !signedIn || !enrolled);
+            if (enrollBtn) enrollBtn.classList.toggle('hidden', !signedIn || enrolled);
+            if (statusLine) {
+                statusLine.textContent = enrolled
+                    ? 'Face enrolled — automatic tagging is on.'
+                    : 'Complete face setup to enable automatic tagging.';
+            }
+
+            if (signedIn && !enrolled && !enrollmentDismissedForSession) {
+                const overlay = document.getElementById('enrollment-overlay');
+                if (overlay && !overlay.classList.contains('show')) {
+                    showEnrollmentOverlay(false);
+                }
+            } else if (enrolled) {
+                hideEnrollmentOverlay();
+            }
+        }
 
         function switchAuthPane(which) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.auth === which));
@@ -1412,6 +1651,7 @@
                 loadFriendsList();
             } else if (tabId === 'tab-profile') {
                 updateAuthUI();
+                updateEnrollmentUI();
             }
 
             closeSheet();
@@ -1444,7 +1684,6 @@
         function updateAuthUI() {
             const statusDiv = document.getElementById('header-auth-status');
             const avatar = document.getElementById('header-avatar');
-            const enrollment = document.getElementById('enrollment-section');
             const profileName = document.getElementById('profile-name');
             const profileAvatar = document.getElementById('profile-avatar');
             const signedInSection = document.getElementById('profile-signed-in');
@@ -1456,7 +1695,6 @@
                 statusDiv.innerHTML = `Signed in as <strong>${currentUsername || 'you'}</strong><br><a href="#" onclick="logout(); return false;">Sign out</a>`;
                 avatar.textContent = initial;
                 avatar.classList.remove('hidden');
-                enrollment.classList.remove('locked-overlay');
                 signedInSection.classList.remove('hidden');
                 signedOutSection.classList.add('hidden');
                 profileName.textContent = currentUsername || 'you';
@@ -1465,15 +1703,16 @@
             } else {
                 statusDiv.textContent = 'Not signed in';
                 avatar.classList.add('hidden');
-                enrollment.classList.add('locked-overlay');
                 signedInSection.classList.add('hidden');
                 signedOutSection.classList.remove('hidden');
                 profileName.textContent = 'You';
                 profileAvatar.textContent = '?';
                 greetingName.textContent = 'there';
+                hideEnrollmentOverlay();
             }
 
             renderStoryRings();
+            updateEnrollmentUI();
         }
 
         function logout() {
@@ -1510,7 +1749,14 @@
             if (DEMO_MODE) {
                 const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
                 const data = await response.json();
-                toast(data.enrolled ? 'Face enrolled (demo).' : 'Enrollment failed.');
+                if (data.enrolled) {
+                    setFaceEnrolled(true);
+                    hideEnrollmentOverlay();
+                    toast('Face enrolled (demo).');
+                    switchTab('tab-gallery');
+                } else {
+                    toast('Enrollment failed.');
+                }
                 return;
             }
             const video = document.getElementById('video');
@@ -1542,7 +1788,10 @@
                     });
                     const data = await response.json();
                     if (response.ok && data.enrolled) {
+                        setFaceEnrolled(true);
+                        hideEnrollmentOverlay();
                         toast('Face enrolled successfully.');
+                        switchTab('tab-gallery');
                     } else {
                         alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
                     }
@@ -1603,7 +1852,7 @@
                 } else {
                     updateAuthUI();
                     toast('You are signed in.');
-                    switchTab('tab-gallery');
+                    maybeShowOnboarding();
                 }
             } else {
                 alert('Verification failed: ' + data.detail);
@@ -1657,7 +1906,7 @@
                     updateAuthUI();
                     toast('Signed in successfully.');
                     document.getElementById('login-section').classList.add('hidden');
-                    switchTab('tab-gallery');
+                    maybeShowOnboarding();
                 }
             } else {
                 alert('Sign in failed: ' + data.detail);
@@ -2091,6 +2340,16 @@
             if (e.key === 'Escape') {
                 closeLightbox();
                 closeSheet();
+                const overlay = document.getElementById('enrollment-overlay');
+                if (overlay && overlay.classList.contains('show') && isFaceEnrolled()) {
+                    hideEnrollmentOverlay();
+                }
+            }
+        });
+
+        document.getElementById('enrollment-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'enrollment-overlay' && isFaceEnrolled()) {
+                hideEnrollmentOverlay();
             }
         });
 
@@ -2098,11 +2357,16 @@
         showModeBanner();
         updateStatusClock();
         setInterval(updateStatusClock, 30000);
-        switchTab('tab-gallery');
         if (currentToken) {
+            switchTab('tab-gallery');
             loadNotifications();
             loadFriendSuggestions();
             loadFriendsList();
+            if (!isFaceEnrolled()) {
+                maybeShowOnboarding();
+            }
+        } else {
+            switchTab('tab-gallery');
         }
 
     </script>

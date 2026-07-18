@@ -37,17 +37,14 @@ DB_POOL_PRE_PING = _get_str("DB_POOL_PRE_PING", "true").lower() in ("1", "true",
 DB_ECHO = _get_str("DB_ECHO", "false").lower() in ("1", "true", "yes")
 
 # -------------------------------------------------------------------
-# Authentication / JWT
+# Supabase Auth
 # -------------------------------------------------------------------
-JWT_SECRET = _get_str("JWT_SECRET", "tagr-super-secret-key-12345")
-JWT_ALGORITHM = _get_str("JWT_ALGORITHM", "HS256")
-JWT_EXPIRY_DAYS = _get_int("JWT_EXPIRY_DAYS", 7)
-
-# -------------------------------------------------------------------
-# OTP (mock flow for V1)
-# -------------------------------------------------------------------
-MOCK_OTP_CODE = _get_str("MOCK_OTP_CODE", "123456")
-OTP_EXPIRY_MINUTES = _get_int("OTP_EXPIRY_MINUTES", 5)
+# Project URL and anon key (public) — used by the frontend via GET /auth/config.
+SUPABASE_URL = _get_str("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = _get_str("SUPABASE_ANON_KEY", "")
+# JWT secret from Supabase Dashboard -> Project Settings -> API -> JWT Secret.
+# Used by the API to verify Supabase access tokens (HS256, aud=authenticated).
+SUPABASE_JWT_SECRET = _get_str("SUPABASE_JWT_SECRET", "")
 
 # -------------------------------------------------------------------
 # Inference service

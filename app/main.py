@@ -32,6 +32,18 @@ CREATE INDEX IF NOT EXISTS idx_unknown_faces_photo ON unknown_faces(photo_id);
 CREATE INDEX IF NOT EXISTS idx_unknown_faces_unclaimed ON unknown_faces(claimed_at) WHERE claimed_at IS NULL;
 """
 
+PROFILE_DDL = """
+ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_photo_key TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS zodiac_sign VARCHAR(20);
+ALTER TABLE users ALTER COLUMN mobile_number DROP NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id);
+"""
+
 # Initialize the main App
 app = FastAPI(title="Tagr Gateways")
 
@@ -41,6 +53,7 @@ def ensure_schema():
     try:
         with engine.begin() as conn:
             conn.execute(text(UNKNOWN_FACES_DDL))
+            conn.execute(text(PROFILE_DDL))
     except Exception as exc:
         print(f"WARNING: unknown_faces schema bootstrap failed: {exc}")
 

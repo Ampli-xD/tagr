@@ -464,7 +464,26 @@
             font-size: 24px;
             margin: 0 auto 12px;
             font-family: Georgia, 'Times New Roman', serif;
+            overflow: hidden;
         }
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .profile-handle { margin-top: 4px; color: var(--muted); font-size: 13px; }
+        .profile-bio { margin-top: 10px; max-width: 320px; margin-left: auto; margin-right: auto; }
+        .zodiac-chip { margin-top: 8px; background: rgba(125, 184, 174, 0.2); }
+        .profile-edit-form { text-align: left; margin-top: 10px; }
+        .profile-photo-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .profile-photo-row .profile-avatar { margin: 0; width: 56px; height: 56px; font-size: 18px; }
+        .auth-error { color: #8b3a3a; font-size: 13px; margin-top: 8px; }
 
         .camera-container {
             width: 100%;
@@ -970,12 +989,49 @@
                         <div class="frame profile-card">
                             <div class="profile-avatar" id="profile-avatar">?</div>
                             <h2 class="section-title" style="margin-top: 0;" id="profile-name">You</h2>
+                            <p class="profile-handle" id="profile-handle">@you</p>
+                            <span id="profile-zodiac" class="chip zodiac-chip hidden"></span>
+                            <p class="subtext profile-bio hidden" id="profile-bio"></p>
                             <p class="subtext" style="margin-top: 6px;" id="profile-status-line">Signed in and ready to tag.</p>
                             <span id="face-enrolled-badge" class="chip hidden" style="margin-top: 10px; background: var(--sage-soft);">Face enrolled</span>
                             <div class="btn-row" style="margin-top: 10px; justify-content: center;">
                                 <button type="button" class="btn btn-outline btn-sm" onclick="switchTab('tab-gallery')">Go home</button>
                                 <button type="button" class="btn btn-filled btn-sm" onclick="logout()">Sign out</button>
                             </div>
+                        </div>
+                        <div class="frame" style="padding: 12px;">
+                            <p class="eyebrow">Your profile</p>
+                            <h2 class="section-title" style="margin-top: 6px; font-size: 22px;">Edit details</h2>
+                            <form id="profile-edit-form" class="profile-edit-form" onsubmit="handleSaveProfile(event)">
+                                <div class="profile-photo-row">
+                                    <div class="profile-avatar" id="profile-edit-avatar">?</div>
+                                    <div style="flex:1;">
+                                        <label class="side-label">Profile photo</label>
+                                        <input type="file" id="profile-photo-input" accept="image/*" onchange="handleProfilePhotoSelect(event)">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Display name</label>
+                                    <input type="text" id="edit-display-name" class="input-line" maxlength="100" autocomplete="name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Username</label>
+                                    <input type="text" id="edit-username" class="input-line" maxlength="30" autocomplete="username" pattern="[a-z0-9_]{3,30}">
+                                </div>
+                                <div class="form-group">
+                                    <label>Bio</label>
+                                    <textarea id="edit-bio" class="input-line" rows="3" maxlength="500" placeholder="A line about you…" style="resize: vertical; min-height: 72px;"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Birthday</label>
+                                    <input type="date" id="edit-birthday" class="input-line">
+                                </div>
+                                <div class="form-group">
+                                    <label>Mobile (optional)</label>
+                                    <input type="tel" id="edit-mobile" class="input-line" autocomplete="tel">
+                                </div>
+                                <button type="submit" class="btn btn-filled btn-block">Save profile</button>
+                            </form>
                         </div>
                         <div class="frame" style="padding: 12px;">
                             <p class="eyebrow">Face setup</p>
@@ -990,31 +1046,33 @@
 
                     <div id="profile-signed-out">
                         <div class="auth-tabs" role="tablist">
-                            <button type="button" class="auth-tab active" data-auth="register" onclick="switchAuthPane('register')">Register</button>
+                            <button type="button" class="auth-tab active" data-auth="register" onclick="switchAuthPane('register')">Create account</button>
                             <button type="button" class="auth-tab" data-auth="login" onclick="switchAuthPane('login')">Sign in</button>
                         </div>
 
                         <div id="auth-pane-register" class="auth-pane active">
                             <div class="frame" style="padding: 12px;">
-                                <h2 class="section-title" style="margin-top: 0;">Create account</h2>
-                                <p class="subtext" style="margin-bottom: 10px;">Register with mobile and verify OTP.</p>
-                                <form id="register-form" onsubmit="handleRegister(event)">
+                                <h2 class="section-title" style="margin-top: 0;">Join tagr</h2>
+                                <p class="subtext" style="margin-bottom: 10px;">Sign up with email via Supabase.</p>
+                                <form id="register-form" onsubmit="handleSignUp(event)">
+                                    <div class="form-group">
+                                        <label>Display name</label>
+                                        <input type="text" id="reg-display-name" class="input-line" placeholder="Alex Kim" required autocomplete="name">
+                                    </div>
                                     <div class="form-group">
                                         <label>Username</label>
-                                        <input type="text" id="reg-username" class="input-line" placeholder="johndoe" required autocomplete="username">
+                                        <input type="text" id="reg-username" class="input-line" placeholder="alexkim" required autocomplete="username" pattern="[a-z0-9_]{3,30}">
                                     </div>
                                     <div class="form-group">
-                                        <label>Mobile number</label>
-                                        <input type="text" id="reg-mobile" class="input-line" placeholder="+1234567890" required autocomplete="tel">
+                                        <label>Email</label>
+                                        <input type="email" id="reg-email" class="input-line" placeholder="you@example.com" required autocomplete="email">
                                     </div>
-                                    <button type="submit" class="btn btn-filled btn-block">Continue</button>
-                                </form>
-                                <form id="otp-form" onsubmit="handleVerifyOTP(event)" class="hidden" style="margin-top: 10px;">
                                     <div class="form-group">
-                                        <label>Verification code</label>
-                                        <input type="text" id="otp-code" class="input-line" placeholder="Enter code" required inputmode="numeric">
+                                        <label>Password</label>
+                                        <input type="password" id="reg-password" class="input-line" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
                                     </div>
-                                    <button type="submit" class="btn btn-filled btn-block">Verify &amp; enter</button>
+                                    <button type="submit" class="btn btn-filled btn-block">Create account</button>
+                                    <p id="register-error" class="auth-error hidden"></p>
                                 </form>
                             </div>
                         </div>
@@ -1022,20 +1080,18 @@
                         <div id="auth-pane-login" class="auth-pane">
                             <div class="frame" id="login-section" style="padding: 12px;">
                                 <h2 class="section-title" style="margin-top: 0;">Welcome back</h2>
-                                <p class="subtext" style="margin-bottom: 10px;">Get an OTP and sign in.</p>
-                                <form id="login-request-form" onsubmit="handleLoginRequest(event)">
+                                <p class="subtext" style="margin-bottom: 10px;">Sign in with your email and password.</p>
+                                <form id="login-form" onsubmit="handleSignIn(event)">
                                     <div class="form-group">
-                                        <label>Mobile number</label>
-                                        <input type="text" id="login-mobile" class="input-line" placeholder="+1234567890" required autocomplete="tel">
+                                        <label>Email</label>
+                                        <input type="email" id="login-email" class="input-line" placeholder="you@example.com" required autocomplete="email">
                                     </div>
-                                    <button type="submit" class="btn btn-outline btn-block">Send code</button>
-                                </form>
-                                <form id="login-otp-form" onsubmit="handleLoginOTP(event)" class="hidden" style="margin-top: 10px;">
                                     <div class="form-group">
-                                        <label>Enter code</label>
-                                        <input type="text" id="login-otp-code" class="input-line" placeholder="Enter code" required inputmode="numeric">
+                                        <label>Password</label>
+                                        <input type="password" id="login-password" class="input-line" required autocomplete="current-password">
                                     </div>
                                     <button type="submit" class="btn btn-filled btn-block">Sign in</button>
+                                    <p id="login-error" class="auth-error hidden"></p>
                                 </form>
                             </div>
                         </div>
@@ -1139,6 +1195,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
 
         function resolveApiUrl() {
@@ -1384,20 +1441,46 @@
             const username = currentUsername || 'You';
             const parts = path.replace(/^\//, '').split('/');
 
-            if (parts[0] === 'auth' && parts[1] === 'register' && method === 'POST') {
-                return mockResponse({ user_id: 'demo-user-me' });
+            if (parts[0] === 'auth' && parts[1] === 'config' && method === 'GET') {
+                return mockResponse({ supabase_url: '', supabase_anon_key: '' });
             }
-            if (parts[0] === 'auth' && parts[1] === 'verify-otp' && method === 'POST') {
-                return mockResponse({ token: 'demo-token-' + Date.now() });
+            if (parts[0] === 'auth' && parts[1] === 'me' && method === 'GET') {
+                return mockResponse({
+                    user_id: 'demo-user-me',
+                    username: (currentUsername || 'you').toLowerCase().replace(/\s+/g, ''),
+                    display_name: currentUsername || 'You',
+                    email: 'demo@tagr.local',
+                    bio: 'Demo profile',
+                    birthday: '1995-07-18',
+                    zodiac_sign: 'Cancer',
+                    profile_photo_url: null,
+                    mobile_number: null,
+                });
             }
-            if (parts[0] === 'auth' && parts[1] === 'request-login-otp' && method === 'POST') {
-                return mockResponse({ sent: true });
+            if (parts[0] === 'auth' && parts[1] === 'me' && method === 'PATCH') {
+                let body = {};
+                try { body = JSON.parse(options.body || '{}'); } catch (_) {}
+                currentUsername = body.display_name || currentUsername;
+                return mockResponse({
+                    user_id: 'demo-user-me',
+                    username: body.username || 'you',
+                    display_name: body.display_name || currentUsername,
+                    bio: body.bio || null,
+                    birthday: body.birthday || null,
+                    zodiac_sign: body.birthday ? 'Cancer' : null,
+                    profile_photo_url: currentProfile?.profile_photo_url || null,
+                });
             }
-            if (parts[0] === 'auth' && parts[1] === 'login' && method === 'POST') {
-                return mockResponse({ token: 'demo-token-' + Date.now() });
+            if (parts[0] === 'auth' && parts[1] === 'profile-photo' && method === 'POST') {
+                return mockResponse({
+                    user_id: 'demo-user-me',
+                    username: (currentUsername || 'you').toLowerCase(),
+                    display_name: currentUsername || 'You',
+                    profile_photo_url: 'https://picsum.photos/seed/profile/200/200',
+                });
             }
             if (parts[0] === 'auth' && parts[1] === 'enroll-face' && method === 'POST') {
-                return mockResponse({ enrolled: true });
+                return mockResponse({ enrolled: true, claimed_photos: 0 });
             }
 
             if (parts[0] === 'photos' && parts[1] === 'upload' && method === 'POST') {
@@ -1597,8 +1680,96 @@
         let currentToken = localStorage.getItem('token') || '';
         let currentUserId = localStorage.getItem('user_id') || '';
         let currentUsername = localStorage.getItem('username') || '';
+        let currentProfile = null;
+        let supabaseClient = null;
         let activePhotoId = null;
         let enrollmentDismissedForSession = false;
+
+        function authHeaders(extra = {}) {
+            const headers = { ...extra };
+            if (currentToken) headers['Authorization'] = `Bearer ${currentToken}`;
+            return headers;
+        }
+
+        function setAvatarElement(el, profile) {
+            if (!el) return;
+            const name = profile?.display_name || profile?.username || currentUsername || '?';
+            const photo = profile?.profile_photo_url;
+            if (photo) {
+                el.innerHTML = `<img src="${photo}" alt="${name}">`;
+            } else {
+                el.textContent = name.charAt(0).toUpperCase();
+            }
+        }
+
+        async function initSupabase() {
+            if (DEMO_MODE || !API_URL) return;
+            try {
+                const resp = await fetch(`${API_URL}/auth/config`);
+                if (!resp.ok) return;
+                const cfg = await resp.json();
+                if (!cfg.supabase_url || !cfg.supabase_anon_key) return;
+                supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (session?.access_token) {
+                    currentToken = session.access_token;
+                    localStorage.setItem('token', currentToken);
+                    await fetchProfile();
+                }
+                supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+                    if (session?.access_token) {
+                        currentToken = session.access_token;
+                        localStorage.setItem('token', currentToken);
+                        await fetchProfile();
+                        updateAuthUI();
+                    } else if (!DEMO_MODE) {
+                        currentToken = '';
+                        currentUserId = '';
+                        currentUsername = '';
+                        currentProfile = null;
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user_id');
+                        localStorage.removeItem('username');
+                        updateAuthUI();
+                    }
+                });
+            } catch (err) {
+                console.warn('Supabase init failed', err);
+            }
+        }
+
+        async function fetchProfile() {
+            if (!currentToken || DEMO_MODE) return null;
+            try {
+                const resp = await apiFetch('/auth/me', { headers: authHeaders() });
+                if (!resp.ok) return null;
+                currentProfile = await resp.json();
+                currentUserId = currentProfile.user_id;
+                currentUsername = currentProfile.display_name || currentProfile.username;
+                localStorage.setItem('user_id', currentUserId);
+                localStorage.setItem('username', currentUsername);
+                populateProfileForm(currentProfile);
+                return currentProfile;
+            } catch (err) {
+                console.warn('fetchProfile failed', err);
+                return null;
+            }
+        }
+
+        function populateProfileForm(profile) {
+            if (!profile) return;
+            const dn = document.getElementById('edit-display-name');
+            const un = document.getElementById('edit-username');
+            const bio = document.getElementById('edit-bio');
+            const bday = document.getElementById('edit-birthday');
+            const mobile = document.getElementById('edit-mobile');
+            if (dn) dn.value = profile.display_name || '';
+            if (un) un.value = profile.username || '';
+            if (bio) bio.value = profile.bio || '';
+            if (bday) bday.value = profile.birthday || '';
+            if (mobile) mobile.value = profile.mobile_number || '';
+            setAvatarElement(document.getElementById('profile-edit-avatar'), profile);
+        }
 
         function faceEnrolledKey() {
             return currentUserId ? `tagr_face_enrolled_${currentUserId}` : 'tagr_face_enrolled';
@@ -1781,20 +1952,44 @@
             const avatar = document.getElementById('header-avatar');
             const profileName = document.getElementById('profile-name');
             const profileAvatar = document.getElementById('profile-avatar');
+            const profileHandle = document.getElementById('profile-handle');
+            const profileZodiac = document.getElementById('profile-zodiac');
+            const profileBio = document.getElementById('profile-bio');
             const signedInSection = document.getElementById('profile-signed-in');
             const signedOutSection = document.getElementById('profile-signed-out');
             const greetingName = document.getElementById('gallery-greeting-name');
 
+            const displayName = currentProfile?.display_name || currentUsername || 'you';
+            const handle = currentProfile?.username ? `@${currentProfile.username}` : '';
+
             if (currentToken) {
-                const initial = (currentUsername || '?').charAt(0).toUpperCase();
-                statusDiv.innerHTML = `Signed in as <strong>${currentUsername || 'you'}</strong><br><a href="#" onclick="logout(); return false;">Sign out</a>`;
-                avatar.textContent = initial;
+                statusDiv.innerHTML = `Signed in as <strong>${displayName}</strong><br><a href="#" onclick="logout(); return false;">Sign out</a>`;
+                setAvatarElement(avatar, currentProfile || { display_name: displayName, username: currentUsername });
                 avatar.classList.remove('hidden');
                 signedInSection.classList.remove('hidden');
                 signedOutSection.classList.add('hidden');
-                profileName.textContent = currentUsername || 'you';
-                profileAvatar.textContent = initial;
-                greetingName.textContent = currentUsername || 'there';
+                profileName.textContent = displayName;
+                setAvatarElement(profileAvatar, currentProfile || { display_name: displayName, username: currentUsername });
+                if (profileHandle) profileHandle.textContent = handle || `@${currentUsername || 'you'}`;
+                if (profileZodiac) {
+                    if (currentProfile?.zodiac_sign) {
+                        profileZodiac.textContent = currentProfile.zodiac_sign;
+                        profileZodiac.classList.remove('hidden');
+                    } else {
+                        profileZodiac.classList.add('hidden');
+                    }
+                }
+                if (profileBio) {
+                    if (currentProfile?.bio) {
+                        profileBio.textContent = currentProfile.bio;
+                        profileBio.classList.remove('hidden');
+                    } else {
+                        profileBio.textContent = '';
+                        profileBio.classList.add('hidden');
+                    }
+                }
+                greetingName.textContent = displayName.split(' ')[0] || 'there';
+                populateProfileForm(currentProfile);
             } else {
                 statusDiv.textContent = 'Not signed in';
                 avatar.classList.add('hidden');
@@ -1802,6 +1997,9 @@
                 signedOutSection.classList.remove('hidden');
                 profileName.textContent = 'You';
                 profileAvatar.textContent = '?';
+                if (profileHandle) profileHandle.textContent = '@you';
+                if (profileZodiac) profileZodiac.classList.add('hidden');
+                if (profileBio) profileBio.classList.add('hidden');
                 greetingName.textContent = 'there';
                 hideEnrollmentOverlay();
             }
@@ -1810,7 +2008,10 @@
             updateEnrollmentUI();
         }
 
-        function logout() {
+        async function logout() {
+            if (supabaseClient) {
+                try { await supabaseClient.auth.signOut(); } catch (_) {}
+            }
             const demoFlag = localStorage.getItem('tagr_demo_mode');
             const apiUrl = localStorage.getItem('tagr_api_url');
             localStorage.clear();
@@ -1819,6 +2020,7 @@
             currentToken = '';
             currentUserId = '';
             currentUsername = '';
+            currentProfile = null;
             cachedFriends = [];
             resetDemoState();
             updateAuthUI();
@@ -1865,12 +2067,12 @@
             }
 
             const formData = new FormData();
-            formData.append('user_id', currentUserId);
             formData.append('image', blob, 'enrollment.jpg');
 
             try {
                 const response = await apiFetch('/auth/enroll-face', {
                     method: 'POST',
+                    headers: authHeaders(),
                     body: formData
                 });
                 const data = await response.json();
@@ -1932,116 +2134,166 @@
             }, 'image/jpeg');
         }
 
-        async function handleRegister(e) {
+        async function handleSignUp(e) {
             e.preventDefault();
             if (!requireApi()) return;
-            const username = document.getElementById('reg-username').value;
-            const mobile = document.getElementById('reg-mobile').value;
+            const displayName = document.getElementById('reg-display-name').value.trim();
+            const username = document.getElementById('reg-username').value.trim().toLowerCase();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const errEl = document.getElementById('register-error');
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
 
-            const formData = new FormData();
-            formData.append('username', username);
-            formData.append('mobile_number', mobile);
-
-            const response = await apiFetch(`/auth/register`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (response.ok) {
-                currentUserId = data.user_id;
+            if (DEMO_MODE) {
+                currentToken = 'demo-token-' + Date.now();
+                currentUserId = 'demo-user-me';
+                currentUsername = displayName || username;
+                currentProfile = {
+                    user_id: currentUserId,
+                    username,
+                    display_name: displayName,
+                    email,
+                    bio: null,
+                    birthday: null,
+                    zodiac_sign: null,
+                    profile_photo_url: null,
+                };
+                localStorage.setItem('token', currentToken);
                 localStorage.setItem('user_id', currentUserId);
-                localStorage.setItem('username', username);
-                currentUsername = username;
-                document.getElementById('otp-form').classList.remove('hidden');
+                localStorage.setItem('username', currentUsername);
+                finishDemoAuth('Welcome. Demo gallery and social data are ready.');
+                return;
+            }
+
+            if (!supabaseClient) {
+                toast('Auth not configured. Set SUPABASE_URL and keys on the server.');
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { display_name: displayName, username },
+                },
+            });
+            if (error) {
+                if (errEl) { errEl.textContent = error.message; errEl.classList.remove('hidden'); }
+                return;
+            }
+            if (data.session?.access_token) {
+                currentToken = data.session.access_token;
+                localStorage.setItem('token', currentToken);
+                await fetchProfile();
                 updateAuthUI();
-                toast(DEMO_MODE ? 'Demo: enter any code to continue.' : 'Code generated (123456). Complete verification below.');
+                toast('Account created. Welcome!');
+                maybeShowOnboarding();
             } else {
-                alert('Registration failed: ' + data.detail);
+                toast('Check your email to confirm your account, then sign in.');
+                switchAuthPane('login');
             }
         }
 
-        async function handleVerifyOTP(e) {
+        async function handleSignIn(e) {
             e.preventDefault();
             if (!requireApi()) return;
-            const otp = document.getElementById('otp-code').value;
-            const mobile = document.getElementById('reg-mobile').value;
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errEl = document.getElementById('login-error');
+            if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
 
-            const formData = new FormData();
-            formData.append('mobile_number', mobile);
-            formData.append('otp', otp);
-
-            const response = await apiFetch(`/auth/verify-otp`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (response.ok) {
-                currentToken = data.token;
+            if (DEMO_MODE) {
+                currentToken = 'demo-token-' + Date.now();
+                currentUserId = 'demo-user-me';
+                currentUsername = email.split('@')[0] || 'You';
+                currentProfile = {
+                    user_id: currentUserId,
+                    username: currentUsername.toLowerCase(),
+                    display_name: currentUsername,
+                    email,
+                    profile_photo_url: null,
+                };
                 localStorage.setItem('token', currentToken);
-                if (DEMO_MODE) {
-                    finishDemoAuth('Welcome. Demo gallery and social data are ready.');
-                } else {
-                    updateAuthUI();
-                    toast('You are signed in.');
-                    maybeShowOnboarding();
-                }
-            } else {
-                alert('Verification failed: ' + data.detail);
+                localStorage.setItem('user_id', currentUserId);
+                localStorage.setItem('username', currentUsername);
+                finishDemoAuth('Signed in with demo data.');
+                return;
             }
+
+            if (!supabaseClient) {
+                toast('Auth not configured. Set SUPABASE_URL and keys on the server.');
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                if (errEl) { errEl.textContent = error.message; errEl.classList.remove('hidden'); }
+                return;
+            }
+            currentToken = data.session.access_token;
+            localStorage.setItem('token', currentToken);
+            await fetchProfile();
+            updateAuthUI();
+            toast('Signed in successfully.');
+            maybeShowOnboarding();
         }
 
-        async function handleLoginRequest(e) {
+        async function handleSaveProfile(e) {
             e.preventDefault();
-            if (!requireApi()) return;
-            const mobile = document.getElementById('login-mobile').value;
-            const formData = new FormData();
-            formData.append('mobile_number', mobile);
-            const response = await apiFetch(`/auth/request-login-otp`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (response.ok) {
-                document.getElementById('login-request-form').classList.add('hidden');
-                document.getElementById('login-otp-form').classList.remove('hidden');
-                toast(DEMO_MODE ? 'Demo: enter any code to sign in.' : 'Code sent (123456).');
-            } else {
-                alert('Request failed: ' + data.detail);
+            if (!currentToken || DEMO_MODE) {
+                toast(DEMO_MODE ? 'Profile saved (demo).' : 'Sign in first.');
+                return;
             }
+            const payload = {
+                display_name: document.getElementById('edit-display-name').value.trim(),
+                username: document.getElementById('edit-username').value.trim().toLowerCase(),
+                bio: document.getElementById('edit-bio').value.trim(),
+                birthday: document.getElementById('edit-birthday').value || null,
+                mobile_number: document.getElementById('edit-mobile').value.trim() || null,
+            };
+            const resp = await apiFetch('/auth/me', {
+                method: 'PATCH',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                alert('Could not save profile: ' + (data.detail || 'unknown error'));
+                return;
+            }
+            currentProfile = data;
+            currentUsername = data.display_name || data.username;
+            localStorage.setItem('username', currentUsername);
+            updateAuthUI();
+            toast('Profile saved.');
         }
 
-        async function handleLoginOTP(e) {
-            e.preventDefault();
-            if (!requireApi()) return;
-            const mobile = document.getElementById('login-mobile').value;
-            const otp = document.getElementById('login-otp-code').value;
-            const formData = new FormData();
-            formData.append('mobile_number', mobile);
-            formData.append('otp', otp);
-            const response = await apiFetch(`/auth/login`, {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            if (response.ok) {
-                currentToken = data.token;
-                localStorage.setItem('token', currentToken);
-                if (data.user_id) {
-                    currentUserId = data.user_id;
-                    localStorage.setItem('user_id', currentUserId);
-                }
-                ensureDemoUserFromLogin(document.getElementById('login-mobile').value);
-                if (DEMO_MODE) {
-                    finishDemoAuth('Signed in with demo data.');
-                } else {
-                    updateAuthUI();
-                    toast('Signed in successfully.');
-                    document.getElementById('login-section').classList.add('hidden');
-                    maybeShowOnboarding();
-                }
-            } else {
-                alert('Sign in failed: ' + data.detail);
+        async function handleProfilePhotoSelect(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file || !currentToken) return;
+            if (DEMO_MODE) {
+                const url = URL.createObjectURL(file);
+                currentProfile = currentProfile || {};
+                currentProfile.profile_photo_url = url;
+                updateAuthUI();
+                toast('Profile photo updated (demo).');
+                return;
             }
+            const formData = new FormData();
+            formData.append('image', file);
+            const resp = await apiFetch('/auth/profile-photo', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: formData,
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                alert('Upload failed: ' + (data.detail || 'unknown error'));
+                return;
+            }
+            currentProfile = data;
+            updateAuthUI();
+            toast('Profile photo updated.');
         }
 
         function handleDrop(e) {
@@ -2476,17 +2728,25 @@
 
         updateAuthUI();
         showModeBanner();
-        if (currentToken) {
-            switchTab('tab-gallery');
-            loadNotifications();
-            loadFriendSuggestions();
-            loadFriendsList();
-            if (!isFaceEnrolled()) {
-                maybeShowOnboarding();
+        (async function boot() {
+            if (!DEMO_MODE && API_URL) {
+                await initSupabase();
+            } else if (currentToken && DEMO_MODE) {
+                await fetchProfile();
             }
-        } else {
-            switchTab('tab-gallery');
-        }
+            updateAuthUI();
+            if (currentToken) {
+                switchTab('tab-gallery');
+                loadNotifications();
+                loadFriendSuggestions();
+                loadFriendsList();
+                if (!isFaceEnrolled()) {
+                    maybeShowOnboarding();
+                }
+            } else {
+                switchTab('tab-gallery');
+            }
+        })();
 
     </script>
 </body>

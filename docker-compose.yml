@@ -78,11 +78,9 @@ services:
     environment:
       # Point this at your Supabase Postgres (see .env / .env.example).
       DATABASE_URL: ${DATABASE_URL}
-      JWT_SECRET: ${JWT_SECRET:-tagr-super-secret-key-12345}
-      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      JWT_EXPIRY_DAYS: ${JWT_EXPIRY_DAYS:-7}
-      MOCK_OTP_CODE: ${MOCK_OTP_CODE:-123456}
-      OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-5}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://storage:9000}
       STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-http://localhost:${MINIO_PORT:-9000}}
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}

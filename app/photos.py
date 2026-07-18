@@ -84,17 +84,19 @@ async def get_photo_tags(photo_id: uuid.UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Photo not found")
         
     tags = db.execute(
-        select(PhotoTag, User.username)
+        select(PhotoTag, User.username, User.display_name, User.profile_photo_key)
         .join(User, PhotoTag.user_id == User.id)
         .where(PhotoTag.photo_id == photo_id)
     ).all()
     
     results = []
-    for tag, username in tags:
+    for tag, username, display_name, photo_key in tags:
         results.append({
             "tag_id": str(tag.id),
             "user_id": str(tag.user_id),
             "username": username,
+            "display_name": display_name or username,
+            "profile_photo_url": get_image_url(photo_key, internal=False) if photo_key else None,
             "bbox": {
                 "x": tag.bbox_x,
                 "y": tag.bbox_y,

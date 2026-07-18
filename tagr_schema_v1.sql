@@ -10,27 +10,25 @@ CREATE EXTENSION IF NOT EXISTS vector;     -- pgvector, for face embeddings
 -- 1. users
 -- =====================================================================
 CREATE TABLE users (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mobile_number   VARCHAR(15) UNIQUE NOT NULL,
-    username        VARCHAR(30) UNIQUE NOT NULL,
-    is_verified     BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id        UUID UNIQUE,
+    email               VARCHAR(255) UNIQUE,
+    mobile_number       VARCHAR(15) UNIQUE,
+    username            VARCHAR(30) UNIQUE NOT NULL,
+    display_name        VARCHAR(100),
+    profile_photo_key   TEXT,
+    bio                 TEXT,
+    birthday            DATE,
+    zodiac_sign         VARCHAR(20),
+    is_verified         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- =====================================================================
--- 2. otp_requests
--- =====================================================================
-CREATE TABLE otp_requests (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mobile_number   VARCHAR(15) NOT NULL,
-    otp_code        VARCHAR(6) NOT NULL,
-    expires_at      TIMESTAMPTZ NOT NULL,
-    verified        BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+CREATE INDEX idx_users_auth_user_id ON users(auth_user_id);
 
-CREATE INDEX idx_otp_mobile ON otp_requests(mobile_number);
+-- Legacy OTP table (deprecated — auth is via Supabase). Kept for existing DBs only.
+-- CREATE TABLE otp_requests ( ... );
 
 -- =====================================================================
 -- 3. photos

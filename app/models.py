@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Float, Text, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Float, Text, UniqueConstraint, CheckConstraint, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
@@ -9,21 +9,18 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    mobile_number = Column(String(15), unique=True, nullable=False)
+    auth_user_id = Column(UUID(as_uuid=True), unique=True, nullable=True, index=True)
+    email = Column(String(255), unique=True, nullable=True)
+    mobile_number = Column(String(15), unique=True, nullable=True)
     username = Column(String(30), unique=True, nullable=False)
-    is_verified = Column(Boolean, nullable=False, default=False)
+    display_name = Column(String(100), nullable=True)
+    profile_photo_key = Column(Text, nullable=True)
+    bio = Column(Text, nullable=True)
+    birthday = Column(Date, nullable=True)
+    zodiac_sign = Column(String(20), nullable=True)
+    is_verified = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
-
-class OTPRequest(Base):
-    __tablename__ = "otp_requests"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    mobile_number = Column(String(15), nullable=False)
-    otp_code = Column(String(6), nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    verified = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 class Photo(Base):
     __tablename__ = "photos"

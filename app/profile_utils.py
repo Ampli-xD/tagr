@@ -46,11 +46,11 @@ def profile_photo_url(user: User) -> Optional[str]:
     return None
 
 
-def user_profile_dict(user: User) -> dict[str, Any]:
+def user_profile_dict(user: User, *, face_enrolled: Optional[bool] = None) -> dict[str, Any]:
     zodiac = user.zodiac_sign
     if not zodiac and user.birthday:
         zodiac = compute_zodiac(user.birthday)
-    return {
+    data = {
         "user_id": str(user.id),
         "auth_user_id": str(user.auth_user_id) if user.auth_user_id else None,
         "email": user.email,
@@ -64,6 +64,9 @@ def user_profile_dict(user: User) -> dict[str, Any]:
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
+    if face_enrolled is not None:
+        data["face_enrolled"] = face_enrolled
+    return data
 
 
 def user_public_dict(user: User) -> dict[str, Any]:

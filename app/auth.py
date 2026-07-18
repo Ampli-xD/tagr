@@ -135,6 +135,15 @@ def get_current_user_id(user: User = Depends(get_current_user)) -> uuid.UUID:
     return user.id
 
 
+def user_has_face_enrollment(db: Session, user_id: uuid.UUID) -> bool:
+    return db.execute(
+        select(FaceEmbedding.id).where(
+            FaceEmbedding.user_id == user_id,
+            FaceEmbedding.source == "enrollment",
+        ).limit(1)
+    ).first() is not None
+
+
 @router.get("/config")
 async def auth_config():
     """Public Supabase client config for the frontend (anon key only)."""
@@ -150,8 +159,9 @@ async def auth_config():
 
 
 @router.get("/me")
-async def me(user: User = Depends(get_current_user)):
-    return user_profile_dict(user)
+async def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    face_enrolled = user_has_face_enrollment(db, user.id)
+    return user_profile_dict(user, face_enrolled=face_enrolled)
 
 
 @router.patch("/me")
@@ -211,7 +221,7 @@ async def update_me(
 
     db.commit()
     db.refresh(user)
-    return user_profile_dict(user)
+    return user_profile_dict(user, face_enrolled=user_has_face_enrollment(db, user.id))
 
 
 @router.post("/profile-photo")
@@ -227,7 +237,7 @@ async def upload_profile_photo(
     user.profile_photo_key = key
     db.commit()
     db.refresh(user)
-    return user_profile_dict(user)
+    return user_profile_dict(user, face_enrolled=user_has_face_enrollment(db, user.id))
 
 
 @router.post("/enroll-face")

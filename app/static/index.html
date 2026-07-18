@@ -1455,6 +1455,7 @@
                     zodiac_sign: 'Cancer',
                     profile_photo_url: null,
                     mobile_number: null,
+                    face_enrolled: localStorage.getItem(faceEnrolledKey()) === '1',
                 });
             }
             if (parts[0] === 'auth' && parts[1] === 'me' && method === 'PATCH') {
@@ -1685,11 +1686,13 @@
             updateAuthUI();
             toast(message);
             document.getElementById('login-section').classList.add('hidden');
-            loadGallery();
-            loadNotifications();
-            loadFriendSuggestions();
-            loadFriendsList();
             maybeShowOnboarding();
+            if (isFaceEnrolled()) {
+                loadGallery();
+                loadNotifications();
+                loadFriendSuggestions();
+                loadFriendsList();
+            }
         }
 
         let currentToken = localStorage.getItem('token') || '';
@@ -1699,6 +1702,7 @@
         let supabaseClient = null;
         let activePhotoId = null;
         let enrollmentDismissedForSession = false;
+        let enrollmentAllowDismiss = true;
 
         function authHeaders(extra = {}) {
             const headers = { ...extra };
@@ -1764,6 +1768,7 @@
                 localStorage.setItem('user_id', currentUserId);
                 localStorage.setItem('username', currentUsername);
                 populateProfileForm(currentProfile);
+                syncFaceEnrolledFromProfile();
                 return currentProfile;
             } catch (err) {
                 console.warn('fetchProfile failed', err);
@@ -1798,10 +1803,23 @@
         }
 
         function isFaceEnrolled() {
+            if (currentProfile && typeof currentProfile.face_enrolled === 'boolean') {
+                return currentProfile.face_enrolled;
+            }
             return localStorage.getItem(faceEnrolledKey()) === '1';
         }
 
+        function syncFaceEnrolledFromProfile() {
+            if (!currentProfile || typeof currentProfile.face_enrolled !== 'boolean') return;
+            if (currentProfile.face_enrolled) {
+                localStorage.setItem(faceEnrolledKey(), '1');
+            } else {
+                localStorage.removeItem(faceEnrolledKey());
+            }
+        }
+
         function setFaceEnrolled(enrolled) {
+            if (currentProfile) currentProfile.face_enrolled = enrolled;
             if (enrolled) {
                 localStorage.setItem(faceEnrolledKey(), '1');
             } else {
@@ -1815,6 +1833,7 @@
             const skipBtn = document.getElementById('enrollment-skip-btn');
             const subtitle = document.getElementById('enrollment-subtitle');
             if (!overlay) return;
+            enrollmentAllowDismiss = allowDismiss;
             overlay.classList.add('show');
             overlay.setAttribute('aria-hidden', 'false');
             document.body.style.overflow = 'hidden';
@@ -1822,7 +1841,7 @@
             if (subtitle) {
                 subtitle.textContent = allowDismiss
                     ? 'Update your face photo for better automatic tagging.'
-                    : 'Center your face in the frame. This helps tag you automatically in photos.';
+                    : 'Almost done — capture your face to finish setting up tagr.';
             }
             resetEnrollmentPreview();
             updateEnrollmentCameraUI();
@@ -1870,7 +1889,9 @@
             overlay.classList.remove('show');
             overlay.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
-            enrollmentDismissedForSession = true;
+            if (enrollmentAllowDismiss) {
+                enrollmentDismissedForSession = true;
+            }
             resetEnrollmentPreview();
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -1879,12 +1900,21 @@
         }
 
         function maybeShowOnboarding() {
-            if (!currentToken || isFaceEnrolled() || enrollmentDismissedForSession) {
+            if (!currentToken) {
+                showSignInGate();
+                return;
+            }
+            if (isFaceEnrolled()) {
                 switchTab('tab-gallery');
                 return;
             }
+            enrollmentDismissedForSession = false;
             switchTab('tab-profile');
             showEnrollmentOverlay(false);
+        }
+
+        function needsFaceSetup() {
+            return isSignedIn() && !isFaceEnrolled();
         }
 
         function updateEnrollmentUI() {
@@ -1901,10 +1931,10 @@
             if (statusLine) {
                 statusLine.textContent = enrolled
                     ? 'Face enrolled — automatic tagging is on.'
-                    : 'Complete face setup to enable automatic tagging.';
+                    : 'Capture your face to finish setup and unlock the app.';
             }
 
-            if (signedIn && !enrolled && !enrollmentDismissedForSession) {
+            if (signedIn && !enrolled) {
                 const overlay = document.getElementById('enrollment-overlay');
                 if (overlay && !overlay.classList.contains('show')) {
                     showEnrollmentOverlay(false);
@@ -1933,6 +1963,11 @@
             if (!isSignedIn() && tabId !== 'tab-profile') {
                 toast('Sign in to continue.');
                 showSignInGate();
+                return;
+            }
+            if (needsFaceSetup() && tabId !== 'tab-profile') {
+                toast('Capture your face to finish setup.');
+                maybeShowOnboarding();
                 return;
             }
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -2125,6 +2160,9 @@
                     hideEnrollmentOverlay();
                     toast('Face enrolled successfully.');
                     switchTab('tab-gallery');
+                    loadNotifications();
+                    loadFriendSuggestions();
+                    loadFriendsList();
                     return true;
                 }
                 alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
@@ -2237,7 +2275,7 @@
                 localStorage.setItem('token', currentToken);
                 await fetchProfile();
                 updateAuthUI();
-                toast('Account created. Welcome!');
+                toast('Account created — capture your face to finish setup.');
                 maybeShowOnboarding();
             } else {
                 toast('Check your email to confirm your account, then sign in.');
@@ -2285,8 +2323,13 @@
             localStorage.setItem('token', currentToken);
             await fetchProfile();
             updateAuthUI();
-            toast('Signed in successfully.');
-            maybeShowOnboarding();
+            if (isFaceEnrolled()) {
+                toast('Signed in successfully.');
+                switchTab('tab-gallery');
+            } else {
+                toast('Welcome back — finish face setup to continue.');
+                maybeShowOnboarding();
+            }
         }
 
         async function handleSaveProfile(e) {
@@ -2787,11 +2830,14 @@
             }
             updateAuthUI();
             if (currentToken) {
-                switchTab('tab-gallery');
-                loadNotifications();
-                loadFriendSuggestions();
-                loadFriendsList();
-                if (!isFaceEnrolled()) {
+                await fetchProfile();
+                updateAuthUI();
+                if (isFaceEnrolled()) {
+                    switchTab('tab-gallery');
+                    loadNotifications();
+                    loadFriendSuggestions();
+                    loadFriendsList();
+                } else {
                     maybeShowOnboarding();
                 }
             } else {

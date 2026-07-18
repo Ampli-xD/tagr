@@ -709,6 +709,25 @@
             box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
         }
         .enrollment-panel .camera-container { max-height: min(52vh, 420px); }
+        .enrollment-notice {
+            border: 1px solid var(--line);
+            background: #F9F5EE;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+        .enrollment-notice strong { color: var(--ink); display: block; margin-bottom: 4px; }
+        .enrollment-preview {
+            display: none;
+            width: 100%;
+            max-height: min(52vh, 420px);
+            object-fit: cover;
+            border: 1px solid var(--line);
+            margin-bottom: 12px;
+        }
+        .enrollment-preview.show { display: block; }
 
         .profile-actions {
             display: flex;
@@ -1044,14 +1063,23 @@
                 <h2 class="section-title" id="enrollment-title">Enroll your face</h2>
                 <p class="subtext" id="enrollment-subtitle">Center your face in the frame. This helps tag you automatically in photos.</p>
             </div>
-            <div class="camera-container">
+            <div id="enrollment-camera-notice" class="enrollment-notice hidden">
+                <strong>Camera needs a secure connection</strong>
+                Browsers block the camera on plain HTTP (for example <code>192.168.x.x</code>). Open tagr via <code>https://</code> or <code>localhost</code>, or upload a clear selfie below.
+            </div>
+            <img id="enrollment-preview" class="enrollment-preview" alt="Enrollment preview">
+            <div class="camera-container" id="enrollment-camera-wrap">
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="canvas" class="hidden"></canvas>
                 <div class="camera-overlay"><div class="face-oval"></div></div>
             </div>
-            <div class="btn-row" style="margin-top: 12px;">
+            <div class="btn-row" id="enrollment-camera-actions" style="margin-top: 12px;">
                 <button type="button" class="btn btn-outline" onclick="startCamera()">Start camera</button>
                 <button type="button" class="btn btn-accent" onclick="captureAndEnroll()">Save face</button>
+            </div>
+            <div class="btn-row" style="margin-top: 10px;">
+                <button type="button" id="enrollment-upload-btn" class="btn btn-outline btn-block" onclick="document.getElementById('enrollment-file-input').click()">Upload a selfie</button>
+                <input type="file" id="enrollment-file-input" class="hidden" accept="image/*" capture="user" onchange="handleEnrollmentPhotoSelect(event)">
             </div>
             <button type="button" id="enrollment-skip-btn" class="btn btn-outline btn-block hidden" style="margin-top: 10px;" onclick="hideEnrollmentOverlay()">Not now</button>
         </div>
@@ -1603,7 +1631,44 @@
                     ? 'Update your face photo for better automatic tagging.'
                     : 'Center your face in the frame. This helps tag you automatically in photos.';
             }
-            startCamera().catch(() => {});
+            resetEnrollmentPreview();
+            updateEnrollmentCameraUI();
+        }
+
+        function resetEnrollmentPreview() {
+            const preview = document.getElementById('enrollment-preview');
+            const fileInput = document.getElementById('enrollment-file-input');
+            if (preview) {
+                preview.classList.remove('show');
+                preview.removeAttribute('src');
+            }
+            if (fileInput) fileInput.value = '';
+        }
+
+        function canUseCamera() {
+            return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+        }
+
+        function isLocalhostHost() {
+            return ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+        }
+
+        function updateEnrollmentCameraUI() {
+            const notice = document.getElementById('enrollment-camera-notice');
+            const cameraActions = document.getElementById('enrollment-camera-actions');
+            const cameraWrap = document.getElementById('enrollment-camera-wrap');
+            const cameraAvailable = window.isSecureContext && canUseCamera();
+
+            if (notice) notice.classList.toggle('hidden', cameraAvailable);
+            if (cameraActions) cameraActions.classList.toggle('hidden', !cameraAvailable);
+            if (cameraWrap) cameraWrap.classList.toggle('hidden', !cameraAvailable);
+
+            if (cameraAvailable) {
+                startCamera().catch(() => {});
+            } else if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
         }
 
         function hideEnrollmentOverlay() {
@@ -1613,6 +1678,7 @@
             overlay.setAttribute('aria-hidden', 'true');
             document.body.style.overflow = '';
             enrollmentDismissedForSession = true;
+            resetEnrollmentPreview();
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
                 stream = null;
@@ -1760,20 +1826,29 @@
         }
 
         let stream = null;
+
         async function startCamera() {
+            if (!canUseCamera()) {
+                updateEnrollmentCameraUI();
+                toast('Camera unavailable here. Upload a selfie instead.');
+                return;
+            }
             try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
                 stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 document.getElementById('video').srcObject = stream;
             } catch (err) {
-                alert('Could not start camera: ' + err.message);
+                toast('Could not start camera. Try uploading a selfie instead.');
             }
         }
 
-        async function captureAndEnroll() {
-            if (!requireApi()) return;
+        async function submitEnrollmentBlob(blob) {
+            if (!requireApi()) return false;
             if (!currentUserId) {
                 alert('Please register or sign in first.');
-                return;
+                return false;
             }
             if (DEMO_MODE) {
                 const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
@@ -1783,9 +1858,56 @@
                     hideEnrollmentOverlay();
                     toast('Face enrolled (demo).');
                     switchTab('tab-gallery');
-                } else {
-                    toast('Enrollment failed.');
+                    return true;
                 }
+                toast('Enrollment failed.');
+                return false;
+            }
+
+            const formData = new FormData();
+            formData.append('user_id', currentUserId);
+            formData.append('image', blob, 'enrollment.jpg');
+
+            try {
+                const response = await apiFetch('/auth/enroll-face', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok && data.enrolled) {
+                    setFaceEnrolled(true);
+                    hideEnrollmentOverlay();
+                    toast('Face enrolled successfully.');
+                    switchTab('tab-gallery');
+                    return true;
+                }
+                alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
+            } catch (err) {
+                alert('Error submitting enrollment: ' + err.message);
+            }
+            return false;
+        }
+
+        function handleEnrollmentPhotoSelect(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('enrollment-preview');
+            if (preview) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.add('show');
+            }
+            submitEnrollmentBlob(file);
+        }
+
+        async function captureAndEnroll() {
+            if (!requireApi()) return;
+            if (!currentUserId) {
+                alert('Please register or sign in first.');
+                return;
+            }
+            if (DEMO_MODE) {
+                await submitEnrollmentBlob(new Blob(['demo'], { type: 'image/jpeg' }));
                 return;
             }
             const video = document.getElementById('video');
@@ -1793,7 +1915,7 @@
             const context = canvas.getContext('2d');
 
             if (!video.videoWidth || !video.videoHeight) {
-                alert('Start the camera first, then wait a moment for the preview before capturing.');
+                toast('Start the camera first, or upload a selfie.');
                 return;
             }
 
@@ -1803,30 +1925,10 @@
 
             canvas.toBlob(async (blob) => {
                 if (!blob) {
-                    alert('Could not capture a frame. Make sure the camera preview is visible and try again.');
+                    toast('Could not capture a frame. Try uploading a selfie instead.');
                     return;
                 }
-                const formData = new FormData();
-                formData.append('user_id', currentUserId);
-                formData.append('image', blob, 'enrollment.jpg');
-
-                try {
-                    const response = await apiFetch(`/auth/enroll-face`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-                    if (response.ok && data.enrolled) {
-                        setFaceEnrolled(true);
-                        hideEnrollmentOverlay();
-                        toast('Face enrolled successfully.');
-                        switchTab('tab-gallery');
-                    } else {
-                        alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
-                    }
-                } catch (err) {
-                    alert('Error submitting enrollment: ' + err.message);
-                }
+                await submitEnrollmentBlob(blob);
             }, 'image/jpeg');
         }
 

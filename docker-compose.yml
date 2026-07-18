@@ -24,7 +24,32 @@ services:
   #     timeout: 5s
   #     retries: 5
 
+  # ---------------------------------------------------------------------------
+  # Local MinIO — DISABLED in favor of Supabase Storage (S3-compatible).
+  # Re-enable for fully offline dev: uncomment this service, restore the `storage`
+  # dependency under `web`, and point STORAGE_* at MinIO in .env.
+  # ---------------------------------------------------------------------------
+  # storage:
+  #   image: minio/minio:latest
+  #   container_name: tagr-storage
+  #   command: server /data --console-address ":9001"
+  #   env_file: .env
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  #   ports:
+  #     - "${MINIO_PORT:-9000}:9000"
+  #     - "${MINIO_CONSOLE_PORT:-9001}:9001"
+  #   volumes:
+  #     - minio_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
   storage:
+    profiles: ["minio"]
     image: minio/minio:latest
     container_name: tagr-storage
     command: server /data --console-address ":9001"
@@ -89,12 +114,13 @@ services:
       SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
       SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL:-}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-}
-      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://storage:9000}
-      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-http://localhost:${MINIO_PORT:-9000}}
-      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
-      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}
+      STORAGE_PUBLIC_ENDPOINT: ${STORAGE_PUBLIC_ENDPOINT:-}
+      STORAGE_INFERENCE_ENDPOINT: ${STORAGE_INFERENCE_ENDPOINT:-}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-tagr-bucket}
-      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_REGION: ${STORAGE_REGION:-ap-southeast-1}
       INFERENCE_SERVER_URL: ${INFERENCE_SERVER_URL:-http://inference:8001}
       INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-30}
       INFERENCE_BATCH_TIMEOUT_SECONDS: ${INFERENCE_BATCH_TIMEOUT_SECONDS:-120}
@@ -107,8 +133,7 @@ services:
       - "${WEB_PORT:-8787}:8000"
     depends_on:
       # db dependency removed: using external Supabase Postgres.
-      storage:
-        condition: service_healthy
+      # storage dependency removed: using Supabase Storage (enable --profile minio for local MinIO).
       inference:
         condition: service_started
     volumes:

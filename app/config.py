@@ -136,21 +136,41 @@ API_CALLBACK_URL = _get_str(
 SIMILARITY_THRESHOLD = _get_float("SIMILARITY_THRESHOLD", 0.35)
 
 # -------------------------------------------------------------------
-# Object storage (S3 / MinIO)
+# Object storage (Supabase Storage S3 / MinIO / R2)
 # -------------------------------------------------------------------
-STORAGE_ENDPOINT = _get_str("STORAGE_ENDPOINT", "http://storage:9000")
-# URL reachable from the inference container when fetching images (may differ from
-# STORAGE_ENDPOINT when the web service uses host networking).
-STORAGE_INFERENCE_ENDPOINT = _get_str("STORAGE_INFERENCE_ENDPOINT", "")
-STORAGE_PUBLIC_ENDPOINT = _get_str(
-    "STORAGE_PUBLIC_ENDPOINT",
-    STORAGE_ENDPOINT.replace("http://storage:", "http://localhost:"),
-)
-STORAGE_ACCESS_KEY = _get_str("STORAGE_ACCESS_KEY", "minioadmin")
-STORAGE_SECRET_KEY = _get_str("STORAGE_SECRET_KEY", "minioadmin")
 STORAGE_BUCKET = _get_str("STORAGE_BUCKET", "tagr-bucket")
-STORAGE_REGION = _get_str("STORAGE_REGION", "us-east-1")
+STORAGE_REGION = _get_str("STORAGE_REGION", "ap-southeast-1")
 STORAGE_SIGNATURE_VERSION = _get_str("STORAGE_SIGNATURE_VERSION", "s3v4")
+STORAGE_ACCESS_KEY = _get_str("STORAGE_ACCESS_KEY", "")
+STORAGE_SECRET_KEY = _get_str("STORAGE_SECRET_KEY", "")
+
+
+def _resolve_storage_endpoint() -> str:
+    explicit = os.getenv("STORAGE_ENDPOINT", "").strip()
+    if explicit:
+        return explicit
+    project_ref = os.getenv("SUPABASE_PROJECT_REF", "").strip()
+    if project_ref:
+        return f"https://{project_ref}.storage.supabase.co/storage/v1/s3"
+    return "http://storage:9000"
+
+
+def _resolve_storage_public_endpoint(storage_endpoint: str) -> str:
+    explicit = os.getenv("STORAGE_PUBLIC_ENDPOINT", "").strip()
+    if explicit:
+        return explicit
+    supabase_url = os.getenv("SUPABASE_URL", "").strip()
+    if supabase_url and "supabase.co" in storage_endpoint:
+        return (
+            f"{supabase_url.rstrip('/')}/storage/v1/object/public/{STORAGE_BUCKET}"
+        )
+    return storage_endpoint.replace("http://storage:", "http://localhost:")
+
+
+STORAGE_ENDPOINT = _resolve_storage_endpoint()
+STORAGE_PUBLIC_ENDPOINT = _resolve_storage_public_endpoint(STORAGE_ENDPOINT)
+# Optional override when inference cannot reach STORAGE_PUBLIC_ENDPOINT (legacy MinIO).
+STORAGE_INFERENCE_ENDPOINT = _get_str("STORAGE_INFERENCE_ENDPOINT", "")
 
 # -------------------------------------------------------------------
 # CORS

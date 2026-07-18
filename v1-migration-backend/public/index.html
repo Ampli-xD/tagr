@@ -5,65 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0A0A0A">
+    <meta name="theme-color" content="#F4EFE4">
     <title>tagr</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,900;1,9..144,700;1,9..144,900&family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --black: #0A0A0A;
-            --ink-90: #141414;
-            --ink-80: #1C1C1C;
-            --ink-70: #2E2E2E;
-            --gray-50: #8A8A8A;
-            --gray-30: #C7C7C7;
-            --gray-10: #EFEFEF;
-            --white: #FFFFFF;
-            --overlay: rgba(0, 0, 0, 0.5);
-            --glass: rgba(255, 255, 255, 0.06);
-            --glass-strong: rgba(255, 255, 255, 0.12);
-            --glass-border: rgba(255, 255, 255, 0.14);
+            --paper: #F4EFE4;
+            --surface: #FFFDF8;
+            --ink: #111111;
+            --muted: #6D665D;
+            --line: rgba(17, 17, 17, 0.9);
+            --line-soft: rgba(17, 17, 17, 0.24);
+            --sage: #7DB8AE;
+            --sage-soft: #DCEBE7;
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --nav-h: 78px;
-            --radius-sm: 14px;
-            --radius-md: 20px;
-            --radius-lg: 26px;
-            --radius-xl: 32px;
-            --radius-pill: 999px;
-            --ease: cubic-bezier(0.22, 1, 0.36, 1);
-            --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
-            --app-w: 440px;
+            --app-w: 430px;
+            --nav-h: 84px;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-        html { height: 100%; background: #050505; }
-
+        html, body { min-height: 100%; }
         body {
-            min-height: 100%;
-            min-height: 100dvh;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--white);
-            background: #050505;
-            -webkit-font-smoothing: antialiased;
+            background:
+                radial-gradient(circle at 16% 8%, rgba(255,255,255,0.44), transparent 30%),
+                radial-gradient(circle at 82% 18%, rgba(255,255,255,0.24), transparent 24%),
+                #E8DDC9;
+            color: var(--ink);
             overflow-x: hidden;
-            overscroll-behavior-y: none;
         }
 
-        button, input { font-family: inherit; }
-
-        /* Ambient stage behind the phone column */
         .stage {
             min-height: 100dvh;
-            position: relative;
             display: flex;
             justify-content: center;
-            background:
-                radial-gradient(ellipse 60% 40% at 50% -10%, rgba(255,255,255,0.07), transparent 60%),
-                radial-gradient(ellipse 50% 35% at 80% 90%, rgba(255,255,255,0.03), transparent 55%),
-                #050505;
+            position: relative;
         }
 
         .stage::before {
@@ -71,1006 +50,878 @@
             position: fixed;
             inset: 0;
             pointer-events: none;
-            opacity: 0.045;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            opacity: 0.05;
             z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+            mix-blend-mode: multiply;
         }
 
-        .app-shell {
+        .phone-frame {
             width: 100%;
             max-width: var(--app-w);
             min-height: 100dvh;
+            background: rgba(244, 239, 228, 0.95);
+            border-left: 1px solid rgba(17, 17, 17, 0.14);
+            border-right: 1px solid rgba(17, 17, 17, 0.14);
+            box-shadow: 0 20px 80px rgba(0,0,0,0.10), inset 0 0 0 1px rgba(255,255,255,0.36);
             position: relative;
             z-index: 1;
             display: flex;
             flex-direction: column;
-            background: var(--black);
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 40px 120px rgba(0,0,0,0.65);
         }
 
-        @media (min-width: 520px) {
-            .stage { padding: 24px 16px; align-items: stretch; }
-            .app-shell {
-                min-height: calc(100dvh - 48px);
-                border-radius: 40px;
+        @media (min-width: 900px) {
+            .stage { padding: 16px 0; }
+            .phone-frame {
+                border-radius: 30px;
                 overflow: hidden;
-                margin: 0 auto;
+                min-height: calc(100dvh - 32px);
             }
         }
 
-        @media (min-width: 1100px) {
-            .stage::after {
-                content: "tagr";
-                position: fixed;
-                left: 6vw;
-                top: 50%;
-                transform: translateY(-50%) rotate(-90deg);
-                transform-origin: center;
-                font-family: 'Fraunces', serif;
-                font-style: italic;
-                font-weight: 900;
-                font-size: clamp(72px, 10vw, 140px);
-                color: rgba(255,255,255,0.035);
-                letter-spacing: -0.04em;
-                pointer-events: none;
-                white-space: nowrap;
-            }
-        }
-
-        .api-banner {
-            display: none;
-            position: relative;
-            z-index: 120;
-            padding: 10px 18px;
-            font-size: 11.5px;
-            line-height: 1.45;
-            color: var(--gray-30);
-            background: rgba(255,255,255,0.04);
-            border-bottom: 1px solid var(--glass-border);
-        }
-        .api-banner.demo-banner { color: var(--white); background: rgba(255,255,255,0.08); }
-        .api-banner code {
-            font-size: 10.5px;
-            padding: 2px 6px;
-            border-radius: 6px;
-            background: rgba(0,0,0,0.35);
-        }
-
-        /* Header */
-        .app-header {
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        .status-bar {
+            height: calc(42px + var(--safe-top));
+            padding: var(--safe-top) 16px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: calc(14px + var(--safe-top)) 18px 12px;
-            background: rgba(10,10,10,0.55);
-            backdrop-filter: blur(28px) saturate(160%);
-            -webkit-backdrop-filter: blur(28px) saturate(160%);
+            border-top: 1px solid var(--line);
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0));
         }
 
+        .status-icons { font-size: 11px; display: flex; gap: 6px; align-items: center; }
+
+        .api-banner {
+            display: none;
+            padding: 10px 16px;
+            font-size: 11.5px;
+            line-height: 1.45;
+            border-top: 1px solid var(--line-soft);
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(255, 253, 248, 0.9);
+            color: var(--muted);
+        }
+        .api-banner.demo-banner {
+            background: var(--sage-soft);
+            color: var(--ink);
+            border-color: var(--line);
+        }
+        .api-banner code {
+            font-size: 10.5px;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid var(--line-soft);
+            padding: 1px 4px;
+        }
+
+        .top-bar {
+            padding: 12px 16px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line-soft);
+        }
         .wordmark {
-            font-family: 'Fraunces', serif;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 28px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 31px;
+            line-height: 0.92;
             letter-spacing: -0.03em;
-            line-height: 1;
-            animation: wordIn 0.7s var(--ease) both;
         }
-
-        @keyframes wordIn {
-            from { opacity: 0; transform: translateY(8px) scale(0.96); filter: blur(4px); }
-            to { opacity: 1; transform: none; filter: none; }
-        }
-
         .demo-pill {
-            font-family: 'Oswald', sans-serif;
-            font-size: 9px;
-            font-weight: 600;
-            letter-spacing: 0.12em;
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid var(--line);
+            padding: 2px 8px;
+            margin-left: 8px;
+            border-radius: 999px;
+            font-size: 10px;
             text-transform: uppercase;
-            padding: 4px 9px;
-            border-radius: var(--radius-pill);
-            background: var(--white);
-            color: var(--black);
-            margin-left: 10px;
-            vertical-align: middle;
+            letter-spacing: 0.12em;
+            font-weight: 600;
+            background: var(--sage-soft);
         }
 
-        .header-right { display: flex; align-items: center; gap: 10px; }
-
+        .account-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 54%;
+        }
         .auth-status {
             font-size: 11.5px;
-            color: var(--gray-50);
-            text-align: right;
-            max-width: 140px;
+            color: var(--muted);
             line-height: 1.35;
+            text-align: right;
         }
-        .auth-status strong { color: var(--white); font-weight: 600; }
-        .auth-status a { color: var(--gray-30); text-decoration: none; font-size: 11px; }
-
+        .auth-status strong { color: var(--ink); }
+        .auth-status a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
         .avatar-chip {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: linear-gradient(145deg, #4a4a4a, #1a1a1a);
-            border: 1.5px solid rgba(255,255,255,0.28);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 13px; font-weight: 700; flex-shrink: 0;
-            transition: transform 0.25s var(--ease-spring);
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--sage-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
         }
-        .avatar-chip:active { transform: scale(0.92); }
 
         .app-main {
             flex: 1;
-            padding: 8px 16px calc(var(--nav-h) + var(--safe-bottom) + 20px);
+            padding: 12px 16px calc(var(--nav-h) + var(--safe-bottom) + 14px);
             overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .tab-content { display: none; }
-        .tab-content.active {
-            display: block;
-            animation: rise 0.45s var(--ease) both;
-        }
-
+        .tab-content.active { display: block; animation: rise 0.26s ease-out both; }
         @keyframes rise {
-            from { opacity: 0; transform: translateY(16px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: none; }
         }
 
-        .screen-eyebrow {
-            font-family: 'Oswald', sans-serif;
-            font-weight: 600;
-            font-size: 11px;
-            letter-spacing: 0.14em;
+        .section-head { margin-bottom: 14px; }
+        .eyebrow {
             text-transform: uppercase;
-            color: var(--gray-50);
-            margin-bottom: 8px;
+            letter-spacing: 0.18em;
+            font-size: 11px;
+            color: var(--muted);
         }
-
-        .screen-title {
-            font-family: 'Fraunces', serif;
-            font-weight: 700;
-            font-size: clamp(26px, 7vw, 32px);
-            line-height: 1.1;
-            letter-spacing: -0.02em;
-            margin-bottom: 8px;
+        .display-title {
+            margin-top: 8px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: clamp(32px, 9.6vw, 38px);
+            line-height: 0.98;
+            letter-spacing: -0.03em;
         }
-
-        .screen-sub {
-            font-size: 13.5px;
-            color: var(--gray-50);
-            line-height: 1.55;
-            margin-bottom: 22px;
-            max-width: 32ch;
-        }
-
         .section-title {
-            font-family: 'Fraunces', serif;
-            font-weight: 700;
-            font-size: 20px;
-            margin-bottom: 14px;
+            margin-top: 8px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 26px;
+            line-height: 1;
+            letter-spacing: -0.02em;
         }
-
-        .glass {
-            background: var(--glass);
-            backdrop-filter: blur(22px) saturate(150%);
-            -webkit-backdrop-filter: blur(22px) saturate(150%);
-            border: 1px solid var(--glass-border);
-        }
-
-        .glass-strong {
-            background: var(--glass-strong);
-            backdrop-filter: blur(26px) saturate(160%);
-            -webkit-backdrop-filter: blur(26px) saturate(160%);
-            border: 1px solid var(--glass-border);
-        }
-
-        .panel {
-            background: var(--ink-80);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            margin-bottom: 14px;
-        }
-
-        /* Auth hero */
-        .auth-hero {
-            position: relative;
-            margin: 0 -16px 20px;
-            min-height: 280px;
-            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding: 28px 24px 32px;
-            animation: heroIn 0.9s var(--ease) both;
-        }
-
-        @keyframes heroIn {
-            from { opacity: 0; transform: scale(1.04); }
-            to { opacity: 1; transform: none; }
-        }
-
-        .photo-surface {
-            background:
-                linear-gradient(165deg, rgba(0,0,0,0.55), rgba(0,0,0,0.05) 45%, rgba(0,0,0,0.7) 100%),
-                linear-gradient(210deg, #050505 0%, #2a2a2a 32%, #5c5c5c 62%, #9a9a9a 100%);
-            position: relative;
-        }
-
-        .photo-surface::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
-            background-size: 3px 3px;
-            opacity: 0.35;
-            mix-blend-mode: overlay;
-            pointer-events: none;
-        }
-
-        .auth-hero .hero-kicker {
-            font-size: 12px;
-            color: rgba(255,255,255,0.65);
-            margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .auth-hero .hero-mark {
-            font-family: 'Fraunces', serif;
-            font-weight: 900;
-            font-style: italic;
-            font-size: clamp(56px, 16vw, 72px);
-            letter-spacing: -0.04em;
-            line-height: 0.9;
-            position: relative;
-            z-index: 1;
-            text-shadow: 0 12px 40px rgba(0,0,0,0.45);
-        }
-
-        .auth-hero .hero-line {
-            margin-top: 14px;
-            font-size: 13.5px;
-            color: rgba(255,255,255,0.72);
-            max-width: 26ch;
+        .subtext {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--muted);
             line-height: 1.5;
-            position: relative;
-            z-index: 1;
         }
 
-        .auth-tabs {
-            display: flex;
-            gap: 6px;
-            padding: 5px;
-            border-radius: var(--radius-pill);
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            margin-bottom: 18px;
+        .frame {
+            border: 1px solid var(--line);
+            background: var(--surface);
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(17,17,17,0.72);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.52);
         }
 
-        .auth-tab {
-            flex: 1;
-            border: none;
-            background: transparent;
-            color: var(--gray-50);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 10px;
-            border-radius: var(--radius-pill);
-            cursor: pointer;
-            transition: all 0.25s var(--ease);
-        }
-        .auth-tab.active {
-            background: var(--white);
-            color: var(--black);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-        }
-
-        .auth-pane { display: none; animation: rise 0.35s var(--ease) both; }
-        .auth-pane.active { display: block; }
-
-        .form-group { margin-bottom: 14px; }
-        label {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--gray-50);
-            font-size: 11.5px;
-            font-weight: 500;
-            letter-spacing: 0.02em;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
-            padding: 15px 16px;
-            color: var(--white);
-            font-size: 16px;
-            transition: border-color 0.2s, background 0.2s, transform 0.2s var(--ease);
-            -webkit-appearance: none;
-            appearance: none;
-        }
-        input[type="text"]:focus {
-            outline: none;
-            border-color: rgba(255,255,255,0.4);
-            background: rgba(255,255,255,0.07);
-            transform: translateY(-1px);
-        }
-        input[type="text"]::placeholder { color: #666; }
-
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            background: var(--white);
-            color: var(--black);
-            border: none;
-            padding: 15px 24px;
+            min-height: 44px;
+            border: 1px solid var(--line);
+            padding: 11px 16px;
             font-size: 14px;
-            font-weight: 700;
-            border-radius: var(--radius-pill);
-            cursor: pointer;
-            transition: transform 0.18s var(--ease-spring), opacity 0.2s;
-            touch-action: manipulation;
-            white-space: nowrap;
-        }
-        .btn:hover { opacity: 0.94; }
-        .btn:active { transform: scale(0.96); }
-        .btn-outline {
-            background: transparent;
-            color: var(--white);
-            border: 1.5px solid rgba(255,255,255,0.28);
-        }
-        .btn-ghost {
-            background: var(--glass);
-            color: var(--white);
-            border: 1px solid var(--glass-border);
-        }
-        .btn-danger {
-            background: var(--ink-70);
-            color: var(--white);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-sm { padding: 8px 14px; font-size: 12px; }
-        .btn-block { width: 100%; }
-        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        .camera-container {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 3/4;
-            max-height: 380px;
-            background: #000;
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            border: 1px solid var(--glass-border);
-        }
-        video, canvas {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            filter: grayscale(100%) contrast(1.05);
-        }
-        .camera-overlay {
-            position: absolute; inset: 0;
-            pointer-events: none;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .face-oval {
-            width: 54%; height: 64%;
-            border: 1.5px dashed rgba(255,255,255,0.55);
-            border-radius: 50%;
-            animation: pulseOval 2.8s ease-in-out infinite;
-        }
-        @keyframes pulseOval {
-            0%, 100% { opacity: 0.55; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.02); }
-        }
-
-        .locked-overlay { opacity: 0.42; pointer-events: none; filter: grayscale(0.4); }
-
-        /* Upload */
-        .upload-zone {
-            border: 1.5px dashed rgba(255,255,255,0.2);
-            border-radius: var(--radius-xl);
-            padding: 52px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s var(--ease);
-            background:
-                radial-gradient(circle at 50% 30%, rgba(255,255,255,0.05), transparent 55%),
-                rgba(255,255,255,0.02);
-            position: relative;
-            overflow: hidden;
-        }
-        .upload-zone:hover, .upload-zone.dragover {
-            border-color: rgba(255,255,255,0.5);
-            background: rgba(255,255,255,0.06);
-            transform: scale(1.01);
-        }
-        .upload-icon-ring {
-            width: 64px; height: 64px;
-            margin: 0 auto 16px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            background: var(--glass-strong);
-            border: 1px solid var(--glass-border);
-            animation: floaty 3.5s ease-in-out infinite;
-        }
-        @keyframes floaty {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-        }
-        .upload-zone p { font-size: 14px; color: var(--gray-50); line-height: 1.5; }
-        .upload-zone strong { color: var(--white); font-weight: 600; }
-
-        /* Gallery feed */
-        .gallery-header { margin-bottom: 8px; padding: 4px 2px 12px; }
-
-        .photo-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .photo-card {
-            position: relative;
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            cursor: pointer;
-            height: min(52vh, 360px);
-            background: var(--ink-80);
-            border: 1px solid rgba(255,255,255,0.06);
-            transition: transform 0.3s var(--ease), border-color 0.3s;
-            animation: cardIn 0.5s var(--ease) both;
-        }
-        .photo-card:nth-child(2) { animation-delay: 0.06s; }
-        .photo-card:nth-child(3) { animation-delay: 0.12s; }
-        .photo-card:nth-child(4) { animation-delay: 0.18s; }
-
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to { opacity: 1; transform: none; }
-        }
-
-        .photo-card:hover {
-            transform: scale(1.015);
-            border-color: rgba(255,255,255,0.18);
-        }
-        .photo-card:active { transform: scale(0.985); }
-
-        .photo-card img {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            filter: grayscale(100%) contrast(1.08);
-            display: block;
-            transition: transform 0.6s var(--ease);
-        }
-        .photo-card:hover img { transform: scale(1.04); }
-
-        .photo-card-overlay {
-            position: absolute; inset: 0;
-            background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 38%, rgba(0,0,0,0.78) 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 16px;
-            z-index: 2;
-        }
-
-        .card-top-row, .card-bottom-row { position: relative; z-index: 2; }
-
-        .pill-badge {
-            display: inline-flex;
-            font-size: 10.5px;
             font-weight: 600;
-            padding: 6px 12px;
-            border-radius: var(--radius-pill);
-            color: var(--white);
+            cursor: pointer;
+            background: transparent;
+            color: var(--ink);
         }
+        .btn:active { transform: scale(0.98); }
+        .btn-sm { min-height: 34px; font-size: 12px; padding: 7px 12px; }
+        .btn-block { width: 100%; }
+        .btn-outline { background: transparent; color: var(--ink); }
+        .btn-filled { background: var(--ink); color: #fff; }
+        .btn-accent { background: var(--sage); color: var(--ink); }
 
-        .face-pin {
-            position: absolute;
-            width: 30px; height: 30px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 11px; font-weight: 700;
-            background: rgba(0,0,0,0.35);
-            backdrop-filter: blur(8px);
-            border: 1.5px solid rgba(255,255,255,0.65);
-            z-index: 2;
-            animation: pinPop 0.45s var(--ease-spring) both;
-        }
-        @keyframes pinPop {
-            from { opacity: 0; transform: scale(0.5); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .photo-card-tags {
-            font-family: 'Fraunces', serif;
-            font-weight: 700;
-            font-size: 18px;
-            line-height: 1.2;
-            margin-bottom: 4px;
-        }
-        .photo-card-time {
-            font-size: 11.5px;
-            color: rgba(255,255,255,0.7);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 56px 28px;
-            color: var(--gray-50);
-            font-size: 13.5px;
-            line-height: 1.6;
-            border-radius: var(--radius-xl);
-            border: 1px dashed rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.02);
-        }
-        .empty-orb {
-            width: 56px; height: 56px;
-            margin: 0 auto 16px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #3a3a3a, #151515);
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
-            animation: floaty 3s ease-in-out infinite;
-        }
-        .empty-title {
-            font-family: 'Fraunces', serif;
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--white);
-            margin-bottom: 6px;
-        }
-
-        .list-item, .friend-item, .notif-item {
+        .story-strip {
+            margin-top: 16px;
             display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px;
-            border-radius: var(--radius-md);
-            margin-bottom: 10px;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            transition: background 0.2s, transform 0.2s var(--ease);
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
         }
-        .list-item:active, .friend-item:active, .notif-item:active {
-            transform: scale(0.985);
-            background: var(--glass-strong);
-        }
-
-        .list-item { justify-content: space-between; }
-        .list-item-content, .friend-info, .notif-body { flex: 1; min-width: 0; }
-        .list-item-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
-        .list-item-meta, .notif-time { font-size: 11px; color: var(--gray-50); margin-top: 3px; }
-        .notif-text { font-size: 13px; line-height: 1.45; }
-        .notif-thumb {
-            width: 52px; height: 52px;
-            border-radius: 16px;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-        .unread-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: var(--white);
-            flex-shrink: 0;
-            box-shadow: 0 0 0 3px rgba(255,255,255,0.12);
-        }
-        .friend-avatar {
-            width: 42px; height: 42px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #4a4a4a, #1e1e1e);
-            border: 1.5px solid rgba(255,255,255,0.22);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: 700; flex-shrink: 0;
-        }
-
-        .status-badge {
-            display: inline-flex; align-items: center;
-            padding: 4px 10px;
-            border-radius: var(--radius-pill);
-            font-size: 10px; font-weight: 700;
-            letter-spacing: 0.04em; text-transform: uppercase;
-            background: var(--glass-strong);
-            border: 1px solid var(--glass-border);
-            color: var(--white); flex-shrink: 0;
-        }
-        .status-processing, .status-processed {
-            background: var(--white); color: var(--black); border-color: var(--white);
-        }
-        .status-failed { background: var(--ink-70); color: var(--gray-30); }
-
-        /* Bottom nav */
-        .bottom-nav {
-            position: fixed;
-            bottom: calc(14px + var(--safe-bottom));
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            padding: 6px;
-            border-radius: var(--radius-pill);
-            width: min(calc(100% - 28px), calc(var(--app-w) - 28px));
-            box-shadow: 0 16px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-
-        .nav-btn {
-            flex: 1;
+        .story-strip::-webkit-scrollbar { display: none; }
+        .story-ring {
+            flex: 0 0 auto;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .story-ring .inner {
+            width: 54px;
+            height: 54px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #EEE6D7;
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3px;
-            padding: 10px 4px 8px;
-            background: none;
-            border: none;
-            color: var(--gray-50);
-            cursor: pointer;
-            border-radius: var(--radius-pill);
-            transition: all 0.28s var(--ease);
-            touch-action: manipulation;
-        }
-        .nav-btn svg {
-            width: 20px; height: 20px;
-            stroke: currentColor; fill: none;
-            stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
-            transition: transform 0.28s var(--ease-spring);
-        }
-        .nav-btn span {
-            font-family: 'Oswald', sans-serif;
-            font-size: 8.5px;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-        .nav-btn.active {
-            color: var(--white);
-            background: rgba(255,255,255,0.12);
-        }
-        .nav-btn.active svg { transform: translateY(-1px) scale(1.08); }
-
-        /* Lightbox */
-        .lightbox {
-            position: fixed; inset: 0; z-index: 1000;
-            background: rgba(0,0,0,0.88);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            display: none;
-            flex-direction: column;
-            animation: fadeIn 0.28s var(--ease);
-        }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .lightbox-panel {
-            width: 100%;
-            max-width: var(--app-w);
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: var(--black);
-        }
-
-        @media (min-width: 900px) {
-            .lightbox { align-items: center; justify-content: center; padding: 24px; }
-            .lightbox-panel {
-                display: grid;
-                grid-template-columns: 1.35fr 1fr;
-                max-width: 1000px;
-                height: auto;
-                max-height: 88vh;
-                border-radius: var(--radius-xl);
-                border: 1px solid var(--glass-border);
-                overflow: hidden;
-                box-shadow: 0 40px 100px rgba(0,0,0,0.6);
-            }
-            .lightbox-header { display: none; }
-            .lightbox-body { display: contents; }
-            .sidebar {
-                border-left: 1px solid rgba(255,255,255,0.06);
-                max-height: 88vh;
-                overflow-y: auto;
-            }
-        }
-
-        .lightbox-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: calc(12px + var(--safe-top)) 16px 12px;
-        }
-        .lightbox-close {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: var(--glass); border: 1px solid var(--glass-border);
-            color: var(--white); display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-        .lightbox-body {
-            flex: 1; overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 0 16px calc(16px + var(--safe-bottom));
-        }
-
-        .viewer-container {
-            position: relative;
-            background: #000;
-            display: flex; align-items: center; justify-content: center;
-            min-height: 280px;
-            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 700;
             overflow: hidden;
         }
-        @media (min-width: 900px) {
-            .viewer-container { border-radius: 0; min-height: 420px; }
-        }
+        .story-ring.active .inner { background: var(--sage); }
 
-        .viewer-image {
-            max-width: 100%;
-            max-height: 52vh;
-            display: block;
-            filter: grayscale(100%) contrast(1.05);
-        }
-        @media (min-width: 900px) { .viewer-image { max-height: 80vh; } }
-
-        .face-overlay-box {
-            position: absolute;
-            border: 2px solid rgba(255,255,255,0.9);
-            background: rgba(255,255,255,0.08);
+        .gallery-stack { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .photo-card {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            overflow: hidden;
             cursor: pointer;
-            border-radius: 6px;
-            transition: background 0.2s;
         }
-        .face-overlay-box:hover { background: rgba(255,255,255,0.18); }
-        .face-overlay-box span {
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .featured-card .photo-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .featured-card .photo-body {
+            aspect-ratio: 4 / 5;
+            background: #E9DFD3;
+        }
+        .featured-card .photo-meta {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--muted);
+            border-top: 1px solid var(--line-soft);
+        }
+        .thumb-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .thumb {
+            aspect-ratio: 1 / 1.08;
+            background: #E9DFD3;
+            position: relative;
+        }
+        .thumb .chip {
             position: absolute;
-            bottom: calc(100% + 6px);
+            left: 8px;
+            bottom: 8px;
+            background: rgba(255,255,255,0.74);
+        }
+
+        .stack-gap { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+        .empty-state {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 18px 14px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .notif-row, .friend-row, .queue-row {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .notif-row { align-items: flex-start; }
+        .notif-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #EEE6D7;
+            flex-shrink: 0;
+        }
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-text { font-size: 13px; line-height: 1.45; }
+        .notif-time { margin-top: 4px; font-size: 11px; color: var(--muted); }
+        .notif-unread {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--sage);
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .friend-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #EEE6D7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .friend-info { flex: 1; min-width: 0; }
+        .row-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+        .row-meta { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+        .upload-zone {
+            border: 1px dashed var(--line);
+            background: rgba(255,255,255,0.45);
+            padding: 24px 14px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .upload-zone.dragover { background: var(--sage-soft); }
+        .upload-zone p { font-size: 13px; line-height: 1.45; color: var(--muted); }
+        .upload-zone strong { color: var(--ink); }
+        .queue-head {
+            margin-top: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            font-size: 11px;
+        }
+        .status-badge {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: #EFE6D8;
+            flex-shrink: 0;
+        }
+        .status-processing, .status-processed { background: var(--sage-soft); }
+        .status-failed { background: #F3D2CF; }
+
+        .auth-tabs {
+            margin-top: 12px;
+            border: 1px solid var(--line);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--surface);
+        }
+        .auth-tab {
+            border: none;
+            background: transparent;
+            padding: 11px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--muted);
+            border-right: 1px solid var(--line-soft);
+        }
+        .auth-tab:last-child { border-right: none; }
+        .auth-tab.active {
+            background: var(--sage-soft);
+            color: var(--ink);
+            font-weight: 600;
+        }
+        .auth-pane { display: none; margin-top: 12px; }
+        .auth-pane.active { display: block; }
+        .form-group { margin-bottom: 10px; }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11.5px;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+        .input-line {
+            width: 100%;
+            border: 1px solid var(--line);
+            background: transparent;
+            border-radius: 0;
+            padding: 13px 12px;
+            font-size: 16px;
+            color: var(--ink);
+            font-family: inherit;
+            outline: none;
+        }
+
+        .profile-card { padding: 14px; text-align: center; }
+        .profile-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--sage-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 12px;
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        .camera-container {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            border: 1px solid var(--line);
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+        video, canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .camera-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .face-oval {
+            width: 56%;
+            height: 66%;
+            border: 1px dashed rgba(255,255,255,0.74);
+            border-radius: 50%;
+        }
+        .locked-overlay { opacity: 0.48; pointer-events: none; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            background: var(--glass-strong);
-            backdrop-filter: blur(12px);
-            color: var(--white);
-            padding: 5px 11px;
-            font-size: 11px; font-weight: 600;
-            white-space: nowrap;
-            border-radius: var(--radius-pill);
-            border: 1px solid var(--glass-border);
+            width: min(100%, var(--app-w));
+            z-index: 60;
+            border-top: 1px solid var(--line);
+            background: rgba(244, 239, 228, 0.96);
+            backdrop-filter: blur(6px);
+            padding: 8px 10px calc(8px + var(--safe-bottom));
         }
-
-        .sidebar { padding: 20px 4px 8px; display: flex; flex-direction: column; }
-        @media (min-width: 900px) { .sidebar { padding: 24px; } }
-
-        .sidebar h3 {
-            font-family: 'Fraunces', serif;
-            font-size: 20px; font-weight: 700; margin-bottom: 4px;
+        .bottom-nav-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
         }
-        .sidebar h4 {
-            font-family: 'Oswald', sans-serif;
-            font-size: 11px; font-weight: 600;
-            letter-spacing: 0.12em; text-transform: uppercase;
-            color: var(--gray-50);
-            margin: 22px 0 10px;
-        }
-        .photo-status-line { font-size: 12px; color: var(--gray-50); }
-
-        .comments-section { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
-        .comments-list { max-height: 160px; overflow-y: auto; }
-        .comment-item { margin-bottom: 10px; font-size: 13px; line-height: 1.45; }
-        .comment-author { font-weight: 700; color: var(--white); }
-        .comment-input-row { display: flex; gap: 8px; }
-        .comment-input-row input { flex: 1; }
-
-        .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-        .hidden { display: none !important; }
-
-        .stack-gap { display: flex; flex-direction: column; gap: 14px; }
-
-        .seg-label {
-            font-family: 'Oswald', sans-serif;
+        .nav-btn {
+            border: 1px solid var(--line);
+            background: transparent;
+            padding: 8px 4px;
             font-size: 11px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--gray-50);
-            margin: 8px 2px 12px;
+            line-height: 1;
+            border-radius: 16px;
+            color: var(--ink);
+            cursor: pointer;
         }
+        .nav-btn.active { background: var(--sage); }
+
+        .sheet-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(17,17,17,0.24);
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.24s ease;
+            z-index: 70;
+        }
+        .sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+        .sheet {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            bottom: 0;
+            width: min(100%, var(--app-w));
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-bottom: none;
+            border-radius: 24px 24px 0 0;
+            z-index: 80;
+            transition: transform 0.26s ease;
+            max-height: 84vh;
+            overflow-y: auto;
+        }
+        .sheet.show { transform: translateX(-50%) translateY(0); }
+        .sheet-inner { padding: 12px 16px 16px; }
+        .sheet-grabber {
+            width: 56px;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(17,17,17,0.15);
+            margin: 0 auto 10px;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+            border: 1px solid var(--line);
+            background: var(--ink);
+            color: #fff;
+            border-radius: 999px;
+            font-size: 13px;
+            padding: 9px 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.24s ease;
+            z-index: 90;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(17,17,17,0.42);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .lightbox-panel {
+            width: min(100%, 960px);
+            max-height: calc(100dvh - 24px);
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: var(--surface);
+        }
+        @media (max-width: 860px) {
+            .lightbox-panel {
+                width: 100%;
+                max-width: var(--app-w);
+                grid-template-columns: 1fr;
+                max-height: 100dvh;
+            }
+        }
+        .lightbox-header {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--line-soft);
+            background: var(--paper);
+        }
+        @media (max-width: 860px) { .lightbox-header { display: flex; } }
+        .lightbox-close {
+            border: 1px solid var(--line);
+            background: transparent;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+        }
+        .viewer-container {
+            border-right: 1px solid var(--line-soft);
+            background: #E9DFD3;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
+        }
+        @media (max-width: 860px) { .viewer-container { border-right: none; border-bottom: 1px solid var(--line-soft); } }
+        .viewer-image { width: 100%; max-height: 72vh; object-fit: contain; display: block; }
+        .sidebar {
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .sidebar h3 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 22px;
+            line-height: 1;
+        }
+        .photo-status-line { font-size: 12px; color: var(--muted); }
+        .side-label {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .face-overlay-box {
+            position: absolute;
+            border: 1px solid #fff;
+            background: rgba(255,255,255,0.14);
+            border-radius: 6px;
+        }
+        .face-overlay-box span {
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 1px solid var(--line);
+            padding: 3px 8px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .comments-list { max-height: 150px; overflow-y: auto; }
+        .comment-item { margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
+        .comment-author { font-weight: 700; }
+        .comment-input-row { display: flex; gap: 8px; }
+        .comment-input-row .input-line { font-size: 14px; padding: 10px; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="api-banner" class="api-banner"></div>
     <div class="stage">
-        <div class="app-shell">
-            <header class="app-header">
+        <div class="phone-frame">
+            <div class="status-bar">
+                <div id="sb-time">9:41</div>
+                <div class="status-icons"><span>◔</span><span>◔</span><span>▮▮▮</span></div>
+            </div>
+
+            <div id="api-banner" class="api-banner"></div>
+
+            <div class="top-bar">
                 <div class="wordmark">tagr<span id="demo-badge" class="demo-pill hidden">Demo</span></div>
-                <div class="header-right">
+                <div class="account-chip">
                     <div class="auth-status" id="header-auth-status">Not signed in</div>
                     <div class="avatar-chip hidden" id="header-avatar">?</div>
                 </div>
-            </header>
+            </div>
 
             <main class="app-main">
-                <!-- Account -->
-                <div id="tab-auth" class="tab-content active">
-                    <section class="auth-hero photo-surface">
-                        <div class="hero-kicker">Welcome to tagr</div>
-                        <div class="hero-mark">tagr</div>
-                        <p class="hero-line">Photos find the people in them. Quiet, automatic, yours.</p>
-                    </section>
+                <section id="tab-gallery" class="tab-content active">
+                    <div class="section-head">
+                        <p class="eyebrow">Home</p>
+                        <h1 class="display-title">Hi, <span id="gallery-greeting-name">there</span></h1>
+                        <p class="subtext" id="gallery-username-title">Sign in to see your tagged photos.</p>
+                    </div>
+                    <div class="btn-row">
+                        <button type="button" class="btn btn-accent" onclick="openSheet('upload-sheet')">Upload photos</button>
+                        <button type="button" class="btn btn-outline" onclick="switchTab('tab-upload')">Open Upload tab</button>
+                    </div>
+                    <div id="story-rings" class="story-strip"></div>
+                    <div id="photo-grid" class="gallery-stack"></div>
+                </section>
 
-                    <div class="auth-tabs" role="tablist">
-                        <button type="button" class="auth-tab active" data-auth="register" onclick="switchAuthPane('register')">Register</button>
-                        <button type="button" class="auth-tab" data-auth="login" onclick="switchAuthPane('login')">Sign in</button>
+                <section id="tab-notifications" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Alerts</p>
+                        <h1 class="display-title">Notifications</h1>
+                        <p class="subtext">Tags and activity related to your gallery.</p>
+                    </div>
+                    <div id="notifications-list" class="stack-gap"></div>
+                </section>
+
+                <section id="tab-upload" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Upload</p>
+                        <h1 class="display-title">New post</h1>
+                        <p class="subtext">Take a photo or choose from your library.</p>
+                    </div>
+                    <div class="btn-row">
+                        <button type="button" class="btn btn-accent btn-block" onclick="toast('Camera flow starts in native app.')">Take photo</button>
+                        <button type="button" class="btn btn-outline btn-block" onclick="document.getElementById('file-input').click()">Choose from library</button>
+                    </div>
+                    <div class="upload-zone" id="drop-zone"
+                         onclick="document.getElementById('file-input').click()"
+                         ondragover="event.preventDefault(); this.classList.add('dragover');"
+                         ondragleave="this.classList.remove('dragover');"
+                         ondrop="handleDrop(event)">
+                        <p><strong>Tap to choose</strong> or drag photos here</p>
+                        <p>Multiple files supported.</p>
+                        <input type="file" id="file-input" multiple class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                    </div>
+                    <div class="queue-head">Queue</div>
+                    <div id="upload-queue-list" class="stack-gap"></div>
+                </section>
+
+                <section id="tab-friends" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Friends</p>
+                        <h1 class="display-title">People</h1>
+                        <p class="subtext">Suggestions and your current friends list.</p>
+                    </div>
+                    <div class="frame" style="padding: 12px;">
+                        <div class="eyebrow">Suggestions</div>
+                        <div id="friend-suggestions-list" class="stack-gap" style="margin-top: 10px;"></div>
+                    </div>
+                    <div class="frame" style="padding: 12px; margin-top: 12px;">
+                        <div class="eyebrow">Friends</div>
+                        <div id="friends-list" class="stack-gap" style="margin-top: 10px;"></div>
+                    </div>
+                </section>
+
+                <section id="tab-profile" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Profile</p>
+                        <h1 class="display-title">Your account</h1>
                     </div>
 
-                    <div id="auth-pane-register" class="auth-pane active">
-                        <div class="panel">
-                            <h2 class="section-title">Create your place</h2>
-                            <form id="register-form" onsubmit="handleRegister(event)">
-                                <div class="form-group">
-                                    <label>Username</label>
-                                    <input type="text" id="reg-username" placeholder="johndoe" required autocomplete="username">
-                                </div>
-                                <div class="form-group">
-                                    <label>Mobile number</label>
-                                    <input type="text" id="reg-mobile" placeholder="+1234567890" required autocomplete="tel">
-                                </div>
-                                <button type="submit" class="btn btn-block">Continue</button>
-                            </form>
-                            <form id="otp-form" onsubmit="handleVerifyOTP(event)" class="hidden" style="margin-top: 20px;">
-                                <div class="form-group">
-                                    <label>Verification code</label>
-                                    <input type="text" id="otp-code" placeholder="Enter code" required inputmode="numeric">
-                                </div>
-                                <button type="submit" class="btn btn-block">Verify & enter</button>
-                            </form>
+                    <div id="profile-signed-in" class="hidden">
+                        <div class="frame profile-card">
+                            <div class="profile-avatar" id="profile-avatar">?</div>
+                            <h2 class="section-title" style="margin-top: 0;" id="profile-name">You</h2>
+                            <p class="subtext" style="margin-top: 6px;">Signed in and ready to tag.</p>
+                            <div class="btn-row" style="margin-top: 10px; justify-content: center;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="switchTab('tab-gallery')">Go home</button>
+                                <button type="button" class="btn btn-filled btn-sm" onclick="logout()">Sign out</button>
+                            </div>
                         </div>
                     </div>
 
-                    <div id="auth-pane-login" class="auth-pane">
-                        <div class="panel" id="login-section">
-                            <h2 class="section-title">Welcome back</h2>
-                            <form id="login-request-form" onsubmit="handleLoginRequest(event)">
-                                <div class="form-group">
-                                    <label>Mobile number</label>
-                                    <input type="text" id="login-mobile" placeholder="+1234567890" required autocomplete="tel">
-                                </div>
-                                <button type="submit" class="btn btn-block btn-outline">Send code</button>
-                            </form>
-                            <form id="login-otp-form" onsubmit="handleLoginOTP(event)" class="hidden" style="margin-top: 20px;">
-                                <div class="form-group">
-                                    <label>Enter code</label>
-                                    <input type="text" id="login-otp-code" placeholder="Enter code" required inputmode="numeric">
-                                </div>
-                                <button type="submit" class="btn btn-block">Sign in</button>
-                            </form>
+                    <div id="profile-signed-out">
+                        <div class="auth-tabs" role="tablist">
+                            <button type="button" class="auth-tab active" data-auth="register" onclick="switchAuthPane('register')">Register</button>
+                            <button type="button" class="auth-tab" data-auth="login" onclick="switchAuthPane('login')">Sign in</button>
+                        </div>
+
+                        <div id="auth-pane-register" class="auth-pane active">
+                            <div class="frame" style="padding: 12px;">
+                                <h2 class="section-title" style="margin-top: 0;">Create account</h2>
+                                <p class="subtext" style="margin-bottom: 10px;">Register with mobile and verify OTP.</p>
+                                <form id="register-form" onsubmit="handleRegister(event)">
+                                    <div class="form-group">
+                                        <label>Username</label>
+                                        <input type="text" id="reg-username" class="input-line" placeholder="johndoe" required autocomplete="username">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mobile number</label>
+                                        <input type="text" id="reg-mobile" class="input-line" placeholder="+1234567890" required autocomplete="tel">
+                                    </div>
+                                    <button type="submit" class="btn btn-filled btn-block">Continue</button>
+                                </form>
+                                <form id="otp-form" onsubmit="handleVerifyOTP(event)" class="hidden" style="margin-top: 10px;">
+                                    <div class="form-group">
+                                        <label>Verification code</label>
+                                        <input type="text" id="otp-code" class="input-line" placeholder="Enter code" required inputmode="numeric">
+                                    </div>
+                                    <button type="submit" class="btn btn-filled btn-block">Verify &amp; enter</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div id="auth-pane-login" class="auth-pane">
+                            <div class="frame" id="login-section" style="padding: 12px;">
+                                <h2 class="section-title" style="margin-top: 0;">Welcome back</h2>
+                                <p class="subtext" style="margin-bottom: 10px;">Get an OTP and sign in.</p>
+                                <form id="login-request-form" onsubmit="handleLoginRequest(event)">
+                                    <div class="form-group">
+                                        <label>Mobile number</label>
+                                        <input type="text" id="login-mobile" class="input-line" placeholder="+1234567890" required autocomplete="tel">
+                                    </div>
+                                    <button type="submit" class="btn btn-outline btn-block">Send code</button>
+                                </form>
+                                <form id="login-otp-form" onsubmit="handleLoginOTP(event)" class="hidden" style="margin-top: 10px;">
+                                    <div class="form-group">
+                                        <label>Enter code</label>
+                                        <input type="text" id="login-otp-code" class="input-line" placeholder="Enter code" required inputmode="numeric">
+                                    </div>
+                                    <button type="submit" class="btn btn-filled btn-block">Sign in</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="panel locked-overlay" id="enrollment-section" style="margin-top: 4px;">
-                        <div class="screen-eyebrow">Face</div>
+                    <div class="frame locked-overlay" id="enrollment-section" style="padding: 12px; margin-top: 12px;">
+                        <p class="eyebrow">Face enrollment</p>
                         <h2 class="section-title">Capture my face</h2>
-                        <p class="screen-sub" style="margin-bottom: 14px;">One quiet look at the camera. This is how friends' photos find you.</p>
+                        <p class="subtext" style="margin-bottom: 10px;">One clear capture helps find you in shared photos.</p>
                         <div class="camera-container">
                             <video id="video" autoplay playsinline muted></video>
                             <canvas id="canvas" class="hidden"></canvas>
                             <div class="camera-overlay"><div class="face-oval"></div></div>
                         </div>
-                        <div class="btn-row" style="margin-top: 16px;">
-                            <button type="button" class="btn btn-ghost" onclick="startCamera()">Start camera</button>
-                            <button type="button" class="btn" onclick="captureAndEnroll()">Capture my face</button>
+                        <div class="btn-row" style="margin-top: 10px;">
+                            <button type="button" class="btn btn-outline" onclick="startCamera()">Start camera</button>
+                            <button type="button" class="btn btn-accent" onclick="captureAndEnroll()">Capture</button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Upload -->
-                <div id="tab-upload" class="tab-content">
-                    <div class="screen-eyebrow">Upload</div>
-                    <h1 class="screen-title">Add photos</h1>
-                    <p class="screen-sub">Drop images here. We'll scan faces and place them where they belong.</p>
-                    <div class="panel">
-                        <div class="upload-zone" id="drop-zone"
-                             onclick="document.getElementById('file-input').click()"
-                             ondragover="event.preventDefault(); this.classList.add('dragover');"
-                             ondragleave="this.classList.remove('dragover');"
-                             ondrop="handleDrop(event)">
-                            <div class="upload-icon-ring">
-                                <svg class="icon" width="24" height="24" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
-                            </div>
-                            <p><strong>Tap to choose</strong> or drag photos here</p>
-                            <p style="margin-top: 6px; font-size: 12px;">Multiple files welcome</p>
-                            <input type="file" id="file-input" multiple class="hidden" accept="image/*" onchange="handleFileSelect(event)">
-                        </div>
-                        <div style="margin-top: 22px;">
-                            <div class="seg-label">Queue</div>
-                            <div id="upload-queue-list"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gallery -->
-                <div id="tab-gallery" class="tab-content">
-                    <div class="gallery-header">
-                        <div class="screen-eyebrow">Gallery</div>
-                        <h1 class="screen-title">You're in these</h1>
-                        <p class="screen-sub" id="gallery-username-title">Sign in to view your gallery.</p>
-                    </div>
-                    <div class="photo-grid" id="photo-grid"></div>
-                </div>
-
-                <!-- Social -->
-                <div id="tab-social" class="tab-content">
-                    <div class="screen-eyebrow">Social</div>
-                    <h1 class="screen-title">Alerts</h1>
-                    <p class="screen-sub">Tags, suggestions, and the people you keep showing up with.</p>
-                    <div class="stack-gap">
-                        <div class="panel">
-                            <h2 class="section-title">Notifications</h2>
-                            <div id="notifications-list"></div>
-                        </div>
-                        <div class="panel">
-                            <h2 class="section-title">Suggestions</h2>
-                            <div id="friend-suggestions-list"></div>
-                        </div>
-                        <div class="panel">
-                            <h2 class="section-title">Friends</h2>
-                            <div id="friends-list"></div>
-                        </div>
-                    </div>
-                </div>
+                </section>
             </main>
 
-            <nav class="bottom-nav glass-strong" aria-label="Main">
-                <button class="nav-btn" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-                    <span>Gallery</span>
-                </button>
-                <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">
-                    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                    <span>Upload</span>
-                </button>
-                <button class="nav-btn" data-tab="tab-social" onclick="switchTab('tab-social', this)">
-                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-                    <span>Alerts</span>
-                </button>
-                <button class="nav-btn active" data-tab="tab-auth" onclick="switchTab('tab-auth', this)">
-                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <span>You</span>
-                </button>
+            <nav class="bottom-nav" aria-label="Main">
+                <div class="bottom-nav-grid">
+                    <button class="nav-btn active" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">Home</button>
+                    <button class="nav-btn" data-tab="tab-notifications" onclick="switchTab('tab-notifications', this)">Alerts</button>
+                    <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">Upload</button>
+                    <button class="nav-btn" data-tab="tab-friends" onclick="switchTab('tab-friends', this)">Friends</button>
+                    <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
+                </div>
             </nav>
         </div>
     </div>
 
+    <div id="sheet-backdrop" class="sheet-backdrop" onclick="closeSheet()"></div>
+    <div id="upload-sheet" class="sheet" aria-hidden="true">
+        <div class="sheet-inner">
+            <div class="sheet-grabber"></div>
+            <div class="section-head" style="margin-bottom: 10px;">
+                <p class="eyebrow">Upload</p>
+                <h2 class="section-title">Choose a photo</h2>
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn btn-accent btn-block" onclick="closeSheet(); switchTab('tab-upload'); toast('Use camera from Upload tab.')">Take photo</button>
+                <button type="button" class="btn btn-outline btn-block" onclick="closeSheet(); switchTab('tab-upload'); document.getElementById('file-input').click()">Choose library</button>
+            </div>
+            <div class="queue-head">Queue preview</div>
+            <div class="queue-row" style="margin-top: 8px;">
+                <div style="flex: 1;">
+                    <div class="row-title">Uploads process automatically</div>
+                    <div class="row-meta">Dropped files will appear in the Upload queue.</div>
+                </div>
+                <span class="chip" style="background: var(--sage-soft);">Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Saved</div>
+
     <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
         <div class="lightbox-panel">
             <div class="lightbox-header">
-                <div class="screen-eyebrow" style="margin:0;">Review tags</div>
-                <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">
-                    <svg class="icon" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
+                <div class="eyebrow" style="color: var(--muted);">Photo detail</div>
+                <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">×</button>
             </div>
-            <div class="lightbox-body">
-                <div class="viewer-container" id="viewer-container">
-                    <img src="" class="viewer-image" id="viewer-image" alt="Full size photo">
+            <div class="viewer-container" id="viewer-container">
+                <img src="" class="viewer-image" id="viewer-image" alt="Full size photo">
+            </div>
+            <div class="sidebar">
+                <h3 id="photo-detail-id">Photo</h3>
+                <div class="photo-status-line" id="photo-detail-status">Status: pending</div>
+                <div>
+                    <div class="side-label">Tagged faces</div>
+                    <div id="photo-detail-tags" class="stack-gap" style="margin-top: 8px;"></div>
                 </div>
-                <div class="sidebar">
-                    <h3 id="photo-detail-id">Photo</h3>
-                    <div class="photo-status-line" id="photo-detail-status">Status: pending</div>
-                    <h4>Tagged faces</h4>
-                    <div id="photo-detail-tags"></div>
-                    <div class="comments-section">
-                        <h4>Comments</h4>
-                        <div class="comments-list" id="photo-comments-list"></div>
-                        <div class="comment-input-row">
-                            <input type="text" id="new-comment-text" placeholder="Write a comment…">
-                            <button class="btn btn-sm" onclick="submitComment()">Post</button>
-                        </div>
+                <div>
+                    <div class="side-label">Comments</div>
+                    <div class="comments-list" id="photo-comments-list" style="margin-top: 8px;"></div>
+                    <div class="comment-input-row" style="margin-top: 8px;">
+                        <input type="text" id="new-comment-text" class="input-line" placeholder="Write a comment…">
+                        <button class="btn btn-filled btn-sm" onclick="submitComment()">Post</button>
                     </div>
-                    <button class="btn btn-danger btn-block" style="margin-top: 20px;" onclick="closeLightbox()">Close</button>
                 </div>
+                <button class="btn btn-outline btn-block" onclick="closeLightbox()">Close</button>
             </div>
         </div>
     </div>
@@ -1125,6 +976,7 @@
         const API_URL = resolveApiUrl();
         const DEMO_MODE = resolveDemoMode();
         let demoState = null;
+        let cachedFriends = [];
 
         function isoDaysAgo(days) {
             return new Date(Date.now() - days * 86400000).toISOString();
@@ -1457,7 +1309,7 @@
                 banner.classList.add('demo-banner');
                 banner.innerHTML = `
                     <strong>Demo mode</strong> — filler data only, no backend calls.
-                    Type anything to register or log in. Add <code>?demo=0&api=http://localhost:8787/api/v1</code> to use the real API.
+                    Add <code>?demo=0&api=http://localhost:8787/api/v1</code> to use the real API.
                 `;
                 return;
             }
@@ -1488,14 +1340,45 @@
             }
         }
 
+        function toast(message, duration = 1800) {
+            const t = document.getElementById('toast');
+            if (!t) return;
+            t.textContent = message;
+            t.classList.add('show');
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                t.classList.remove('show');
+            }, duration);
+        }
+
+        function openSheet(sheetId = 'upload-sheet') {
+            const backdrop = document.getElementById('sheet-backdrop');
+            const sheet = document.getElementById(sheetId);
+            if (!backdrop || !sheet) return;
+            backdrop.classList.add('show');
+            sheet.classList.add('show');
+            sheet.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeSheet() {
+            const backdrop = document.getElementById('sheet-backdrop');
+            const sheet = document.getElementById('upload-sheet');
+            if (backdrop) backdrop.classList.remove('show');
+            if (sheet) {
+                sheet.classList.remove('show');
+                sheet.setAttribute('aria-hidden', 'true');
+            }
+        }
+
         function finishDemoAuth(message) {
             updateAuthUI();
-            alert(message);
+            toast(message);
             document.getElementById('login-section').classList.add('hidden');
             loadGallery();
             loadNotifications();
             loadFriendSuggestions();
             loadFriendsList();
+            switchTab('tab-gallery');
         }
 
         let currentToken = localStorage.getItem('token') || '';
@@ -1513,24 +1396,60 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
 
-            document.getElementById(tabId).classList.add('active');
+            const tab = document.getElementById(tabId);
+            if (!tab) return;
+            tab.classList.add('active');
 
             const btn = btnEl || document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
             if (btn) btn.classList.add('active');
 
             if (tabId === 'tab-gallery') {
                 loadGallery();
-            } else if (tabId === 'tab-social') {
+            } else if (tabId === 'tab-notifications') {
                 loadNotifications();
+            } else if (tabId === 'tab-friends') {
                 loadFriendSuggestions();
                 loadFriendsList();
+            } else if (tabId === 'tab-profile') {
+                updateAuthUI();
             }
+
+            closeSheet();
+        }
+
+        function renderStoryRings() {
+            const strip = document.getElementById('story-rings');
+            if (!strip) return;
+            strip.innerHTML = '';
+
+            const me = currentUsername || 'You';
+            const meInitial = me.charAt(0).toUpperCase();
+            const selfRing = document.createElement('div');
+            selfRing.className = 'story-ring active';
+            selfRing.innerHTML = `<div class="inner">${meInitial}</div><span>You</span>`;
+            strip.appendChild(selfRing);
+
+            const pool = cachedFriends.length
+                ? cachedFriends.map(f => f.username)
+                : ['Friends', 'Nearby', 'Crew'];
+
+            pool.slice(0, 8).forEach(name => {
+                const ring = document.createElement('div');
+                ring.className = 'story-ring';
+                ring.innerHTML = `<div class="inner">${(name || '?').charAt(0).toUpperCase()}</div><span>${name}</span>`;
+                strip.appendChild(ring);
+            });
         }
 
         function updateAuthUI() {
             const statusDiv = document.getElementById('header-auth-status');
             const avatar = document.getElementById('header-avatar');
             const enrollment = document.getElementById('enrollment-section');
+            const profileName = document.getElementById('profile-name');
+            const profileAvatar = document.getElementById('profile-avatar');
+            const signedInSection = document.getElementById('profile-signed-in');
+            const signedOutSection = document.getElementById('profile-signed-out');
+            const greetingName = document.getElementById('gallery-greeting-name');
 
             if (currentToken) {
                 const initial = (currentUsername || '?').charAt(0).toUpperCase();
@@ -1538,11 +1457,23 @@
                 avatar.textContent = initial;
                 avatar.classList.remove('hidden');
                 enrollment.classList.remove('locked-overlay');
+                signedInSection.classList.remove('hidden');
+                signedOutSection.classList.add('hidden');
+                profileName.textContent = currentUsername || 'you';
+                profileAvatar.textContent = initial;
+                greetingName.textContent = currentUsername || 'there';
             } else {
                 statusDiv.textContent = 'Not signed in';
                 avatar.classList.add('hidden');
                 enrollment.classList.add('locked-overlay');
+                signedInSection.classList.add('hidden');
+                signedOutSection.classList.remove('hidden');
+                profileName.textContent = 'You';
+                profileAvatar.textContent = '?';
+                greetingName.textContent = 'there';
             }
+
+            renderStoryRings();
         }
 
         function logout() {
@@ -1554,6 +1485,7 @@
             currentToken = '';
             currentUserId = '';
             currentUsername = '';
+            cachedFriends = [];
             resetDemoState();
             updateAuthUI();
             location.reload();
@@ -1578,7 +1510,7 @@
             if (DEMO_MODE) {
                 const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
                 const data = await response.json();
-                alert(data.enrolled ? 'Face enrolled (demo).' : 'Enrollment failed.');
+                toast(data.enrolled ? 'Face enrolled (demo).' : 'Enrollment failed.');
                 return;
             }
             const video = document.getElementById('video');
@@ -1610,7 +1542,7 @@
                     });
                     const data = await response.json();
                     if (response.ok && data.enrolled) {
-                        alert('Face enrolled successfully.');
+                        toast('Face enrolled successfully.');
                     } else {
                         alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
                     }
@@ -1642,7 +1574,7 @@
                 currentUsername = username;
                 document.getElementById('otp-form').classList.remove('hidden');
                 updateAuthUI();
-                alert(DEMO_MODE ? 'Demo: enter any code to continue.' : 'Code generated (123456). Complete verification below.');
+                toast(DEMO_MODE ? 'Demo: enter any code to continue.' : 'Code generated (123456). Complete verification below.');
             } else {
                 alert('Registration failed: ' + data.detail);
             }
@@ -1670,7 +1602,8 @@
                     finishDemoAuth('Welcome. Demo gallery and social data are ready.');
                 } else {
                     updateAuthUI();
-                    alert('You are signed in.');
+                    toast('You are signed in.');
+                    switchTab('tab-gallery');
                 }
             } else {
                 alert('Verification failed: ' + data.detail);
@@ -1691,7 +1624,7 @@
             if (response.ok) {
                 document.getElementById('login-request-form').classList.add('hidden');
                 document.getElementById('login-otp-form').classList.remove('hidden');
-                alert(DEMO_MODE ? 'Demo: enter any code to sign in.' : 'Code sent (123456).');
+                toast(DEMO_MODE ? 'Demo: enter any code to sign in.' : 'Code sent (123456).');
             } else {
                 alert('Request failed: ' + data.detail);
             }
@@ -1722,8 +1655,9 @@
                     finishDemoAuth('Signed in with demo data.');
                 } else {
                     updateAuthUI();
-                    alert('Signed in successfully.');
+                    toast('Signed in successfully.');
                     document.getElementById('login-section').classList.add('hidden');
+                    switchTab('tab-gallery');
                 }
             } else {
                 alert('Sign in failed: ' + data.detail);
@@ -1761,11 +1695,11 @@
                 if (done || attempt >= maxAttempts) {
                     const anyFailed = statuses.some(s => s === 'failed');
                     item.innerHTML = `
-                        <div class="list-item-content">
-                            <div class="list-item-title">${ids.length} photo${ids.length > 1 ? 's' : ''} ${anyFailed ? 'processed with issues' : 'processed'}</div>
-                            <div class="list-item-meta">${anyFailed ? 'Some images could not be read.' : 'Faces matching your enrolled photo are tagged and appear in your gallery.'}</div>
+                        <div style="flex:1;">
+                            <div class="row-title">${ids.length} photo${ids.length > 1 ? 's' : ''} ${anyFailed ? 'processed with issues' : 'processed'}</div>
+                            <div class="row-meta">${anyFailed ? 'Some images could not be read.' : 'Faces matching your enrolled photo are tagged and appear in your gallery.'}</div>
                         </div>
-                        <span class="status-badge ${anyFailed ? 'status-failed' : 'status-processed'}">${anyFailed ? 'Done' : 'Done'}</span>
+                        <span class="status-badge ${anyFailed ? 'status-failed' : 'status-processed'}">Done</span>
                     `;
                     loadGallery();
                     return;
@@ -1776,8 +1710,8 @@
 
         async function uploadFiles(files) {
             if (!currentToken) {
-                alert('Please sign in before uploading.');
-                switchTab('tab-auth');
+                toast('Please sign in before uploading.');
+                switchTab('tab-profile');
                 return;
             }
             const formData = new FormData();
@@ -1787,10 +1721,10 @@
 
             const queueList = document.getElementById('upload-queue-list');
             const item = document.createElement('div');
-            item.className = 'list-item';
+            item.className = 'queue-row';
             item.innerHTML = `
-                <div class="list-item-content">
-                    <div class="list-item-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
+                <div style="flex:1;">
+                    <div class="row-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
                 </div>
                 <span class="status-badge status-processing">Uploading</span>
             `;
@@ -1807,27 +1741,28 @@
                 if (response.ok) {
                     const ids = data.upload_ids || data.photo_ids || [];
                     item.innerHTML = `
-                        <div class="list-item-content">
-                            <div class="list-item-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
-                            <div class="list-item-meta">Detecting faces…</div>
+                        <div style="flex:1;">
+                            <div class="row-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
+                            <div class="row-meta">Detecting faces…</div>
                         </div>
                         <span class="status-badge status-processing">Processing</span>
                     `;
                     pollUploadStatus(ids, item);
+                    toast('Upload queued.');
                 } else {
                     item.innerHTML = `
-                        <div class="list-item-content">
-                            <div class="list-item-title">Upload failed</div>
-                            <div class="list-item-meta">${data.detail}</div>
+                        <div style="flex:1;">
+                            <div class="row-title">Upload failed</div>
+                            <div class="row-meta">${data.detail}</div>
                         </div>
                         <span class="status-badge status-failed">Error</span>
                     `;
                 }
             } catch (err) {
                 item.innerHTML = `
-                    <div class="list-item-content">
-                        <div class="list-item-title">Upload error</div>
-                        <div class="list-item-meta">${err.message}</div>
+                    <div style="flex:1;">
+                        <div class="row-title">Upload error</div>
+                        <div class="row-meta">${err.message}</div>
                     </div>
                     <span class="status-badge status-failed">Error</span>
                 `;
@@ -1835,53 +1770,74 @@
         }
 
         async function loadGallery() {
-            if (!currentUserId) return;
-            document.getElementById('gallery-username-title').textContent = `Photos where ${currentUsername} appears.`;
+            const title = document.getElementById('gallery-username-title');
+            const grid = document.getElementById('photo-grid');
 
+            if (!currentUserId) {
+                title.textContent = 'Sign in to view your personalized gallery.';
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        Sign in from Profile, then upload photos to start auto-tagging.
+                    </div>
+                `;
+                renderStoryRings();
+                return;
+            }
+
+            title.textContent = `Photos where ${currentUsername} appears.`;
             const response = await apiFetch(`/users/${currentUserId}/gallery`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
-            const grid = document.getElementById('photo-grid');
             grid.innerHTML = '';
 
             if (data.photos && data.photos.length > 0) {
-                data.photos.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'photo-card';
-                    card.onclick = () => openLightbox(p.photo_id);
+                const photos = data.photos;
+                const featured = photos[0];
+                const rest = photos.slice(1);
 
-                    const tagsStr = p.tagged_users.map(u => u.username).join(', ') || 'No tags yet';
-                    const timeStr = new Date(p.uploaded_at).toLocaleDateString(undefined, {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    });
-
-                    const count = p.tagged_users.length;
-                    const pill = count <= 1 ? 'Just you' : `${count} tagged`;
-                    const pins = p.tagged_users.slice(0, 3).map((u, i) =>
-                        `<div class="face-pin" style="left:${18 + i * 34}%; top:${28 + (i % 2) * 12}%">${(u.username || '?').charAt(0).toUpperCase()}</div>`
-                    ).join('');
-                    card.innerHTML = `
-                        <img src="${p.url}" alt="Gallery photo" loading="lazy">
-                        <div class="photo-card-overlay">
-                            <div class="card-top-row">
-                                <span class="pill-badge glass-strong">${pill}</span>
-                            </div>
-                            ${pins}
-                            <div class="card-bottom-row">
-                                <div class="photo-card-tags">${tagsStr}</div>
-                                <div class="photo-card-time">${timeStr}</div>
-                            </div>
+                const featuredCard = document.createElement('div');
+                featuredCard.className = 'photo-card featured-card';
+                featuredCard.onclick = () => openLightbox(featured.photo_id);
+                const featuredTags = featured.tagged_users.map(u => u.username).join(', ') || 'No tags yet';
+                featuredCard.innerHTML = `
+                    <div class="photo-head">
+                        <div>
+                            <div class="eyebrow">Featured</div>
+                            <div class="section-title" style="margin-top:6px; font-size:24px;">Latest capture</div>
                         </div>
-                    `;
-                    grid.appendChild(card);
-                });
+                        <span class="chip">${featured.tagged_users.length || 0} tagged</span>
+                    </div>
+                    <div class="photo-body"><img src="${featured.url}" alt="Featured photo" loading="lazy"></div>
+                    <div class="photo-meta">
+                        <span>${featuredTags}</span>
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openLightbox('${featured.photo_id}')">Open</button>
+                    </div>
+                `;
+                grid.appendChild(featuredCard);
+
+                if (rest.length) {
+                    const thumbGrid = document.createElement('div');
+                    thumbGrid.className = 'thumb-grid';
+                    rest.forEach(p => {
+                        const card = document.createElement('div');
+                        card.className = 'photo-card thumb';
+                        card.onclick = () => openLightbox(p.photo_id);
+                        const chipLabel = (p.tagged_users && p.tagged_users.length)
+                            ? `${p.tagged_users.length} tagged`
+                            : 'No tags';
+                        card.innerHTML = `
+                            <img src="${p.url}" alt="Gallery photo" loading="lazy">
+                            <span class="chip">${chipLabel}</span>
+                        `;
+                        thumbGrid.appendChild(card);
+                    });
+                    grid.appendChild(thumbGrid);
+                }
             } else {
                 grid.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-orb"></div>
-                        <p class="empty-title">No photos yet</p>
-                        <p>Upload a few shots with your face and we'll start finding you.</p>
+                        No photos yet. Upload a few shots with your face and we'll start finding you.
                     </div>
                 `;
             }
@@ -1901,11 +1857,11 @@
             document.getElementById('photo-detail-id').textContent = `Photo ${photoId.substring(0, 8)}…`;
             document.getElementById('photo-detail-status').textContent = `Status: ${photo.status}`;
 
-            renderComments(photo.comments);
+            renderComments(photo.comments || []);
 
             const img = document.getElementById('viewer-image');
-            img.onload = () => drawFaceOverlays(photo.tags);
-            if (img.complete) drawFaceOverlays(photo.tags);
+            img.onload = () => drawFaceOverlays(photo.tags || []);
+            if (img.complete) drawFaceOverlays(photo.tags || []);
         }
 
         function drawFaceOverlays(tags) {
@@ -1917,7 +1873,7 @@
             const detailTagsDiv = document.getElementById('photo-detail-tags');
             detailTagsDiv.innerHTML = '';
 
-            tags.forEach(tag => {
+            (tags || []).forEach(tag => {
                 const box = document.createElement('div');
                 box.className = 'face-overlay-box';
 
@@ -1934,14 +1890,14 @@
                 container.appendChild(box);
 
                 const tagItem = document.createElement('div');
-                tagItem.className = 'friend-item';
+                tagItem.className = 'friend-row';
                 tagItem.innerHTML = `
                     <div class="friend-avatar">${tag.username.charAt(0).toUpperCase()}</div>
                     <div class="friend-info">
-                        <div class="list-item-title">${tag.username}</div>
-                        <div class="list-item-meta">${tag.source}</div>
+                        <div class="row-title">${tag.username}</div>
+                        <div class="row-meta">${tag.source}</div>
                     </div>
-                    <button class="btn btn-sm btn-danger" onclick="removeTag('${tag.tag_id}')">Remove</button>
+                    <button class="btn btn-outline btn-sm" onclick="removeTag('${tag.tag_id}')">Remove</button>
                 `;
                 detailTagsDiv.appendChild(tagItem);
             });
@@ -1972,7 +1928,7 @@
             const list = document.getElementById('photo-comments-list');
             list.innerHTML = '';
             if (!comments.length) {
-                list.innerHTML = '<div class="list-item-meta">No comments yet.</div>';
+                list.innerHTML = '<div class="row-meta">No comments yet.</div>';
                 return;
             }
             comments.forEach(c => {
@@ -2004,63 +1960,66 @@
         }
 
         async function loadNotifications() {
+            const list = document.getElementById('notifications-list');
             if (!currentToken) {
-                document.getElementById('notifications-list').innerHTML = '<div class="empty-state" style="padding:24px;"><p>Sign in to see notifications.</p></div>';
+                list.innerHTML = '<div class="empty-state">Sign in to see notifications.</div>';
                 return;
             }
             const response = await apiFetch(`/notifications`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
-            const list = document.getElementById('notifications-list');
             list.innerHTML = '';
 
             if (data.notifications && data.notifications.length > 0) {
                 data.notifications.forEach(n => {
                     const item = document.createElement('div');
-                    item.className = 'notif-item';
+                    item.className = 'notif-row';
                     const unread = n.read === false || n.read === undefined;
                     item.innerHTML = `
-                        <div class="notif-thumb photo-surface"></div>
+                        <div class="notif-thumb"></div>
                         <div class="notif-body">
                             <div class="notif-text"><strong>${n.actor_username || 'Someone'}</strong> tagged you in a photo</div>
                             <div class="notif-time">${new Date(n.created_at).toLocaleString()}</div>
                         </div>
-                        ${unread ? '<div class="unread-dot"></div>' : ''}
-                        <button class="btn btn-sm btn-ghost" onclick="openLightbox('${n.photo_id}')">View</button>
+                        ${unread ? '<div class="notif-unread"></div>' : ''}
+                        <button class="btn btn-outline btn-sm" onclick="openLightbox('${n.photo_id}')">View</button>
                     `;
                     list.appendChild(item);
                 });
             } else {
-                list.innerHTML = '<div class="empty-state" style="padding:24px;"><p>No new notifications.</p></div>';
+                list.innerHTML = '<div class="empty-state">No new notifications.</div>';
             }
         }
 
         async function loadFriendSuggestions() {
-            if (!currentToken) return;
+            const list = document.getElementById('friend-suggestions-list');
+            if (!currentToken) {
+                list.innerHTML = '<div class="row-meta">Sign in to see suggestions.</div>';
+                return;
+            }
             const response = await apiFetch(`/friends/suggestions`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
-            const list = document.getElementById('friend-suggestions-list');
             list.innerHTML = '';
 
             if (data.suggestions && data.suggestions.length > 0) {
                 data.suggestions.forEach(s => {
                     const item = document.createElement('div');
-                    item.className = 'friend-item';
+                    item.className = 'friend-row';
                     item.innerHTML = `
                         <div class="friend-avatar">${s.username.charAt(0).toUpperCase()}</div>
                         <div class="friend-info">
-                            <div class="list-item-title">${s.username}</div>
-                            <div class="list-item-meta">Co-appeared in ${s.mutual_photo_count} photos</div>
+                            <div class="row-title">${s.username}</div>
+                            <div class="row-meta">Co-appeared in ${s.mutual_photo_count} photos</div>
                         </div>
-                        <button class="btn btn-sm" onclick="sendFriendRequest('${s.user_id}')">Add</button>
+                        <button class="btn btn-filled btn-sm" onclick="sendFriendRequest('${s.user_id}')">Add</button>
                     `;
                     list.appendChild(item);
                 });
             } else {
-                list.innerHTML = '<div class="list-item-meta" style="padding: 8px 0;">No suggestions yet. Co-appear with others in photos to get matches.</div>';
+                list.innerHTML = '<div class="row-meta">No suggestions yet. Co-appear with others in photos to get matches.</div>';
             }
         }
 
@@ -2074,33 +2033,54 @@
                 body: JSON.stringify({ target_user_id: targetUserId })
             });
             if (response.ok) {
-                alert('Friend request sent.');
+                toast('Friend request sent.');
                 loadFriendSuggestions();
+                loadFriendsList();
             }
         }
 
         async function loadFriendsList() {
-            if (!currentToken) return;
+            const list = document.getElementById('friends-list');
+            if (!currentToken) {
+                list.innerHTML = '<div class="row-meta">Sign in to see friends.</div>';
+                cachedFriends = [];
+                renderStoryRings();
+                return;
+            }
             const response = await apiFetch(`/friends`, {
                 headers: { 'Authorization': `Bearer ${currentToken}` }
             });
             const data = await response.json();
-            const list = document.getElementById('friends-list');
             list.innerHTML = '';
+            cachedFriends = data.friends || [];
 
             if (data.friends && data.friends.length > 0) {
                 data.friends.forEach(f => {
                     const item = document.createElement('div');
-                    item.className = 'friend-item';
+                    item.className = 'friend-row';
                     item.innerHTML = `
                         <div class="friend-avatar">${f.username.charAt(0).toUpperCase()}</div>
-                        <div class="friend-info"><div class="list-item-title">${f.username}</div></div>
+                        <div class="friend-info">
+                            <div class="row-title">${f.username}</div>
+                        </div>
                     `;
                     list.appendChild(item);
                 });
             } else {
-                list.innerHTML = '<div class="list-item-meta" style="padding: 8px 0;">No friends added yet.</div>';
+                list.innerHTML = '<div class="row-meta">No friends added yet.</div>';
             }
+
+            renderStoryRings();
+        }
+
+        function updateStatusClock() {
+            const el = document.getElementById('sb-time');
+            if (!el) return;
+            const d = new Date();
+            let h = d.getHours();
+            const m = String(d.getMinutes()).padStart(2, '0');
+            h = h % 12 || 12;
+            el.textContent = `${h}:${m}`;
         }
 
         document.getElementById('lightbox').addEventListener('click', (e) => {
@@ -2108,15 +2088,23 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeSheet();
+            }
         });
 
         updateAuthUI();
         showModeBanner();
+        updateStatusClock();
+        setInterval(updateStatusClock, 30000);
+        switchTab('tab-gallery');
         if (currentToken) {
-            switchTab('tab-gallery');
+            loadNotifications();
+            loadFriendSuggestions();
+            loadFriendsList();
         }
-    
+
     </script>
 </body>
 </html>

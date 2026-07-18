@@ -8,7 +8,8 @@ os.getenv directly elsewhere.
 """
 
 import os
-from typing import List
+from typing import List, Optional
+from urllib.parse import quote_plus
 
 
 def _get_str(name: str, default: str) -> str:
@@ -23,18 +24,65 @@ def _get_float(name: str, default: float) -> float:
     return float(os.getenv(name, str(default)))
 
 
+def _build_supabase_pooler_url() -> Optional[str]:
+    """
+    Build a Supabase Supavisor pooler connection string when pooler env vars are set.
+
+    Dashboard: Project Settings -> Database -> Connection string -> Pooler
+    - Transaction mode (port 6543): recommended for app servers; requires
+      prepare_threshold=0 (set automatically via DB_PREPARE_THRESHOLD).
+    - Session mode (port 5432 on pooler host): user postgres.<project_ref>
+    """
+    host = os.getenv("SUPABASE_POOLER_HOST", "").strip()
+    project_ref = os.getenv("SUPABASE_PROJECT_REF", "").strip()
+    password = os.getenv("SUPABASE_DB_PASSWORD", "").strip()
+    if not (host and project_ref and password):
+        return None
+
+    port = _get_int("SUPABASE_POOLER_PORT", 6543)
+    db_name = _get_str("SUPABASE_DB_NAME", "postgres")
+    user = f"postgres.{project_ref}"
+    safe_password = quote_plus(password)
+    return (
+        f"postgresql+psycopg://{user}:{safe_password}@{host}:{port}/{db_name}"
+        f"?sslmode=require"
+    )
+
+
+def _resolve_database_url() -> str:
+    pooler_url = _build_supabase_pooler_url()
+    if pooler_url:
+        return pooler_url
+
+    explicit = os.getenv("DATABASE_URL", "").strip()
+    if explicit:
+        return explicit
+
+    return "postgresql+psycopg://postgres:postgres@db:5432/tagr_db"
+
+
+def _resolve_prepare_threshold(database_url: str) -> Optional[int]:
+    """
+    Transaction-mode Supavisor (port 6543) does not support prepared statements.
+    Disable them for psycopg when using that pooler endpoint.
+    """
+    pooler_port = os.getenv("SUPABASE_POOLER_PORT", "").strip()
+    if pooler_port == "6543":
+        return 0
+    if "pooler.supabase.com" in database_url and ":6543" in database_url:
+        return 0
+    return None
+
+
 # -------------------------------------------------------------------
-# Database (Postgres / Supabase)
+# Database (Postgres / Supabase via Supavisor pooler)
 # -------------------------------------------------------------------
-# Use the SQLAlchemy + psycopg driver form, e.g.
-#   postgresql+psycopg://<user>:<pass>@<host>:5432/<db>?sslmode=require
-DATABASE_URL = _get_str(
-    "DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@db:5432/tagr_db",
-)
+DATABASE_URL = _resolve_database_url()
 # Recycle/validate pooled connections (recommended for hosted DBs like Supabase).
 DB_POOL_PRE_PING = _get_str("DB_POOL_PRE_PING", "true").lower() in ("1", "true", "yes")
 DB_ECHO = _get_str("DB_ECHO", "false").lower() in ("1", "true", "yes")
+# psycopg connect_arg: 0 disables prepared statements (required for transaction pooler).
+DB_PREPARE_THRESHOLD: Optional[int] = _resolve_prepare_threshold(DATABASE_URL)
 
 # -------------------------------------------------------------------
 # Supabase Auth

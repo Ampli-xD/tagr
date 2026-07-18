@@ -1,7 +1,7 @@
 services:
   # ---------------------------------------------------------------------------
   # Local Postgres (pgvector) — DISABLED in favor of Supabase.
-  # Set DATABASE_URL in .env to your Supabase connection string. To go back to a
+  # Set Supabase pooler vars in .env (recommended) or a full DATABASE_URL fallback.
   # fully local stack, uncomment this service, re-add the `db` dependency under
   # `web`, uncomment the `postgres_data` volume, and point DATABASE_URL at it.
   # ---------------------------------------------------------------------------
@@ -76,8 +76,13 @@ services:
     container_name: tagr-web
     env_file: .env
     environment:
-      # Point this at your Supabase Postgres (see .env / .env.example).
-      DATABASE_URL: ${DATABASE_URL}
+      # Supavisor pooler (built into DATABASE_URL when SUPABASE_POOLER_* vars are set).
+      SUPABASE_PROJECT_REF: ${SUPABASE_PROJECT_REF:-}
+      SUPABASE_DB_PASSWORD: ${SUPABASE_DB_PASSWORD:-}
+      SUPABASE_POOLER_HOST: ${SUPABASE_POOLER_HOST:-}
+      SUPABASE_POOLER_PORT: ${SUPABASE_POOLER_PORT:-6543}
+      SUPABASE_DB_NAME: ${SUPABASE_DB_NAME:-postgres}
+      DATABASE_URL: ${DATABASE_URL:-}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}

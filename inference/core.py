@@ -11,6 +11,21 @@ logger = logging.getLogger("tagr-inference")
 
 _face_analyzer: Optional[FaceAnalysis] = None
 
+MODEL_NAME = "buffalo_l"
+
+# Ship the model with the code so it is never downloaded at runtime. InsightFace
+# resolves models at "<root>/models/<name>", so the ONNX files live in
+# inference/assets/models/buffalo_l. Overridable via INSIGHTFACE_ROOT.
+INSIGHTFACE_ROOT = os.getenv(
+    "INSIGHTFACE_ROOT",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets"),
+)
+
+# Only the detection + recognition models are bundled/used: detection provides
+# the bounding box + score, recognition provides the 512-d embedding. The other
+# buffalo_l sub-models (landmarks, gender/age) are not needed here.
+ALLOWED_MODULES = ["detection", "recognition"]
+
 
 def _resolve_providers() -> tuple[list[str], int]:
     device = os.getenv("INFERENCE_DEVICE", "cpu").lower()
@@ -23,8 +38,22 @@ def get_face_analyzer() -> FaceAnalysis:
     global _face_analyzer
     if _face_analyzer is None:
         providers, ctx_id = _resolve_providers()
-        logger.info("Initializing InsightFace buffalo_l (providers=%s)", providers)
-        analyzer = FaceAnalysis(name="buffalo_l", root="~/.insightface", providers=providers)
+        model_dir = os.path.join(INSIGHTFACE_ROOT, "models", MODEL_NAME)
+        if not os.path.isdir(model_dir):
+            logger.warning(
+                "Bundled model dir %s not found; InsightFace may attempt a download.",
+                model_dir,
+            )
+        logger.info(
+            "Initializing InsightFace %s from %s (providers=%s)",
+            MODEL_NAME, model_dir, providers,
+        )
+        analyzer = FaceAnalysis(
+            name=MODEL_NAME,
+            root=INSIGHTFACE_ROOT,
+            allowed_modules=ALLOWED_MODULES,
+            providers=providers,
+        )
         analyzer.prepare(ctx_id=ctx_id)
         _face_analyzer = analyzer
     return _face_analyzer

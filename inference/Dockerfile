@@ -38,7 +38,13 @@ RUN if [ "$TARGET" = "runpod" ]; then \
         opencv-python-headless insightface onnxruntime runpod==1.7.12; \
     fi
 
-COPY core.py handler.py main.py ./
+COPY core.py handler.py main.py download_model.py ./
+
+# Bake the InsightFace model into the image at build time so it is downloaded
+# ONCE here and never fetched again at runtime / on container start. The files
+# land in /workspace/assets/models/buffalo_l (see download_model.py / core.py).
+ENV INSIGHTFACE_ROOT=/workspace/assets
+RUN python download_model.py
 
 ENV INFERENCE_DEVICE=gpu \
     PYTHONUNBUFFERED=1

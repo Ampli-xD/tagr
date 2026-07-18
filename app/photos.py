@@ -7,15 +7,112 @@ from sqlalchemy import select, update
 
 from .database import get_db
 from .models import Photo, PhotoTag, FaceEmbedding, User, Notification, UnknownFace
-from .storage import upload_image, get_image_url
+from .storage import upload_image, get_image_url, create_presigned_upload_url, object_exists
 from .batcher import photo_batcher
 from .auth import get_current_user_id
-from .config import SIMILARITY_THRESHOLD
+from .config import SIMILARITY_THRESHOLD, PRESIGNED_UPLOAD_EXPIRES_SECONDS
 
 router = APIRouter(prefix="/photos", tags=["Photos & Tagging"])
 
+_MAX_PRESIGN_BATCH = 20
+_ALLOWED_IMAGE_PREFIX = "image/"
+
+
+def _storage_key_for_photo(photo_id: uuid.UUID, filename: str) -> str:
+    ext = filename.split(".")[-1] if "." in filename else "jpg"
+    now = datetime.now(timezone.utc)
+    return f"uploads/{now.year}/{now.month:02d}/{now.day:02d}/{photo_id}.{ext}"
+
+
 # -------------------------------------------------------------
-# FR2.1: Upload one or more photos
+# FR2.1a: Presigned direct-to-storage upload (browser -> Supabase)
+# -------------------------------------------------------------
+@router.post("/upload/presign")
+async def presign_photo_uploads(
+    payload: dict = Body(...),
+    current_user_id: uuid.UUID = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    files = payload.get("files") or []
+    if not files:
+        raise HTTPException(status_code=400, detail="files is required")
+    if len(files) > _MAX_PRESIGN_BATCH:
+        raise HTTPException(status_code=400, detail=f"Maximum {_MAX_PRESIGN_BATCH} files per batch")
+
+    uploads = []
+    for entry in files:
+        filename = (entry.get("filename") or "photo.jpg").strip() or "photo.jpg"
+        content_type = (entry.get("content_type") or "image/jpeg").strip() or "image/jpeg"
+        if not content_type.startswith(_ALLOWED_IMAGE_PREFIX):
+            raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type}")
+
+        photo_id = uuid.uuid4()
+        storage_key = _storage_key_for_photo(photo_id, filename)
+        db.add(
+            Photo(
+                id=photo_id,
+                owner_id=current_user_id,
+                storage_url=storage_key,
+                status="pending",
+            )
+        )
+        uploads.append(
+            {
+                "photo_id": str(photo_id),
+                "storage_key": storage_key,
+                "upload_url": create_presigned_upload_url(storage_key, content_type),
+                "content_type": content_type,
+                "expires_in": PRESIGNED_UPLOAD_EXPIRES_SECONDS,
+            }
+        )
+
+    db.commit()
+    return {"uploads": uploads}
+
+
+@router.post("/upload/complete", status_code=status.HTTP_202_ACCEPTED)
+async def complete_photo_uploads(
+    payload: dict = Body(...),
+    current_user_id: uuid.UUID = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    photo_ids_raw = payload.get("photo_ids") or []
+    if not photo_ids_raw:
+        raise HTTPException(status_code=400, detail="photo_ids is required")
+
+    photo_ids: List[uuid.UUID] = []
+    for raw_id in photo_ids_raw:
+        try:
+            photo_ids.append(uuid.UUID(str(raw_id)))
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid photo_id: {raw_id}") from exc
+
+    photos = (
+        db.query(Photo)
+        .filter(Photo.id.in_(photo_ids), Photo.owner_id == current_user_id)
+        .all()
+    )
+    if len(photos) != len(photo_ids):
+        raise HTTPException(status_code=404, detail="One or more photos not found")
+
+    missing = [str(p.id) for p in photos if not object_exists(p.storage_url)]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Upload not found in storage yet", "photo_ids": missing},
+        )
+
+    upload_ids: List[str] = []
+    for photo in photos:
+        upload_ids.append(str(photo.id))
+        internal_url = get_image_url(photo.storage_url, internal=True)
+        await photo_batcher.add_photo(str(photo.id), internal_url)
+
+    return {"upload_ids": upload_ids, "status": "pending"}
+
+
+# -------------------------------------------------------------
+# FR2.1: Upload one or more photos (legacy proxy through API)
 # -------------------------------------------------------------
 @router.post("/upload", status_code=status.HTTP_202_ACCEPTED)
 async def upload_photos(
@@ -29,11 +126,8 @@ async def upload_photos(
         file_bytes = await img.read()
         
         photo_id = uuid.uuid4()
-        ext = img.filename.split(".")[-1] if "." in img.filename else "jpg"
-        
-        # Save path structure: uploads/{YYYY}/{MM}/{DD}/{photo_id}.jpg
-        now = datetime.now(timezone.utc)
-        storage_key = f"uploads/{now.year}/{now.month:02d}/{now.day:02d}/{photo_id}.{ext}"
+        ext = img.filename.split(".")[-1] if img.filename and "." in img.filename else "jpg"
+        storage_key = _storage_key_for_photo(photo_id, img.filename or f"photo.{ext}")
         
         # 1. Upload file to MinIO
         upload_image(file_bytes, storage_key, img.content_type)

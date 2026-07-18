@@ -1,6 +1,7 @@
 import json
 import boto3
 from botocore.client import Config
+from botocore.exceptions import ClientError
 
 from .config import (
     STORAGE_ENDPOINT,
@@ -11,6 +12,7 @@ from .config import (
     STORAGE_BUCKET,
     STORAGE_REGION,
     STORAGE_SIGNATURE_VERSION,
+    PRESIGNED_UPLOAD_EXPIRES_SECONDS,
 )
 
 
@@ -92,6 +94,36 @@ def upload_image(file_bytes: bytes, filename: str, content_type: str) -> str:
         ContentType=content_type,
     )
     return filename
+
+
+def create_presigned_upload_url(
+    filename: str,
+    content_type: str,
+    expires_in: int | None = None,
+) -> str:
+    """
+    Return a short-lived PUT URL so the browser can upload directly to object storage.
+    Works with Supabase Storage (S3-compatible) and MinIO.
+    """
+    expiry = expires_in if expires_in is not None else PRESIGNED_UPLOAD_EXPIRES_SECONDS
+    return s3_client.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={
+            "Bucket": STORAGE_BUCKET,
+            "Key": filename,
+            "ContentType": content_type,
+        },
+        ExpiresIn=expiry,
+    )
+
+
+def object_exists(filename: str) -> bool:
+    """Check whether an object key exists in the bucket."""
+    try:
+        s3_client.head_object(Bucket=STORAGE_BUCKET, Key=filename.lstrip("/"))
+        return True
+    except ClientError:
+        return False
 
 
 def get_image_url(filename: str, internal: bool = True) -> str:

@@ -1651,7 +1651,55 @@
                 return mockResponse({ enrolled: true, claimed_photos: 0 });
             }
 
-            if (parts[0] === 'photos' && parts[1] === 'upload' && method === 'POST') {
+            if (parts[0] === 'photos' && parts[1] === 'upload' && parts[2] === 'presign' && method === 'POST') {
+                let files = [];
+                try {
+                    files = JSON.parse(options.body).files || [];
+                } catch (_) {}
+                const uploads = (files.length ? files : [{ filename: 'photo.jpg', content_type: 'image/jpeg' }]).map((f, i) => ({
+                    photo_id: 'demo-upload-' + Date.now() + '-' + i,
+                    storage_key: `uploads/demo/${Date.now()}-${i}.jpg`,
+                    upload_url: 'demo-direct-upload',
+                    content_type: f.content_type || 'image/jpeg',
+                    expires_in: 900,
+                }));
+                return mockResponse({ uploads });
+            }
+
+            if (parts[0] === 'photos' && parts[1] === 'upload' && parts[2] === 'complete' && method === 'POST') {
+                let photoIds = [];
+                try {
+                    photoIds = JSON.parse(options.body).photo_ids || [];
+                } catch (_) {}
+                photoIds.forEach((photoId, i) => {
+                    const url = `https://picsum.photos/seed/${photoId}/900/700`;
+                    state.photos.unshift({
+                        photo_id: photoId,
+                        url,
+                        uploaded_at: new Date().toISOString(),
+                        status: 'processing',
+                        tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                        tags: [],
+                        comments: []
+                    });
+                    setTimeout(() => {
+                        const photo = state.photos.find(p => p.photo_id === photoId);
+                        if (!photo) return;
+                        photo.status = 'processed';
+                        photo.tags = [{
+                            tag_id: photoId + '-tag',
+                            user_id: 'demo-user-me',
+                            username: '{{me}}',
+                            bbox: { x: 0.3, y: 0.2, width: 0.2, height: 0.3 },
+                            confidence: 0.95,
+                            source: 'auto'
+                        }];
+                    }, 2500);
+                });
+                return mockResponse({ upload_ids: photoIds, status: 'pending' });
+            }
+
+            if (parts[0] === 'photos' && parts[1] === 'upload' && !parts[2] && method === 'POST') {
                 const files = [];
                 if (options.body instanceof FormData) {
                     for (const [key, value] of options.body.entries()) {
@@ -1686,7 +1734,7 @@
                         }];
                     }, 2500);
                 }
-                return mockResponse({ queued: count, photo_ids: [] });
+                return mockResponse({ upload_ids: state.photos.slice(0, count).map(p => p.photo_id), status: 'pending' });
             }
 
             if (parts[0] === 'users' && parts[2] === 'gallery' && method === 'GET') {
@@ -3014,34 +3062,14 @@
             setTimeout(() => pollUploadStatus(ids, item, attempt + 1), 2000);
         }
 
-        async function uploadFiles(files) {
-            if (!files || !files.length) return;
-            if (!requireApi()) return;
-            if (!currentToken) {
-                toast('Please sign in before uploading.');
-                switchTab('tab-profile');
-                return;
-            }
+        async function uploadFilesViaProxy(files, item) {
             const formData = new FormData();
             for (let i = 0; i < files.length; i++) {
                 formData.append('images', files[i]);
             }
 
-            const queueList = document.getElementById('upload-queue-list');
-            const item = document.createElement('div');
-            item.className = 'queue-row';
-            item.innerHTML = `
-                <div style="flex:1;">
-                    <div class="row-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
-                    <div class="row-meta">Sending to server…</div>
-                </div>
-                <span class="status-badge status-processing">Uploading</span>
-            `;
-            queueList.prepend(item);
-
             const controller = new AbortController();
             const uploadTimeout = setTimeout(() => controller.abort(), 180000);
-
             try {
                 const response = await apiFetch(`/photos/upload`, {
                     method: 'POST',
@@ -3056,32 +3084,131 @@
                 } catch (_) {
                     data = { detail: 'Invalid server response' };
                 }
-
-                if (response.ok) {
-                    const ids = data.upload_ids || data.photo_ids || [];
-                    item.innerHTML = `
-                        <div style="flex:1;">
-                            <div class="row-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
-                            <div class="row-meta">Detecting faces…</div>
-                        </div>
-                        <span class="status-badge status-processing">Processing (0/${ids.length || files.length})</span>
-                    `;
-                    pollUploadStatus(ids, item);
-                    toast('Upload queued.');
-                } else {
+                if (!response.ok) {
                     const detail = typeof data.detail === 'string'
                         ? data.detail
                         : (data.detail ? JSON.stringify(data.detail) : `HTTP ${response.status}`);
-                    item.innerHTML = `
-                        <div style="flex:1;">
-                            <div class="row-title">Upload failed</div>
-                            <div class="row-meta">${detail}</div>
-                        </div>
-                        <span class="status-badge status-failed">Error</span>
-                    `;
+                    throw new Error(detail);
                 }
+                return data.upload_ids || data.photo_ids || [];
             } catch (err) {
                 clearTimeout(uploadTimeout);
+                throw err;
+            }
+        }
+
+        async function uploadFilesDirect(files, item) {
+            const metaEl = item.querySelector('.row-meta');
+            const setMeta = (text) => { if (metaEl) metaEl.textContent = text; };
+
+            setMeta('Preparing upload…');
+            const presignResp = await apiFetch('/photos/upload/presign', {
+                method: 'POST',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    files: Array.from(files).map((file) => ({
+                        filename: file.name || 'photo.jpg',
+                        content_type: file.type || 'image/jpeg',
+                    })),
+                }),
+            });
+            let presignData = {};
+            try {
+                presignData = await presignResp.json();
+            } catch (_) {
+                presignData = { detail: 'Invalid presign response' };
+            }
+            if (!presignResp.ok) {
+                const detail = typeof presignData.detail === 'string'
+                    ? presignData.detail
+                    : (presignData.detail ? JSON.stringify(presignData.detail) : `HTTP ${presignResp.status}`);
+                throw new Error(detail);
+            }
+
+            const uploads = presignData.uploads || [];
+            if (uploads.length !== files.length) {
+                throw new Error('Upload preparation failed.');
+            }
+
+            let finished = 0;
+            setMeta(`Uploading 0/${files.length} directly to storage…`);
+
+            await Promise.all(uploads.map(async (entry, index) => {
+                const file = files[index];
+                if (entry.upload_url === 'demo-direct-upload') {
+                    finished += 1;
+                    setMeta(`Uploading ${finished}/${files.length} directly to storage…`);
+                    return;
+                }
+                const putResp = await fetch(entry.upload_url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': entry.content_type || file.type || 'image/jpeg' },
+                    body: file,
+                });
+                if (!putResp.ok) {
+                    throw new Error(`Storage upload failed (${putResp.status}). Check bucket CORS allows PUT from this site.`);
+                }
+                finished += 1;
+                setMeta(`Uploading ${finished}/${files.length} directly to storage…`);
+            }));
+
+            setMeta('Starting face detection…');
+            const completeResp = await apiFetch('/photos/upload/complete', {
+                method: 'POST',
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ photo_ids: uploads.map((entry) => entry.photo_id) }),
+            });
+            let completeData = {};
+            try {
+                completeData = await completeResp.json();
+            } catch (_) {
+                completeData = { detail: 'Invalid complete response' };
+            }
+            if (!completeResp.ok) {
+                const detail = typeof completeData.detail === 'string'
+                    ? completeData.detail
+                    : (completeData.detail ? JSON.stringify(completeData.detail) : `HTTP ${completeResp.status}`);
+                throw new Error(detail);
+            }
+            return completeData.upload_ids || uploads.map((entry) => entry.photo_id);
+        }
+
+        async function uploadFiles(files) {
+            if (!files || !files.length) return;
+            if (!requireApi()) return;
+            if (!currentToken) {
+                toast('Please sign in before uploading.');
+                switchTab('tab-profile');
+                return;
+            }
+
+            const queueList = document.getElementById('upload-queue-list');
+            const item = document.createElement('div');
+            item.className = 'queue-row';
+            item.innerHTML = `
+                <div style="flex:1;">
+                    <div class="row-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
+                    <div class="row-meta">Preparing upload…</div>
+                </div>
+                <span class="status-badge status-processing">Uploading</span>
+            `;
+            queueList.prepend(item);
+
+            try {
+                const ids = DEMO_MODE
+                    ? await uploadFilesViaProxy(files, item)
+                    : await uploadFilesDirect(files, item);
+
+                item.innerHTML = `
+                    <div style="flex:1;">
+                        <div class="row-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
+                        <div class="row-meta">Detecting faces…</div>
+                    </div>
+                    <span class="status-badge status-processing">Processing (0/${ids.length || files.length})</span>
+                `;
+                pollUploadStatus(ids, item);
+                toast('Upload queued.');
+            } catch (err) {
                 const message = err.name === 'AbortError'
                     ? 'Upload timed out. Try fewer or smaller photos.'
                     : err.message;

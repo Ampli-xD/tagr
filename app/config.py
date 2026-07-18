@@ -171,6 +171,7 @@ STORAGE_ENDPOINT = _resolve_storage_endpoint()
 STORAGE_PUBLIC_ENDPOINT = _resolve_storage_public_endpoint(STORAGE_ENDPOINT)
 # Optional override when inference cannot reach STORAGE_PUBLIC_ENDPOINT (legacy MinIO).
 STORAGE_INFERENCE_ENDPOINT = _get_str("STORAGE_INFERENCE_ENDPOINT", "")
+PRESIGNED_UPLOAD_EXPIRES_SECONDS = int(_get_float("PRESIGNED_UPLOAD_EXPIRES_SECONDS", 900))
 
 # -------------------------------------------------------------------
 # CORS

@@ -3140,11 +3140,17 @@
                     setMeta(`Uploading ${finished}/${files.length} directly to storage…`);
                     return;
                 }
-                const putResp = await fetch(entry.upload_url, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': entry.content_type || file.type || 'image/jpeg' },
-                    body: file,
-                });
+                let putResp;
+                try {
+                    putResp = await fetch(entry.upload_url, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': entry.content_type || file.type || 'image/jpeg' },
+                        body: file,
+                    });
+                } catch (networkErr) {
+                    const hint = networkErr && networkErr.message ? networkErr.message : 'network error';
+                    throw new Error(`Direct storage upload blocked (${hint}). Bucket CORS may need PUT from this site.`);
+                }
                 if (!putResp.ok) {
                     throw new Error(`Storage upload failed (${putResp.status}). Check bucket CORS allows PUT from this site.`);
                 }
@@ -3195,9 +3201,19 @@
             queueList.prepend(item);
 
             try {
-                const ids = DEMO_MODE
-                    ? await uploadFilesViaProxy(files, item)
-                    : await uploadFilesDirect(files, item);
+                let ids;
+                try {
+                    ids = DEMO_MODE
+                        ? await uploadFilesViaProxy(files, item)
+                        : await uploadFilesDirect(files, item);
+                } catch (directErr) {
+                    if (DEMO_MODE) throw directErr;
+                    const msg = directErr && directErr.message ? directErr.message : String(directErr);
+                    const metaEl = item.querySelector('.row-meta');
+                    if (metaEl) metaEl.textContent = 'Direct upload blocked — retrying via server…';
+                    toast('Direct upload unavailable. Sending via server instead.');
+                    ids = await uploadFilesViaProxy(files, item);
+                }
 
                 item.innerHTML = `
                     <div style="flex:1;">

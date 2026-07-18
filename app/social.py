@@ -231,7 +231,7 @@ async def get_friend_suggestions(
               WHERE (fr.from_user_id = :curr_id AND fr.to_user_id = pt2.user_id) 
                  OR (fr.from_user_id = pt2.user_id AND fr.to_user_id = :curr_id)
           )
-        GROUP BY pt2.user_id, u.username
+        GROUP BY pt2.user_id, u.username, u.display_name, u.profile_photo_key
         ORDER BY mutual_photos DESC
     """)
     

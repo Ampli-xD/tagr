@@ -1771,6 +1771,13 @@
             }
         }
 
+        async function ensureAuthReady() {
+            if (!currentToken) return false;
+            if (currentUserId) return true;
+            const profile = await fetchProfile();
+            return !!(profile && currentUserId);
+        }
+
         function populateProfileForm(profile) {
             if (!profile) return;
             const dn = document.getElementById('edit-display-name');
@@ -2078,9 +2085,16 @@
 
         async function submitEnrollmentBlob(blob) {
             if (!requireApi()) return false;
-            if (!currentUserId) {
+            if (!currentToken) {
                 alert('Please register or sign in first.');
                 return false;
+            }
+            if (!DEMO_MODE) {
+                const ready = await ensureAuthReady();
+                if (!ready) {
+                    toast('Could not load your account. Try signing in again.');
+                    return false;
+                }
             }
             if (DEMO_MODE) {
                 const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
@@ -2134,9 +2148,16 @@
 
         async function captureAndEnroll() {
             if (!requireApi()) return;
-            if (!currentUserId) {
+            if (!currentToken) {
                 alert('Please register or sign in first.');
                 return;
+            }
+            if (!DEMO_MODE) {
+                const ready = await ensureAuthReady();
+                if (!ready) {
+                    toast('Could not load your account. Try signing in again.');
+                    return;
+                }
             }
             if (DEMO_MODE) {
                 await submitEnrollmentBlob(new Blob(['demo'], { type: 'image/jpeg' }));

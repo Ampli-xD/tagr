@@ -1647,6 +1647,21 @@
             }, duration);
         }
 
+        const GREETING_ADJECTIVES = [
+            'beautiful', 'smarty', 'superstar', 'legend', 'rockstar', 'champ',
+            'sunshine', 'genius', 'trailblazer', 'wonder', 'star', 'hero',
+        ];
+
+        function friendlyHeaderGreeting(displayName, userId) {
+            const firstName = (displayName || '').trim().split(/\s+/)[0];
+            const seed = (userId || firstName || 'guest').split('').reduce((n, c) => n + c.charCodeAt(0), 0);
+            const adj = GREETING_ADJECTIVES[seed % GREETING_ADJECTIVES.length];
+            if (firstName && firstName.toLowerCase() !== 'you') {
+                return `Hey ${adj}, ${firstName}`;
+            }
+            return `Hey ${adj}`;
+        }
+
         function openSheet(sheetId = 'upload-sheet') {
             const backdrop = document.getElementById('sheet-backdrop');
             const sheet = document.getElementById(sheetId);
@@ -1963,7 +1978,8 @@
             const handle = currentProfile?.username ? `@${currentProfile.username}` : '';
 
             if (currentToken) {
-                statusDiv.innerHTML = `Signed in as <strong>${displayName}</strong><br><a href="#" onclick="logout(); return false;">Sign out</a>`;
+                const greeting = friendlyHeaderGreeting(displayName, currentUserId);
+                statusDiv.innerHTML = `${greeting}<br><a href="#" onclick="logout(); return false;">Sign out</a>`;
                 setAvatarElement(avatar, currentProfile || { display_name: displayName, username: currentUsername });
                 avatar.classList.remove('hidden');
                 signedInSection.classList.remove('hidden');

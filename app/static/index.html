@@ -1104,7 +1104,7 @@
                         <div id="auth-pane-register" class="auth-pane">
                             <div class="frame" style="padding: 12px;">
                                 <h2 class="section-title" style="margin-top: 0;">Join tagr</h2>
-                                <p class="subtext" style="margin-bottom: 10px;">Sign up with email via Supabase.</p>
+                                <p class="subtext" style="margin-bottom: 10px;">Create your account — no confirmation email needed.</p>
                                 <form id="register-form" onsubmit="handleSignUp(event)">
                                     <div class="form-group">
                                         <label>Display name</label>
@@ -1122,7 +1122,7 @@
                                         <label>Password</label>
                                         <input type="password" id="reg-password" class="input-line" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
                                     </div>
-                                    <button type="submit" class="btn btn-filled btn-block">Create account</button>
+                                    <button type="submit" id="register-submit-btn" class="btn btn-filled btn-block">Create account</button>
                                     <p id="register-error" class="auth-error hidden"></p>
                                 </form>
                             </div>
@@ -1517,7 +1517,10 @@
             const parts = path.replace(/^\//, '').split('/');
 
             if (parts[0] === 'auth' && parts[1] === 'config' && method === 'GET') {
-                return mockResponse({ supabase_url: '', supabase_anon_key: '' });
+                return mockResponse({ supabase_url: '', supabase_anon_key: '', email_confirmation_required: false });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'register' && method === 'POST') {
+                return mockResponse({ created: true, email: 'demo@tagr.local' });
             }
             if (parts[0] === 'auth' && parts[1] === 'me' && method === 'GET') {
                 return mockResponse({
@@ -2328,6 +2331,7 @@
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
             const errEl = document.getElementById('register-error');
+            const submitBtn = document.getElementById('register-submit-btn');
             if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
 
             if (DEMO_MODE) {
@@ -2356,27 +2360,40 @@
                 return;
             }
 
-            const { data, error } = await supabaseClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { display_name: displayName, username },
-                },
-            });
-            if (error) {
-                if (errEl) { errEl.textContent = error.message; errEl.classList.remove('hidden'); }
-                return;
-            }
-            if (data.session?.access_token) {
+            if (submitBtn) submitBtn.disabled = true;
+            try {
+                const registerResp = await apiFetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        display_name: displayName,
+                        username,
+                    }),
+                });
+                const registerData = await registerResp.json();
+                if (!registerResp.ok) {
+                    if (errEl) {
+                        errEl.textContent = registerData.detail || 'Registration failed';
+                        errEl.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    if (errEl) { errEl.textContent = error.message; errEl.classList.remove('hidden'); }
+                    return;
+                }
                 currentToken = data.session.access_token;
                 localStorage.setItem('token', currentToken);
                 await fetchProfile();
                 updateAuthUI();
                 toast('Account created — capture your face to finish setup.');
                 maybeShowOnboarding();
-            } else {
-                toast('Check your email to confirm your account, then sign in.');
-                switchAuthPane('login');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         }
 

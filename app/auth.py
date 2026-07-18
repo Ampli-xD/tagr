@@ -16,6 +16,7 @@ from .storage import upload_image, get_image_url
 from .config import (
     SUPABASE_URL,
     SUPABASE_ANON_KEY,
+    SUPABASE_SECRET_KEY,
     SUPABASE_JWT_SECRET,
     SUPABASE_JWKS_URL,
     INFERENCE_SERVER_URL,
@@ -155,7 +156,75 @@ async def auth_config():
     return {
         "supabase_url": SUPABASE_URL,
         "supabase_anon_key": SUPABASE_ANON_KEY,
+        "email_confirmation_required": False,
     }
+
+
+@router.post("/register")
+async def register(payload: dict = Body(...)):
+    """
+    Create a Supabase user without sending a confirmation email.
+
+    Uses the admin API with email_confirm=true so signup is instant and avoids
+    Supabase's built-in SMTP rate limits.
+    """
+    if not SUPABASE_URL or not SUPABASE_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Registration is not configured (set SUPABASE_URL and SUPABASE_SECRET_KEY)",
+        )
+
+    email = (payload.get("email") or "").strip().lower()
+    password = payload.get("password") or ""
+    display_name = (payload.get("display_name") or "").strip()
+    username = (payload.get("username") or "").strip().lower()
+
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="A valid email is required")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if not display_name or len(display_name) > 100:
+        raise HTTPException(status_code=400, detail="display_name must be 1–100 characters")
+    if not re.fullmatch(r"[a-z0-9_]{3,30}", username):
+        raise HTTPException(
+            status_code=400,
+            detail="username must be 3–30 chars: letters, numbers, underscore",
+        )
+
+    admin_url = f"{SUPABASE_URL.rstrip('/')}/auth/v1/admin/users"
+    headers = {
+        "apikey": SUPABASE_SECRET_KEY,
+        "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "email": email,
+        "password": password,
+        "email_confirm": True,
+        "user_metadata": {
+            "display_name": display_name,
+            "username": username,
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(admin_url, headers=headers, json=body, timeout=15.0)
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not reach Supabase Auth: {exc}",
+        ) from exc
+
+    if resp.status_code >= 400:
+        try:
+            err = resp.json()
+            detail = err.get("msg") or err.get("message") or err.get("error_description") or resp.text
+        except ValueError:
+            detail = resp.text or "Registration failed"
+        raise HTTPException(status_code=400, detail=detail)
+
+    return {"created": True, "email": email}
 
 
 @router.get("/me")

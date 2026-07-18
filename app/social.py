@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, text, and_, or_, delete
 
 from .database import get_db
-from .models import User, Photo, PhotoTag, Comment, Notification, FriendRequest, Friendship, FaceEmbedding
+from .models import User, Photo, PhotoTag, Comment, Notification, FriendRequest, Friendship, FaceEmbedding, UnknownFace
 from .storage import get_image_url
 from .auth import get_current_user_id
 
@@ -119,7 +119,18 @@ async def get_photo_details(
         "confidence": t[0].confidence,
         "source": t[0].source
     } for t in tags_res]
-    
+
+    # Unidentified faces detected but not yet matched to a registered user.
+    unknown_res = db.execute(
+        select(UnknownFace)
+        .where(UnknownFace.photo_id == photo_id, UnknownFace.claimed_at.is_(None))
+    ).scalars().all()
+    unknown_faces = [{
+        "unknown_face_id": str(u.id),
+        "bbox": {"x": u.bbox_x, "y": u.bbox_y, "width": u.bbox_width, "height": u.bbox_height},
+        "confidence": u.confidence,
+    } for u in unknown_res]
+
     # Get comments
     comments_stmt = select(Comment, User.username).join(User, Comment.user_id == User.id).where(Comment.photo_id == photo_id).order_by(Comment.created_at.asc())
     comments_res = db.execute(comments_stmt).all()
@@ -137,6 +148,7 @@ async def get_photo_details(
         "owner_id": str(photo.owner_id),
         "status": photo.status,
         "tags": tags,
+        "unknown_faces": unknown_faces,
         "comments": comments
     }
 

@@ -54,6 +54,22 @@ class FaceEmbedding(Base):
         CheckConstraint(source.in_(["enrollment", "correction"]), name="check_source"),
     )
 
+class UnknownFace(Base):
+    __tablename__ = "unknown_faces"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    photo_id = Column(UUID(as_uuid=True), ForeignKey("photos.id", ondelete="CASCADE"), nullable=False)
+    embedding = Column(Vector(512), nullable=False)
+    bbox_x = Column(Float, nullable=True)
+    bbox_y = Column(Float, nullable=True)
+    bbox_width = Column(Float, nullable=True)
+    bbox_height = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+    claimed_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    claimed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 class PhotoTag(Base):
     __tablename__ = "photo_tags"
 

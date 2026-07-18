@@ -5,11 +5,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from .database import get_db
-from .models import User, OTPRequest, FaceEmbedding
+from .models import User, OTPRequest, FaceEmbedding, UnknownFace, PhotoTag, Notification, Photo
 from .storage import upload_image, get_image_url
+from .internal import SIMILARITY_THRESHOLD
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Enrollment"])
 
@@ -178,13 +179,102 @@ async def enroll_face(
         source_photo_id=None
     )
     db.add(face_emb)
+    db.flush()
+
+    # Retroactively claim any previously-unknown faces that match this newly
+    # enrolled user. This lets a person who appeared in others' photos before
+    # registering automatically receive all of those photos on sign-up.
+    claimed_photo_ids = _claim_unknown_faces(db, user_id, real_embedding)
+
     db.commit()
     db.refresh(face_emb)
-    
+
     return {
         "enrolled": True,
-        "embedding_id": str(face_emb.id)
+        "embedding_id": str(face_emb.id),
+        "claimed_photos": len(claimed_photo_ids),
     }
+
+
+def _claim_unknown_faces(db: Session, user_id: uuid.UUID, embedding: list) -> list:
+    """
+    Find unclaimed unknown faces within the similarity threshold of the given
+    enrollment embedding, convert each into a real auto-tag for the user, notify
+    them, and mark the unknown face as claimed. Returns the list of photo IDs the
+    user was newly tagged in (deduplicated to one tag per photo).
+    """
+    max_distance = 1.0 - SIMILARITY_THRESHOLD
+
+    match_query = text("""
+        SELECT id, photo_id, bbox_x, bbox_y, bbox_width, bbox_height, confidence,
+               (embedding <=> CAST(:emb AS vector)) AS distance
+        FROM unknown_faces
+        WHERE claimed_at IS NULL
+          AND embedding <=> CAST(:emb AS vector) <= :max_dist
+        ORDER BY distance ASC
+    """)
+    matches = db.execute(
+        match_query,
+        {"emb": str(embedding), "max_dist": max_distance},
+    ).all()
+
+    claimed_photo_ids = []
+    now = datetime.now(timezone.utc)
+
+    for m in matches:
+        photo = db.get(Photo, m.photo_id)
+        if not photo:
+            continue
+
+        # One tag per (photo, user): skip if already tagged (either from an
+        # earlier claim in this loop or a pre-existing tag).
+        if m.photo_id in claimed_photo_ids:
+            already_claimed = True
+        else:
+            already_claimed = db.execute(
+                select(PhotoTag.id).where(
+                    PhotoTag.photo_id == m.photo_id,
+                    PhotoTag.user_id == user_id,
+                )
+            ).first() is not None
+
+        if not already_claimed:
+            tag = PhotoTag(
+                photo_id=m.photo_id,
+                user_id=user_id,
+                bbox_x=m.bbox_x,
+                bbox_y=m.bbox_y,
+                bbox_width=m.bbox_width,
+                bbox_height=m.bbox_height,
+                confidence=m.confidence,
+                source="auto",
+            )
+            db.add(tag)
+
+            db.add(Notification(
+                user_id=user_id,
+                type="tagged_in_photo",
+                photo_id=m.photo_id,
+                actor_user_id=photo.owner_id,
+                is_read=False,
+            ))
+            claimed_photo_ids.append(m.photo_id)
+
+        # Mark the unknown face as claimed regardless, so it is not re-processed.
+        db.execute(
+            text("""
+                UPDATE unknown_faces
+                SET claimed_at = :now, claimed_by_user_id = :uid
+                WHERE id = :fid
+            """),
+            {"now": now, "uid": str(user_id), "fid": str(m.id)},
+        )
+
+    if claimed_photo_ids:
+        print(f"Enrollment for user {user_id} retroactively claimed "
+              f"{len(claimed_photo_ids)} photo(s) from unknown faces.")
+
+    return claimed_photo_ids
 
 # -------------------------------------------------------------
 # Login Endpoint

@@ -8,10 +8,40 @@ from .auth import router as auth_router
 from .photos import router as photos_router
 from .internal import router as internal_router
 from .social import router as social_router
-from .database import get_db
+from .database import get_db, engine
+
+# Idempotent bootstrap for schema additions that must land on databases whose
+# volume was already initialized (the init SQL only runs on a fresh volume).
+UNKNOWN_FACES_DDL = """
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS unknown_faces (
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    photo_id           UUID NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+    embedding          VECTOR(512) NOT NULL,
+    bbox_x             FLOAT,
+    bbox_y             FLOAT,
+    bbox_width         FLOAT,
+    bbox_height        FLOAT,
+    confidence         FLOAT,
+    claimed_by_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    claimed_at         TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_unknown_faces_photo ON unknown_faces(photo_id);
+CREATE INDEX IF NOT EXISTS idx_unknown_faces_unclaimed ON unknown_faces(claimed_at) WHERE claimed_at IS NULL;
+"""
 
 # Initialize the main App
 app = FastAPI(title="Tagr Gateways")
+
+
+@app.on_event("startup")
+def ensure_schema():
+    try:
+        with engine.begin() as conn:
+            conn.execute(text(UNKNOWN_FACES_DDL))
+    except Exception as exc:
+        print(f"WARNING: unknown_faces schema bootstrap failed: {exc}")
 
 # Allow CORS for easy debugging
 app.add_middleware(

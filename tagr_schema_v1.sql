@@ -93,6 +93,29 @@ CREATE INDEX idx_photo_tags_photo ON photo_tags(photo_id);
 CREATE INDEX idx_photo_tags_user ON photo_tags(user_id);
 
 -- =====================================================================
+-- 5b. unknown_faces
+-- Faces detected in uploaded photos that did NOT match any enrolled user.
+-- Persisted so that when the person eventually registers & enrolls, they can
+-- retroactively claim every photo they appear in.
+-- =====================================================================
+CREATE TABLE unknown_faces (
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    photo_id           UUID NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+    embedding          VECTOR(512) NOT NULL,
+    bbox_x             FLOAT,
+    bbox_y             FLOAT,
+    bbox_width         FLOAT,
+    bbox_height        FLOAT,
+    confidence         FLOAT,
+    claimed_by_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    claimed_at         TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_unknown_faces_photo ON unknown_faces(photo_id);
+CREATE INDEX idx_unknown_faces_unclaimed ON unknown_faces(claimed_at) WHERE claimed_at IS NULL;
+
+-- =====================================================================
 -- 6. comments
 -- =====================================================================
 CREATE TABLE comments (

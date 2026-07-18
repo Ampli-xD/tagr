@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, update
 
 from .database import get_db
-from .models import Photo, PhotoTag, FaceEmbedding, User, Notification
+from .models import Photo, PhotoTag, FaceEmbedding, User, Notification, UnknownFace
 from .storage import upload_image, get_image_url
 from .batcher import photo_batcher
 from .auth import get_current_user_id
@@ -106,10 +106,21 @@ async def get_photo_tags(photo_id: uuid.UUID, db: Session = Depends(get_db)):
             "confidence": tag.confidence,
             "source": tag.source
         })
-        
+
+    unknown_res = db.execute(
+        select(UnknownFace)
+        .where(UnknownFace.photo_id == photo_id, UnknownFace.claimed_at.is_(None))
+    ).scalars().all()
+    unknown_faces = [{
+        "unknown_face_id": str(u.id),
+        "bbox": {"x": u.bbox_x, "y": u.bbox_y, "width": u.bbox_width, "height": u.bbox_height},
+        "confidence": u.confidence,
+    } for u in unknown_res]
+
     return {
         "photo_id": str(photo_id),
-        "tags": results
+        "tags": results,
+        "unknown_faces": unknown_faces
     }
 
 # -------------------------------------------------------------

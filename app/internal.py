@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from .database import get_db
-from .models import Photo, PhotoTag, FaceEmbedding, Notification, User
+from .models import Photo, PhotoTag, FaceEmbedding, Notification, User, UnknownFace
 
 router = APIRouter(prefix="/internal", tags=["Internal Callbacks"])
 
@@ -92,9 +92,30 @@ async def inference_callback(payload: dict, db: Session = Depends(get_db)):
                 )
                 db.add(notification)
             else:
-                # Optional: find closest even if it didn't pass threshold, for debugging
-                print(f"DEBUG: embedding length = {len(embedding)}, first 3 values = {embedding[:3]}, type = {type(embedding)}")
-                print(f"DEBUG: str(embedding) preview = {str(embedding)[:100]}")
+                # No enrolled user matched this face. Instead of discarding the
+                # embedding, persist it as an "unknown" face so that if the person
+                # registers later they can retroactively claim every photo they
+                # appear in (see enroll_face in auth.py).
+                bbox_width = (
+                    bbox.get("xmax", 0) - bbox.get("xmin", 0)
+                    if "xmax" in bbox and "xmin" in bbox else None
+                )
+                bbox_height = (
+                    bbox.get("ymax", 0) - bbox.get("ymin", 0)
+                    if "ymax" in bbox and "ymin" in bbox else None
+                )
+                unknown = UnknownFace(
+                    photo_id=photo_id,
+                    embedding=embedding,
+                    bbox_x=bbox.get("xmin"),
+                    bbox_y=bbox.get("ymin"),
+                    bbox_width=bbox_width,
+                    bbox_height=bbox_height,
+                    confidence=confidence,
+                )
+                db.add(unknown)
+
+                # Log the closest miss for debugging/threshold tuning.
                 debug_query = text("""
                     SELECT user_id, (embedding <=> CAST(:emb AS vector)) as distance
                     FROM face_embeddings
@@ -104,10 +125,11 @@ async def inference_callback(payload: dict, db: Session = Depends(get_db)):
                 closest = db.execute(debug_query, {"emb": str(embedding)}).first()
                 if closest:
                     closest_sim = 1.0 - closest.distance
-                    print(f"No match found for face in photo {photo_id} "
+                    print(f"No match found for face in photo {photo_id}; stored as unknown "
                         f"(closest was user {closest.user_id}, similarity: {closest_sim:.4f})")
                 else:
-                    print(f"No match found for face in photo {photo_id} (no embeddings in DB at all)")
+                    print(f"No match found for face in photo {photo_id}; stored as unknown "
+                        f"(no embeddings in DB at all)")
 
         # Update photo status to processed
         photo.status = "processed"

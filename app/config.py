@@ -49,6 +49,15 @@ def _build_supabase_pooler_url() -> Optional[str]:
     )
 
 
+def _normalize_database_url(url: str) -> str:
+    url = url.strip()
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://") :]
+    if "supabase" in url and "sslmode=" not in url:
+        url += "&sslmode=require" if "?" in url else "?sslmode=require"
+    return url
+
+
 def _resolve_database_url() -> str:
     pooler_url = _build_supabase_pooler_url()
     if pooler_url:
@@ -56,7 +65,7 @@ def _resolve_database_url() -> str:
 
     explicit = os.getenv("DATABASE_URL", "").strip()
     if explicit:
-        return explicit
+        return _normalize_database_url(explicit)
 
     return "postgresql+psycopg://postgres:postgres@db:5432/tagr_db"
 
@@ -87,11 +96,16 @@ DB_PREPARE_THRESHOLD: Optional[int] = _resolve_prepare_threshold(DATABASE_URL)
 # -------------------------------------------------------------------
 # Supabase Auth
 # -------------------------------------------------------------------
-# Project URL and anon key (public) — used by the frontend via GET /auth/config.
+# Project URL and client key (public) — used by the frontend via GET /auth/config.
 SUPABASE_URL = _get_str("SUPABASE_URL", "")
-SUPABASE_ANON_KEY = _get_str("SUPABASE_ANON_KEY", "")
-# JWT secret from Supabase Dashboard -> Project Settings -> API -> JWT Secret.
-# Used by the API to verify Supabase access tokens (HS256, aud=authenticated).
+# New Supabase publishable key (sb_publishable_...) or legacy anon JWT.
+SUPABASE_PUBLISHABLE_KEY = _get_str("SUPABASE_PUBLISHABLE_KEY", "")
+SUPABASE_ANON_KEY = _get_str("SUPABASE_ANON_KEY", "") or SUPABASE_PUBLISHABLE_KEY
+# Server-only secret (sb_secret_...) for Supabase admin APIs if needed later.
+SUPABASE_SECRET_KEY = _get_str("SUPABASE_SECRET_KEY", "")
+# JWKS endpoint for verifying Supabase access tokens (ES256/RS256).
+SUPABASE_JWKS_URL = _get_str("SUPABASE_JWKS_URL", "")
+# Legacy HS256 JWT secret — only used when JWKS URL is not set.
 SUPABASE_JWT_SECRET = _get_str("SUPABASE_JWT_SECRET", "")
 
 # -------------------------------------------------------------------

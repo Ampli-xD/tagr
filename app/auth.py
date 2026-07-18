@@ -17,6 +17,7 @@ from .config import (
     SUPABASE_URL,
     SUPABASE_ANON_KEY,
     SUPABASE_JWT_SECRET,
+    SUPABASE_JWKS_URL,
     INFERENCE_SERVER_URL,
     INFERENCE_TIMEOUT_SECONDS,
     SIMILARITY_THRESHOLD,
@@ -31,26 +32,44 @@ from .profile_utils import (
 router = APIRouter(prefix="/auth", tags=["Authentication & Profile"])
 security = HTTPBearer(auto_error=False)
 
+_jwks_client = None
+
 
 def decode_supabase_token(token: str) -> dict:
-    if not SUPABASE_JWT_SECRET:
+    issuer = f"{SUPABASE_URL.rstrip('/')}/auth/v1" if SUPABASE_URL else None
+    decode_opts = {"verify_aud": True}
+    if issuer:
+        decode_opts["verify_iss"] = True
+
+    try:
+        if SUPABASE_JWKS_URL:
+            global _jwks_client
+            if _jwks_client is None:
+                from jwt import PyJWKClient
+                _jwks_client = PyJWKClient(SUPABASE_JWKS_URL, cache_keys=True)
+            signing_key = _jwks_client.get_signing_key_from_jwt(token)
+            return jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256", "RS256", "EdDSA"],
+                audience="authenticated",
+                issuer=issuer,
+                options=decode_opts,
+            )
+
+        if SUPABASE_JWT_SECRET:
+            return jwt.decode(
+                token,
+                SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                issuer=issuer,
+                options=decode_opts,
+            )
+
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Supabase auth is not configured (SUPABASE_JWT_SECRET missing)",
-        )
-    options = {"verify_aud": True}
-    issuer = None
-    if SUPABASE_URL:
-        issuer = f"{SUPABASE_URL.rstrip('/')}/auth/v1"
-        options["verify_iss"] = True
-    try:
-        return jwt.decode(
-            token,
-            SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-            issuer=issuer,
-            options=options,
+            detail="Supabase auth is not configured (set SUPABASE_JWKS_URL or SUPABASE_JWT_SECRET)",
         )
     except jwt.PyJWTError as exc:
         raise HTTPException(

@@ -1734,6 +1734,14 @@
                     currentToken = session.access_token;
                     localStorage.setItem('token', currentToken);
                     await fetchProfile();
+                } else {
+                    currentToken = '';
+                    currentUserId = '';
+                    currentUsername = '';
+                    currentProfile = null;
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user_id');
+                    localStorage.removeItem('username');
                 }
                 supabaseClient.auth.onAuthStateChange(async (_event, session) => {
                     if (session?.access_token) {
@@ -1761,6 +1769,20 @@
             if (!currentToken || DEMO_MODE) return null;
             try {
                 const resp = await apiFetch('/auth/me', { headers: authHeaders() });
+                if (resp.status === 401) {
+                    currentToken = '';
+                    currentUserId = '';
+                    currentUsername = '';
+                    currentProfile = null;
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user_id');
+                    localStorage.removeItem('username');
+                    if (supabaseClient) {
+                        try { await supabaseClient.auth.signOut(); } catch (_) {}
+                    }
+                    updateAuthUI();
+                    return null;
+                }
                 if (!resp.ok) return null;
                 currentProfile = await resp.json();
                 currentUserId = currentProfile.user_id;

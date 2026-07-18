@@ -139,6 +139,9 @@ SIMILARITY_THRESHOLD = _get_float("SIMILARITY_THRESHOLD", 0.35)
 # Object storage (S3 / MinIO)
 # -------------------------------------------------------------------
 STORAGE_ENDPOINT = _get_str("STORAGE_ENDPOINT", "http://storage:9000")
+# URL reachable from the inference container when fetching images (may differ from
+# STORAGE_ENDPOINT when the web service uses host networking).
+STORAGE_INFERENCE_ENDPOINT = _get_str("STORAGE_INFERENCE_ENDPOINT", "")
 STORAGE_PUBLIC_ENDPOINT = _get_str(
     "STORAGE_PUBLIC_ENDPOINT",
     STORAGE_ENDPOINT.replace("http://storage:", "http://localhost:"),

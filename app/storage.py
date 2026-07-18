@@ -4,6 +4,7 @@ from botocore.client import Config
 
 from .config import (
     STORAGE_ENDPOINT,
+    STORAGE_INFERENCE_ENDPOINT,
     STORAGE_PUBLIC_ENDPOINT,
     STORAGE_ACCESS_KEY,
     STORAGE_SECRET_KEY,
@@ -75,9 +76,10 @@ def upload_image(file_bytes: bytes, filename: str, content_type: str) -> str:
 def get_image_url(filename: str, internal: bool = True) -> str:
     """
     Generates a direct URL to access the image.
-    If internal=True, returns the hostname suitable for internal docker communication ('http://storage:9000/...').
-    Otherwise, returns localhost format for external clients ('http://localhost:9000/...').
+    internal=True uses the inference/service endpoint (not the public browser URL).
     """
     if internal:
-        return f"{STORAGE_ENDPOINT}/{STORAGE_BUCKET}/{filename}"
-    return f"{STORAGE_PUBLIC_ENDPOINT.rstrip('/')}/{STORAGE_BUCKET}/{filename}"
+        endpoint = (STORAGE_INFERENCE_ENDPOINT or STORAGE_ENDPOINT).rstrip("/")
+    else:
+        endpoint = STORAGE_PUBLIC_ENDPOINT.rstrip("/")
+    return f"{endpoint}/{STORAGE_BUCKET}/{filename}"

@@ -22,8 +22,10 @@
             --sage-soft: #DCEBE7;
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --app-w: 430px;
-            --nav-h: 84px;
+            --content-max: 1200px;
+            --header-h: 64px;
+            --nav-h: 76px;
+            --side-nav-w: 220px;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -38,14 +40,7 @@
             overflow-x: hidden;
         }
 
-        .stage {
-            min-height: 100dvh;
-            display: flex;
-            justify-content: center;
-            position: relative;
-        }
-
-        .stage::before {
+        body::before {
             content: "";
             position: fixed;
             inset: 0;
@@ -56,71 +51,45 @@
             mix-blend-mode: multiply;
         }
 
-        .phone-frame {
-            width: 100%;
-            max-width: var(--app-w);
+        .app-shell {
             min-height: 100dvh;
-            background: rgba(244, 239, 228, 0.95);
-            border-left: 1px solid rgba(17, 17, 17, 0.14);
-            border-right: 1px solid rgba(17, 17, 17, 0.14);
-            box-shadow: 0 20px 80px rgba(0,0,0,0.10), inset 0 0 0 1px rgba(255,255,255,0.36);
-            position: relative;
-            z-index: 1;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
+            background: rgba(244, 239, 228, 0.92);
         }
 
-        @media (min-width: 900px) {
-            .stage { padding: 16px 0; }
-            .phone-frame {
-                border-radius: 30px;
-                overflow: hidden;
-                min-height: calc(100dvh - 32px);
-            }
-        }
-
-        .status-bar {
-            height: calc(42px + var(--safe-top));
-            padding: var(--safe-top) 16px 0;
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-top: 1px solid var(--line);
-            font-size: 12px;
-            letter-spacing: 0.02em;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0));
-        }
-
-        .status-icons { font-size: 11px; display: flex; gap: 6px; align-items: center; }
-
-        .api-banner {
-            display: none;
-            padding: 10px 16px;
-            font-size: 11.5px;
-            line-height: 1.45;
-            border-top: 1px solid var(--line-soft);
+            gap: 16px;
+            min-height: var(--header-h);
+            padding: calc(10px + var(--safe-top)) clamp(16px, 3vw, 40px) 10px;
             border-bottom: 1px solid var(--line-soft);
-            background: rgba(255, 253, 248, 0.9);
-            color: var(--muted);
-        }
-        .api-banner.demo-banner {
-            background: var(--sage-soft);
-            color: var(--ink);
-            border-color: var(--line);
-        }
-        .api-banner code {
-            font-size: 10.5px;
-            background: rgba(255,255,255,0.8);
-            border: 1px solid var(--line-soft);
-            padding: 1px 4px;
+            background: rgba(244, 239, 228, 0.96);
+            backdrop-filter: blur(8px);
         }
 
-        .top-bar {
-            padding: 12px 16px 8px;
+        .app-layout {
+            flex: 1;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--line-soft);
+            min-height: 0;
+        }
+
+        .app-main {
+            flex: 1;
+            width: 100%;
+            max-width: var(--content-max);
+            margin: 0 auto;
+            padding: 16px clamp(16px, 3vw, 40px) calc(var(--nav-h) + var(--safe-bottom) + 16px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .wordmark {
             font-family: Georgia, 'Times New Roman', serif;
@@ -146,7 +115,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            max-width: 54%;
+            max-width: min(54%, 320px);
         }
         .auth-status {
             font-size: 11.5px;
@@ -170,12 +139,25 @@
             flex-shrink: 0;
         }
 
-        .app-main {
-            flex: 1;
-            padding: 12px 16px calc(var(--nav-h) + var(--safe-bottom) + 14px);
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+        .api-banner {
+            display: none;
+            padding: 10px clamp(16px, 3vw, 40px);
+            font-size: 11.5px;
+            line-height: 1.45;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(255, 253, 248, 0.9);
+            color: var(--muted);
+        }
+        .api-banner.demo-banner {
+            background: var(--sage-soft);
+            color: var(--ink);
+            border-color: var(--line);
+        }
+        .api-banner code {
+            font-size: 10.5px;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid var(--line-soft);
+            padding: 1px 4px;
         }
 
         .tab-content { display: none; }
@@ -291,7 +273,6 @@
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .thumb { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .photo-card img {
             width: 100%;
             height: 100%;
@@ -329,6 +310,7 @@
             aspect-ratio: 1 / 1.08;
             background: #E9DFD3;
             position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .thumb .chip {
             position: absolute;
@@ -512,19 +494,20 @@
         .bottom-nav {
             position: fixed;
             bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: min(100%, var(--app-w));
+            left: 0;
+            right: 0;
             z-index: 60;
             border-top: 1px solid var(--line);
             background: rgba(244, 239, 228, 0.96);
             backdrop-filter: blur(6px);
-            padding: 8px 10px calc(8px + var(--safe-bottom));
+            padding: 8px clamp(10px, 2vw, 24px) calc(8px + var(--safe-bottom));
         }
         .bottom-nav-grid {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 8px;
+            max-width: var(--content-max);
+            margin: 0 auto;
         }
         .nav-btn {
             border: 1px solid var(--line);
@@ -537,6 +520,10 @@
             cursor: pointer;
         }
         .nav-btn.active { background: var(--sage); }
+
+        .side-nav {
+            display: none;
+        }
 
         .sheet-backdrop {
             position: fixed;
@@ -553,7 +540,7 @@
             left: 50%;
             transform: translateX(-50%) translateY(100%);
             bottom: 0;
-            width: min(100%, var(--app-w));
+            width: min(100%, 560px);
             background: var(--surface);
             border: 1px solid var(--line);
             border-bottom: none;
@@ -616,7 +603,6 @@
         @media (max-width: 860px) {
             .lightbox-panel {
                 width: 100%;
-                max-width: var(--app-w);
                 grid-template-columns: 1fr;
                 max-height: 100dvh;
             }
@@ -714,7 +700,7 @@
         }
         .enrollment-overlay.show { display: flex; }
         .enrollment-panel {
-            width: min(100%, var(--app-w));
+            width: min(100%, 560px);
             max-height: calc(100dvh - 24px);
             overflow-y: auto;
             border: 1px solid var(--line);
@@ -731,7 +717,7 @@
             margin-top: 12px;
         }
 
-        @media (min-width: 440px) {
+        @media (min-width: 768px) {
             .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
 
@@ -766,24 +752,62 @@
         }
 
         @media (min-width: 900px) {
-            .status-bar { display: none; }
-            .stage { padding: 20px 24px; align-items: center; }
-            .phone-frame {
-                min-height: min(100dvh - 40px, 920px);
-                max-height: calc(100dvh - 40px);
+            :root { --nav-h: 0px; }
+
+            .app-layout {
+                padding-left: var(--side-nav-w);
             }
+
+            .bottom-nav { display: none; }
+
+            .side-nav {
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                left: 0;
+                top: var(--header-h);
+                bottom: 0;
+                width: var(--side-nav-w);
+                padding: 16px 12px 24px;
+                border-right: 1px solid var(--line-soft);
+                background: rgba(244, 239, 228, 0.98);
+                z-index: 40;
+                gap: 8px;
+            }
+
+            .side-nav .nav-btn {
+                width: 100%;
+                text-align: left;
+                padding: 12px 14px;
+                font-size: 13px;
+                border-radius: 14px;
+            }
+
             .app-main {
-                padding-left: 22px;
-                padding-right: 22px;
-                padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 18px);
+                padding-bottom: 32px;
+                max-width: none;
+                width: 100%;
             }
-            .top-bar { padding: 14px 22px 10px; }
-            .bottom-nav {
-                border-radius: 0 0 30px 30px;
-                overflow: hidden;
+
+            .app-header {
+                padding-left: clamp(16px, 3vw, 40px);
             }
-            .display-title { font-size: 38px; }
-            .featured-card .photo-body { max-height: 480px; }
+
+            #api-banner {
+                padding-left: clamp(16px, 3vw, 40px);
+            }
+
+            .display-title { font-size: clamp(36px, 4vw, 48px); }
+            .gallery-stack {
+                display: grid;
+                grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+                gap: 16px;
+                align-items: start;
+            }
+            .gallery-stack .featured-card { grid-row: span 2; }
+            .gallery-stack .thumb-grid { grid-column: 2; }
+            .gallery-stack .empty-state { grid-column: 1 / -1; }
+            .featured-card .photo-body { max-height: none; min-height: 420px; }
             .enrollment-panel { border-radius: 24px; }
             .btn:hover { filter: brightness(0.97); }
             .nav-btn:hover { background: rgba(125, 184, 174, 0.35); }
@@ -793,27 +817,30 @@
             .notif-row:hover,
             .queue-row:hover { background: rgba(255, 255, 255, 0.72); }
             .lightbox { padding: 24px; }
-            .lightbox-panel { border-radius: 24px; max-height: calc(100dvh - 48px); }
+            .lightbox-panel { border-radius: 24px; max-height: calc(100dvh - 48px); width: min(100%, 1100px); }
             .viewer-image { max-height: 78vh; }
             .sidebar { padding: 20px; }
             .comments-list { max-height: 220px; }
+            .toast { bottom: calc(24px + var(--safe-bottom)); }
+            #notifications-list.stack-gap {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+            #profile-signed-out .auth-pane .frame,
+            #profile-signed-out .auth-tabs {
+                max-width: 520px;
+            }
         }
 
         @media (min-width: 1200px) {
-            .stage::after {
-                content: "tagr";
-                position: fixed;
-                left: 4vw;
-                top: 50%;
-                transform: translateY(-50%);
-                font-family: Georgia, 'Times New Roman', serif;
-                font-size: clamp(72px, 8vw, 120px);
-                line-height: 0.9;
-                letter-spacing: -0.04em;
-                color: rgba(17, 17, 17, 0.05);
-                pointer-events: none;
-                user-select: none;
-            }
+            .thumb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .gallery-stack .thumb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (min-width: 1400px) {
+            .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .gallery-stack .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
 
         @media (hover: none) {
@@ -825,22 +852,25 @@
     </style>
 </head>
 <body>
-    <div class="stage">
-        <div class="phone-frame">
-            <div class="status-bar">
-                <div id="sb-time">9:41</div>
-                <div class="status-icons"><span>◔</span><span>◔</span><span>▮▮▮</span></div>
-            </div>
+    <div class="app-shell">
+        <div id="api-banner" class="api-banner"></div>
 
-            <div id="api-banner" class="api-banner"></div>
-
-            <div class="top-bar">
-                <div class="wordmark">tagr<span id="demo-badge" class="demo-pill hidden">Demo</span></div>
-                <div class="account-chip">
-                    <div class="auth-status" id="header-auth-status">Not signed in</div>
-                    <div class="avatar-chip hidden" id="header-avatar">?</div>
-                </div>
+        <header class="app-header">
+            <div class="wordmark">tagr<span id="demo-badge" class="demo-pill hidden">Demo</span></div>
+            <div class="account-chip">
+                <div class="auth-status" id="header-auth-status">Not signed in</div>
+                <div class="avatar-chip hidden" id="header-avatar">?</div>
             </div>
+        </header>
+
+        <div class="app-layout">
+            <nav class="side-nav" aria-label="Main navigation">
+                <button class="nav-btn active" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">Home</button>
+                <button class="nav-btn" data-tab="tab-notifications" onclick="switchTab('tab-notifications', this)">Alerts</button>
+                <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">Upload</button>
+                <button class="nav-btn" data-tab="tab-friends" onclick="switchTab('tab-friends', this)">Friends</button>
+                <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
+            </nav>
 
             <main class="app-main">
                 <section id="tab-gallery" class="tab-content active">
@@ -994,17 +1024,17 @@
 
                 </section>
             </main>
-
-            <nav class="bottom-nav" aria-label="Main">
-                <div class="bottom-nav-grid">
-                    <button class="nav-btn active" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">Home</button>
-                    <button class="nav-btn" data-tab="tab-notifications" onclick="switchTab('tab-notifications', this)">Alerts</button>
-                    <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">Upload</button>
-                    <button class="nav-btn" data-tab="tab-friends" onclick="switchTab('tab-friends', this)">Friends</button>
-                    <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
-                </div>
-            </nav>
         </div>
+
+        <nav class="bottom-nav" aria-label="Main">
+            <div class="bottom-nav-grid">
+                <button class="nav-btn active" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">Home</button>
+                <button class="nav-btn" data-tab="tab-notifications" onclick="switchTab('tab-notifications', this)">Alerts</button>
+                <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">Upload</button>
+                <button class="nav-btn" data-tab="tab-friends" onclick="switchTab('tab-friends', this)">Friends</button>
+                <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
+            </div>
+        </nav>
     </div>
 
     <div id="enrollment-overlay" class="enrollment-overlay" aria-hidden="true">
@@ -1639,8 +1669,7 @@
             if (!tab) return;
             tab.classList.add('active');
 
-            const btn = btnEl || document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
-            if (btn) btn.classList.add('active');
+            document.querySelectorAll(`.nav-btn[data-tab="${tabId}"]`).forEach(btn => btn.classList.add('active'));
 
             if (tabId === 'tab-gallery') {
                 loadGallery();
@@ -2322,16 +2351,6 @@
             renderStoryRings();
         }
 
-        function updateStatusClock() {
-            const el = document.getElementById('sb-time');
-            if (!el) return;
-            const d = new Date();
-            let h = d.getHours();
-            const m = String(d.getMinutes()).padStart(2, '0');
-            h = h % 12 || 12;
-            el.textContent = `${h}:${m}`;
-        }
-
         document.getElementById('lightbox').addEventListener('click', (e) => {
             if (e.target.id === 'lightbox') closeLightbox();
         });
@@ -2355,8 +2374,6 @@
 
         updateAuthUI();
         showModeBanner();
-        updateStatusClock();
-        setInterval(updateStatusClock, 30000);
         if (currentToken) {
             switchTab('tab-gallery');
             loadNotifications();

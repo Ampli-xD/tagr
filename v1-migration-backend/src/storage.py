@@ -39,6 +39,9 @@ def _signed_headers(
 
     from urllib.parse import urlparse
 
+    headers = dict(headers)
+    headers["x-amz-content-sha256"] = payload_hash
+
     parsed = urlparse(url)
     canonical_uri = parsed.path or "/"
     canonical_querystring = parsed.query or ""

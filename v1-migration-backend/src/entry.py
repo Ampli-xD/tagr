@@ -53,10 +53,13 @@ class Default(WorkerEntrypoint):
         return await social.handle_social(self.env, method, subpath, request, user_id)
 
     async def health(self):
-        db = create_db(self.env.DATABASE_URL)
         try:
-            db.fetchone("SELECT 1")
-            return json_response({"status": "ok", "service": "tagr-api-worker"})
+            db = create_db(self.env.DATABASE_URL)
+            try:
+                db.fetchone("SELECT 1")
+                return json_response({"status": "ok", "service": "tagr-api-worker"})
+            finally:
+                db.close()
         except Exception as exc:
             return json_response(
                 {
@@ -66,5 +69,3 @@ class Default(WorkerEntrypoint):
                 },
                 503,
             )
-        finally:
-            db.close()

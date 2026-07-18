@@ -23,8 +23,10 @@ docker compose up -d db storage inference
 cd v1-migration-backend
 cp .dev.vars.example .dev.vars
 uv sync
-uv run pywrangler dev
+uv run python src/local_server.py
 ```
+
+> **Note:** `pywrangler dev` runs Python inside Pyodide, which cannot open TCP sockets to Postgres. Use `local_server.py` for local/Docker development. Use `pywrangler deploy` for Cloudflare (with Hyperdrive or another DB bridge).
 
 ## Environment variables
 

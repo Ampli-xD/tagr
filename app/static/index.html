@@ -137,6 +137,13 @@
             font-size: 12px;
             font-weight: 700;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+        .avatar-chip img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .api-banner {
@@ -748,6 +755,49 @@
         }
         .enrollment-preview.show { display: block; }
 
+        .profile-crop-stage {
+            position: relative;
+            width: min(100%, 280px);
+            aspect-ratio: 1;
+            margin: 0 auto 14px;
+            border: 1px solid var(--line);
+            background: #111;
+            overflow: hidden;
+            touch-action: none;
+            cursor: grab;
+        }
+        .profile-crop-stage.dragging { cursor: grabbing; }
+        .profile-crop-stage canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .profile-crop-ring {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: 999px;
+            box-shadow: 0 0 0 999px rgba(17, 17, 17, 0.45);
+            border: 2px solid rgba(255, 255, 255, 0.85);
+        }
+        .profile-crop-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .profile-crop-controls label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .profile-crop-controls input[type="range"] {
+            flex: 1;
+            accent-color: var(--sage);
+        }
+
         .profile-actions {
             display: flex;
             flex-direction: column;
@@ -1008,6 +1058,7 @@
                                     <div style="flex:1;">
                                         <label class="side-label">Profile photo</label>
                                         <input type="file" id="profile-photo-input" accept="image/*" onchange="handleProfilePhotoSelect(event)">
+                                        <p class="subtext" style="margin-top: 6px;">You can drag and zoom before saving.</p>
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -1138,6 +1189,30 @@
                 <input type="file" id="enrollment-file-input" class="hidden" accept="image/*" capture="user" onchange="handleEnrollmentPhotoSelect(event)">
             </div>
             <button type="button" id="enrollment-skip-btn" class="btn btn-outline btn-block hidden" style="margin-top: 10px;" onclick="hideEnrollmentOverlay()">Not now</button>
+        </div>
+    </div>
+
+    <div id="profile-photo-crop-overlay" class="enrollment-overlay" aria-hidden="true">
+        <div class="enrollment-panel" role="dialog" aria-modal="true" aria-labelledby="profile-crop-title">
+            <div class="section-head" style="margin-bottom: 12px;">
+                <p class="eyebrow">Profile photo</p>
+                <h2 class="section-title" id="profile-crop-title">Frame your photo</h2>
+                <p class="subtext">Drag to reposition and use the slider to zoom in or show more of the image.</p>
+            </div>
+            <div class="profile-crop-stage" id="profile-crop-stage">
+                <canvas id="profile-crop-canvas" width="280" height="280"></canvas>
+                <div class="profile-crop-ring" aria-hidden="true"></div>
+            </div>
+            <div class="profile-crop-controls">
+                <label for="profile-crop-zoom">
+                    <span>Zoom</span>
+                    <input type="range" id="profile-crop-zoom" min="0" max="100" value="0" oninput="onProfileCropZoomChange(this.value)">
+                </label>
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn btn-outline" onclick="closeProfilePhotoCrop()">Cancel</button>
+                <button type="button" class="btn btn-accent" onclick="saveProfilePhotoCrop()">Use photo</button>
+            </div>
         </div>
     </div>
 
@@ -2384,19 +2459,183 @@
             toast('Profile saved.');
         }
 
-        async function handleProfilePhotoSelect(e) {
-            const file = e.target.files && e.target.files[0];
-            if (!file || !currentToken) return;
+        const PROFILE_CROP_SIZE = 280;
+        const PROFILE_PHOTO_OUTPUT = 512;
+        let profileCropState = null;
+        let profileCropDrag = null;
+
+        function clampProfileCropPan() {
+            if (!profileCropState?.image) return;
+            const size = PROFILE_CROP_SIZE;
+            const w = profileCropState.image.width * profileCropState.scale;
+            const h = profileCropState.image.height * profileCropState.scale;
+            const maxX = Math.max(0, (w - size) / 2);
+            const maxY = Math.max(0, (h - size) / 2);
+            profileCropState.offsetX = Math.min(maxX, Math.max(-maxX, profileCropState.offsetX));
+            profileCropState.offsetY = Math.min(maxY, Math.max(-maxY, profileCropState.offsetY));
+        }
+
+        function profileCropScaleFromSlider(value) {
+            if (!profileCropState) return profileCropState?.minScale || 1;
+            const t = Number(value) / 100;
+            const maxScale = profileCropState.minScale * 3;
+            return profileCropState.minScale + (maxScale - profileCropState.minScale) * t;
+        }
+
+        function renderProfileCropPreview() {
+            if (!profileCropState?.image) return;
+            const canvas = document.getElementById('profile-crop-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const size = PROFILE_CROP_SIZE;
+            canvas.width = size;
+            canvas.height = size;
+            ctx.clearRect(0, 0, size, size);
+            const { image, scale, offsetX, offsetY } = profileCropState;
+            const w = image.width * scale;
+            const h = image.height * scale;
+            const x = (size - w) / 2 + offsetX;
+            const y = (size - h) / 2 + offsetY;
+            ctx.drawImage(image, x, y, w, h);
+        }
+
+        function bindProfileCropDrag() {
+            const stage = document.getElementById('profile-crop-stage');
+            if (!stage || stage.dataset.bound === '1') return;
+            stage.dataset.bound = '1';
+
+            const onStart = (clientX, clientY) => {
+                if (!profileCropState) return;
+                profileCropDrag = {
+                    startX: clientX,
+                    startY: clientY,
+                    baseX: profileCropState.offsetX,
+                    baseY: profileCropState.offsetY,
+                };
+                stage.classList.add('dragging');
+            };
+
+            const onMove = (clientX, clientY) => {
+                if (!profileCropDrag || !profileCropState) return;
+                profileCropState.offsetX = profileCropDrag.baseX + (clientX - profileCropDrag.startX);
+                profileCropState.offsetY = profileCropDrag.baseY + (clientY - profileCropDrag.startY);
+                clampProfileCropPan();
+                renderProfileCropPreview();
+            };
+
+            const onEnd = () => {
+                profileCropDrag = null;
+                stage.classList.remove('dragging');
+            };
+
+            stage.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                stage.setPointerCapture(e.pointerId);
+                onStart(e.clientX, e.clientY);
+            });
+            stage.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+            stage.addEventListener('pointerup', onEnd);
+            stage.addEventListener('pointercancel', onEnd);
+        }
+
+        function openProfilePhotoCrop(file) {
+            if (!file) return;
+            const overlay = document.getElementById('profile-photo-crop-overlay');
+            const zoom = document.getElementById('profile-crop-zoom');
+            if (!overlay) return;
+
+            if (profileCropState?.objectUrl) {
+                URL.revokeObjectURL(profileCropState.objectUrl);
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const minScale = Math.max(
+                    PROFILE_CROP_SIZE / img.width,
+                    PROFILE_CROP_SIZE / img.height,
+                );
+                profileCropState = {
+                    image: img,
+                    minScale,
+                    scale: minScale,
+                    offsetX: 0,
+                    offsetY: 0,
+                    objectUrl,
+                    fileName: file.name || 'profile.jpg',
+                };
+                if (zoom) zoom.value = '0';
+                bindProfileCropDrag();
+                renderProfileCropPreview();
+                overlay.classList.add('show');
+                overlay.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                toast('Could not load that image.');
+            };
+            img.src = objectUrl;
+        }
+
+        function closeProfilePhotoCrop() {
+            const overlay = document.getElementById('profile-photo-crop-overlay');
+            if (overlay) {
+                overlay.classList.remove('show');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+            document.body.style.overflow = '';
+            if (profileCropState?.objectUrl) {
+                URL.revokeObjectURL(profileCropState.objectUrl);
+            }
+            profileCropState = null;
+            profileCropDrag = null;
+            const input = document.getElementById('profile-photo-input');
+            if (input) input.value = '';
+        }
+
+        function onProfileCropZoomChange(value) {
+            if (!profileCropState) return;
+            profileCropState.scale = profileCropScaleFromSlider(value);
+            clampProfileCropPan();
+            renderProfileCropPreview();
+        }
+
+        function exportProfilePhotoBlob() {
+            return new Promise((resolve) => {
+                if (!profileCropState?.image) {
+                    resolve(null);
+                    return;
+                }
+                const preview = PROFILE_CROP_SIZE;
+                const output = PROFILE_PHOTO_OUTPUT;
+                const ratio = output / preview;
+                const canvas = document.createElement('canvas');
+                canvas.width = output;
+                canvas.height = output;
+                const ctx = canvas.getContext('2d');
+                const { image, scale, offsetX, offsetY } = profileCropState;
+                const w = image.width * scale * ratio;
+                const h = image.height * scale * ratio;
+                const x = (output - w) / 2 + offsetX * ratio;
+                const y = (output - h) / 2 + offsetY * ratio;
+                ctx.drawImage(image, x, y, w, h);
+                canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.88);
+            });
+        }
+
+        async function uploadProfilePhotoBlob(blob) {
+            if (!blob || !currentToken) return false;
             if (DEMO_MODE) {
-                const url = URL.createObjectURL(file);
+                const url = URL.createObjectURL(blob);
                 currentProfile = currentProfile || {};
                 currentProfile.profile_photo_url = url;
                 updateAuthUI();
                 toast('Profile photo updated (demo).');
-                return;
+                return true;
             }
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('image', blob, 'profile.jpg');
             const resp = await apiFetch('/auth/profile-photo', {
                 method: 'POST',
                 headers: authHeaders(),
@@ -2405,11 +2644,33 @@
             const data = await resp.json();
             if (!resp.ok) {
                 alert('Upload failed: ' + (data.detail || 'unknown error'));
-                return;
+                return false;
             }
             currentProfile = data;
             updateAuthUI();
             toast('Profile photo updated.');
+            return true;
+        }
+
+        async function saveProfilePhotoCrop() {
+            const blob = await exportProfilePhotoBlob();
+            if (!blob) {
+                toast('Could not prepare photo.');
+                return;
+            }
+            const ok = await uploadProfilePhotoBlob(blob);
+            if (ok) closeProfilePhotoCrop();
+        }
+
+        function handleProfilePhotoSelect(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file || !currentToken) return;
+            if (!file.type.startsWith('image/')) {
+                toast('Choose an image file.');
+                e.target.value = '';
+                return;
+            }
+            openProfilePhotoCrop(file);
         }
 
         function handleDrop(e) {
@@ -2829,10 +3090,21 @@
             if (e.key === 'Escape') {
                 closeLightbox();
                 closeSheet();
+                const cropOverlay = document.getElementById('profile-photo-crop-overlay');
+                if (cropOverlay && cropOverlay.classList.contains('show')) {
+                    closeProfilePhotoCrop();
+                    return;
+                }
                 const overlay = document.getElementById('enrollment-overlay');
                 if (overlay && overlay.classList.contains('show') && isFaceEnrolled()) {
                     hideEnrollmentOverlay();
                 }
+            }
+        });
+
+        document.getElementById('profile-photo-crop-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'profile-photo-crop-overlay') {
+                closeProfilePhotoCrop();
             }
         });
 

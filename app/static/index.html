@@ -994,7 +994,7 @@
                     </div>
                     <div class="upload-layout">
                         <div class="btn-row" style="margin: 0;">
-                            <button type="button" class="btn btn-accent btn-block" onclick="toast('Camera flow starts in native app.')">Take photo</button>
+                            <button type="button" class="btn btn-accent btn-block" onclick="openUploadCamera()">Take photo</button>
                             <button type="button" class="btn btn-outline btn-block" onclick="document.getElementById('file-input').click()">Choose from library</button>
                         </div>
                         <div class="upload-zone" id="drop-zone"
@@ -1192,6 +1192,27 @@
         </div>
     </div>
 
+    <div id="upload-camera-overlay" class="enrollment-overlay" aria-hidden="true">
+        <div class="enrollment-panel" role="dialog" aria-modal="true" aria-labelledby="upload-camera-title">
+            <div class="section-head" style="margin-bottom: 10px;">
+                <p class="eyebrow">Upload</p>
+                <h2 class="section-title" id="upload-camera-title">Take a photo</h2>
+                <p class="subtext">Capture a shot to add it to your upload queue.</p>
+            </div>
+            <div class="camera-container">
+                <video id="upload-video" autoplay playsinline muted></video>
+                <canvas id="upload-canvas" class="hidden"></canvas>
+                <div class="camera-overlay"><div class="face-oval"></div></div>
+            </div>
+            <div class="btn-row" style="margin-top: 12px;">
+                <button type="button" class="btn btn-accent btn-block" onclick="captureAndUploadPhoto()">Capture &amp; upload</button>
+                <button type="button" class="btn btn-outline btn-block" onclick="document.getElementById('upload-camera-file-input').click()">Choose from library</button>
+                <button type="button" class="btn btn-outline btn-block" onclick="closeUploadCamera()">Cancel</button>
+            </div>
+            <input type="file" id="upload-camera-file-input" class="hidden" accept="image/*" multiple onchange="handleUploadCameraFileSelect(event)">
+        </div>
+    </div>
+
     <div id="profile-photo-crop-overlay" class="enrollment-overlay" aria-hidden="true">
         <div class="enrollment-panel" role="dialog" aria-modal="true" aria-labelledby="profile-crop-title">
             <div class="section-head" style="margin-bottom: 12px;">
@@ -1225,7 +1246,7 @@
                 <h2 class="section-title">Choose a photo</h2>
             </div>
             <div class="btn-row">
-                <button type="button" class="btn btn-accent btn-block" onclick="closeSheet(); switchTab('tab-upload'); toast('Use camera from Upload tab.')">Take photo</button>
+                <button type="button" class="btn btn-accent btn-block" onclick="openUploadCamera()">Take photo</button>
                 <button type="button" class="btn btn-outline btn-block" onclick="closeSheet(); switchTab('tab-upload'); document.getElementById('file-input').click()">Choose library</button>
             </div>
             <div class="queue-head">Queue preview</div>
@@ -2200,6 +2221,103 @@
         }
 
         let stream = null;
+        let uploadStream = null;
+
+        function stopUploadCamera() {
+            if (uploadStream) {
+                uploadStream.getTracks().forEach(track => track.stop());
+                uploadStream = null;
+            }
+            const uploadVideo = document.getElementById('upload-video');
+            if (uploadVideo) uploadVideo.srcObject = null;
+        }
+
+        async function openUploadCamera() {
+            if (!requireApi()) return;
+            if (!currentToken) {
+                toast('Please sign in before uploading.');
+                switchTab('tab-profile');
+                return;
+            }
+            if (needsFaceSetup()) {
+                toast('Capture your face to finish setup.');
+                maybeShowOnboarding();
+                return;
+            }
+            closeSheet();
+            switchTab('tab-upload');
+
+            const overlay = document.getElementById('upload-camera-overlay');
+            if (!overlay) return;
+            overlay.classList.add('show');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+
+            if (!window.isSecureContext || !canUseCamera()) {
+                toast('Camera needs HTTPS. Choose from library instead.');
+                document.getElementById('upload-camera-file-input').click();
+                return;
+            }
+
+            try {
+                stopUploadCamera();
+                uploadStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' } }
+                });
+                document.getElementById('upload-video').srcObject = uploadStream;
+            } catch (err) {
+                toast('Could not start camera. Choose from library instead.');
+            }
+        }
+
+        function closeUploadCamera() {
+            const overlay = document.getElementById('upload-camera-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('show');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            stopUploadCamera();
+        }
+
+        async function captureAndUploadPhoto() {
+            if (!currentToken) {
+                toast('Please sign in before uploading.');
+                closeUploadCamera();
+                switchTab('tab-profile');
+                return;
+            }
+            const video = document.getElementById('upload-video');
+            const canvas = document.getElementById('upload-canvas');
+            if (!video || !canvas) return;
+            const context = canvas.getContext('2d');
+
+            if (!video.videoWidth || !video.videoHeight) {
+                toast('Camera is not ready yet. Try again or choose from library.');
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    toast('Could not capture a frame. Try choosing from library instead.');
+                    return;
+                }
+                const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+                closeUploadCamera();
+                await uploadFiles([file]);
+            }, 'image/jpeg', 0.92);
+        }
+
+        function handleUploadCameraFileSelect(e) {
+            const files = e.target.files;
+            if (!files || !files.length) return;
+            closeUploadCamera();
+            uploadFiles(files);
+            e.target.value = '';
+        }
 
         async function startCamera() {
             if (!canUseCamera()) {
@@ -2698,6 +2816,7 @@
 
         function handleFileSelect(e) {
             uploadFiles(e.target.files);
+            e.target.value = '';
         }
 
         async function pollUploadStatus(ids, item, attempt = 0) {
@@ -2705,7 +2824,7 @@
                 setTimeout(() => loadGallery(), 1500);
                 return;
             }
-            const maxAttempts = 20;
+            const maxAttempts = 90;
             try {
                 const statuses = await Promise.all(ids.map(async (id) => {
                     try {
@@ -2717,24 +2836,35 @@
                     } catch (_) { return 'pending'; }
                 }));
 
+                const processedCount = statuses.filter(s => s === 'processed' || s === 'failed').length;
+                const badge = item.querySelector('.status-badge');
+                if (badge) {
+                    badge.textContent = processedCount === ids.length
+                        ? 'Done'
+                        : `Processing (${processedCount}/${ids.length})`;
+                }
+
                 const done = statuses.every(s => s === 'processed' || s === 'failed');
                 if (done || attempt >= maxAttempts) {
                     const anyFailed = statuses.some(s => s === 'failed');
+                    const stillRunning = statuses.some(s => s === 'pending' || s === 'processing');
                     item.innerHTML = `
                         <div style="flex:1;">
-                            <div class="row-title">${ids.length} photo${ids.length > 1 ? 's' : ''} ${anyFailed ? 'processed with issues' : 'processed'}</div>
-                            <div class="row-meta">${anyFailed ? 'Some images could not be read.' : 'Faces matching your enrolled photo are tagged and appear in your gallery.'}</div>
+                            <div class="row-title">${ids.length} photo${ids.length > 1 ? 's' : ''} ${anyFailed ? 'processed with issues' : stillRunning ? 'still processing' : 'processed'}</div>
+                            <div class="row-meta">${anyFailed ? 'Some images could not be read.' : stillRunning ? 'Tagging is still running in the background. Refresh Home in a moment.' : 'Faces matching your enrolled photo are tagged and appear in your gallery.'}</div>
                         </div>
-                        <span class="status-badge ${anyFailed ? 'status-failed' : 'status-processed'}">Done</span>
+                        <span class="status-badge ${anyFailed ? 'status-failed' : stillRunning ? 'status-processing' : 'status-processed'}">${stillRunning ? 'Processing' : 'Done'}</span>
                     `;
                     loadGallery();
                     return;
                 }
             } catch (_) { /* keep polling */ }
-            setTimeout(() => pollUploadStatus(ids, item, attempt + 1), 1500);
+            setTimeout(() => pollUploadStatus(ids, item, attempt + 1), 2000);
         }
 
         async function uploadFiles(files) {
+            if (!files || !files.length) return;
+            if (!requireApi()) return;
             if (!currentToken) {
                 toast('Please sign in before uploading.');
                 switchTab('tab-profile');
@@ -2751,18 +2881,29 @@
             item.innerHTML = `
                 <div style="flex:1;">
                     <div class="row-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
+                    <div class="row-meta">Sending to server…</div>
                 </div>
                 <span class="status-badge status-processing">Uploading</span>
             `;
             queueList.prepend(item);
 
+            const controller = new AbortController();
+            const uploadTimeout = setTimeout(() => controller.abort(), 180000);
+
             try {
                 const response = await apiFetch(`/photos/upload`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${currentToken}` },
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
-                const data = await response.json();
+                clearTimeout(uploadTimeout);
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = { detail: 'Invalid server response' };
+                }
 
                 if (response.ok) {
                     const ids = data.upload_ids || data.photo_ids || [];
@@ -2771,24 +2912,31 @@
                             <div class="row-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
                             <div class="row-meta">Detecting faces…</div>
                         </div>
-                        <span class="status-badge status-processing">Processing</span>
+                        <span class="status-badge status-processing">Processing (0/${ids.length || files.length})</span>
                     `;
                     pollUploadStatus(ids, item);
                     toast('Upload queued.');
                 } else {
+                    const detail = typeof data.detail === 'string'
+                        ? data.detail
+                        : (data.detail ? JSON.stringify(data.detail) : `HTTP ${response.status}`);
                     item.innerHTML = `
                         <div style="flex:1;">
                             <div class="row-title">Upload failed</div>
-                            <div class="row-meta">${data.detail}</div>
+                            <div class="row-meta">${detail}</div>
                         </div>
                         <span class="status-badge status-failed">Error</span>
                     `;
                 }
             } catch (err) {
+                clearTimeout(uploadTimeout);
+                const message = err.name === 'AbortError'
+                    ? 'Upload timed out. Try fewer or smaller photos.'
+                    : err.message;
                 item.innerHTML = `
                     <div style="flex:1;">
                         <div class="row-title">Upload error</div>
-                        <div class="row-meta">${err.message}</div>
+                        <div class="row-meta">${message}</div>
                     </div>
                     <span class="status-badge status-failed">Error</span>
                 `;
@@ -3112,6 +3260,11 @@
                     closeProfilePhotoCrop();
                     return;
                 }
+                const uploadCameraOverlay = document.getElementById('upload-camera-overlay');
+                if (uploadCameraOverlay && uploadCameraOverlay.classList.contains('show')) {
+                    closeUploadCamera();
+                    return;
+                }
                 const overlay = document.getElementById('enrollment-overlay');
                 if (overlay && overlay.classList.contains('show') && isFaceEnrolled()) {
                     hideEnrollmentOverlay();
@@ -3128,6 +3281,12 @@
         document.getElementById('enrollment-overlay').addEventListener('click', (e) => {
             if (e.target.id === 'enrollment-overlay' && isFaceEnrolled()) {
                 hideEnrollmentOverlay();
+            }
+        });
+
+        document.getElementById('upload-camera-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'upload-camera-overlay') {
+                closeUploadCamera();
             }
         });
 

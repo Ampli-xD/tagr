@@ -1,9 +1,9 @@
 # Branch layout
 
-| Branch | Backend inference | Frontend |
-|---|---|---|
-| **`v1`** | Local Docker `inference` service (CPU/GPU on your machine) | `frontend/` → optional Vercel; `app/static/` served by API in dev |
-| **`production`** | RunPod serverless GPU | `frontend/` → Vercel with `TAGR_API_URL` |
+| Branch | API hosting | Inference | Frontend |
+|---|---|---|---|
+| **`v1`** | Local Docker | Local `inference` container | `app/static/` same-origin — no wake screen |
+| **`production`** | Render (free/starter) | RunPod GPU | Vercel — wake screen + MVP message |
 
 ## v1 (local dev)
 
@@ -11,10 +11,13 @@
 docker compose -f docker-compose.yml -f docker-compose.override.yml up -d web inference
 ```
 
-`.env`: `INFERENCE_SERVER_URL=http://127.0.0.1:8001` (host network override).
+Open `http://127.0.0.1:8787/` — API and UI on same machine. No backend wake-up flow.
 
-## production (live)
+## production (MVP live)
 
-- Deploy **`frontend/`** to Vercel — set `TAGR_API_URL` to your public API.
-- Run API with RunPod env vars (`INFERENCE_SERVER_URL`, `RUNPOD_API_KEY`, public `API_CALLBACK_URL`).
-- Set `CORS_ALLOW_ORIGINS=https://your-app.vercel.app`.
+1. **API on Render** — branch `production`, see `docs/deploy-render.md` (512 MB OK; inference on RunPod).
+2. **UI on Vercel** — folder `frontend/`, env:
+   - `TAGR_API_URL=https://YOUR-APP.onrender.com/api/v1`
+   - `TAGR_WAKE_BACKEND=true`
+3. First visit shows **“Starting the server”** (free Render cold start, up to ~5 min).
+4. **CORS** on Render: `CORS_ALLOW_ORIGINS=https://YOUR-APP.vercel.app`

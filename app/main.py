@@ -126,6 +126,7 @@ async def requeue_stuck_photos():
             else:
                 url = get_image_url(photo.storage_url, internal=True)
             await photo_batcher.add_photo(str(photo.id), url)
+        await photo_batcher.flush_when_idle(timeout_sec=120)
         print(f"Requeued {requeued} photos for inference")
     except Exception as exc:
         print(f"WARNING: photo requeue on startup failed: {exc}")
@@ -172,15 +173,19 @@ async def health_inference():
         BATCH_TIMEOUT_MS,
         INFERENCE_SERVER_URL,
         RUNPOD_API_KEY,
+        inference_runsync_url,
     )
+    from .batcher import photo_batcher
 
     using_runpod = "runpod.ai" in INFERENCE_SERVER_URL
     key_set = bool(RUNPOD_API_KEY.strip())
     callback_public = API_CALLBACK_URL.startswith("https://") and not any(
         host in API_CALLBACK_URL for host in ("127.0.0.1", "localhost", "web:8000")
     )
+    batcher = photo_batcher.status_snapshot()
     return {
         "inference_server_url": INFERENCE_SERVER_URL,
+        "runsync_url": inference_runsync_url(),
         "using_runpod": using_runpod,
         "runpod_api_key_set": key_set,
         "runpod_ready": (not using_runpod) or (key_set and callback_public),
@@ -188,6 +193,11 @@ async def health_inference():
         "callback_public_https": callback_public,
         "batch_size": BATCH_SIZE,
         "batch_timeout_ms": BATCH_TIMEOUT_MS,
+        "batch_timeout_recommended_ms": 5000,
+        "batch_timeout_too_low": BATCH_TIMEOUT_MS < 1000,
+        "batcher_queue_size": batcher["queue_size"],
+        "batcher_flush_in_progress": batcher["flush_in_progress"],
+        "batcher_timer_pending": batcher["timer_pending"],
     }
 
 

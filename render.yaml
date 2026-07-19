@@ -1,0 +1,16 @@
+# Render blueprint — production branch only
+# Dashboard deploy works too; see docs/deploy-render.md
+
+services:
+  - type: web
+    name: tagr-api
+    runtime: docker
+    plan: free
+    branch: production
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: WEB_PORT
+        value: "8000"
+      # Set secrets in Render dashboard:
+      # SUPABASE_*, RUNPOD_API_KEY, INFERENCE_SERVER_URL, API_CALLBACK_URL, CORS_ALLOW_ORIGINS

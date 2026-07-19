@@ -69,7 +69,8 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 | **ML/Inference**| InsightFace (`buffalo_l`), ONNX Runtime, OpenCV                     |
 | **Storage**     | MinIO (S3-compatible), Boto3                                        |
 | **Frontend**    | Vanilla HTML/CSS/JS (mobile-first UI served by FastAPI)             |
-| **Mobile App**  | React Native & Expo (optional client under `frontend/`)             |
+| **Web UI**      | Static HTML in `frontend/` (Vercel) or served by FastAPI in dev   |
+| **Mobile App**  | React Native & Expo (optional, `mobile-frontend/`)                  |
 | **Infra**       | Docker, Docker Compose                                              |
 
 ---
@@ -156,7 +157,8 @@ tagr/
 │   ├── models.py               # ORM models
 │   ├── storage.py              # MinIO via boto3
 │   └── static/                 # Mobile-first web UI (HTML/CSS/JS)
-├── frontend/                   # Optional React Native/Expo frontend (Not in Docker)
+├── frontend/                   # Static web UI for Vercel
+├── mobile-frontend/            # Optional React Native/Expo app
 ├── inference/                  # Face detection & embedding microservice
 │   ├── main.py                 # RunPod-compatible inference worker
 │   ├── core.py                 # InsightFace processing logic

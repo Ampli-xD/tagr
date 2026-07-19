@@ -27,6 +27,7 @@ class PhotoBatcher:
         self.lock = asyncio.Lock()
         self._flush_in_progress = False
         self._flush_timer_task: Optional[asyncio.Task] = None
+        self._background_tasks: set[asyncio.Task] = set()
 
     def _cancel_flush_timer(self) -> None:
         if self._flush_timer_task and not self._flush_timer_task.done():
@@ -88,6 +89,22 @@ class PhotoBatcher:
             len(self.queue),
             self._flush_in_progress,
         )
+
+    def start_background_flush(self, timeout_sec: float = 120.0) -> None:
+        """Run flush after HTTP response returns — keeps Render request timeouts from aborting RunPod."""
+        task = asyncio.create_task(self._background_flush(timeout_sec))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+    async def _background_flush(self, timeout_sec: float) -> None:
+        try:
+            logger.info("Background flush started (timeout=%ss)", timeout_sec)
+            await self.flush_when_idle(timeout_sec)
+            logger.info("Background flush finished (queue=%s)", len(self.queue))
+        except Exception:
+            logger.exception("Background flush failed")
+            async with self.lock:
+                self._flush_in_progress = False
 
     async def flush(self):
         async with self.lock:

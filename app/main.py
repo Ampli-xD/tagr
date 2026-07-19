@@ -126,7 +126,7 @@ async def requeue_stuck_photos():
             else:
                 url = get_image_url(photo.storage_url, internal=True)
             await photo_batcher.add_photo(str(photo.id), url)
-        await photo_batcher.flush_when_idle(timeout_sec=120)
+        photo_batcher.start_background_flush(timeout_sec=120)
         print(f"Requeued {requeued} photos for inference")
     except Exception as exc:
         print(f"WARNING: photo requeue on startup failed: {exc}")
@@ -167,12 +167,17 @@ async def health(db: Session = Depends(get_db)):
 @api_v1.get("/health/inference")
 async def health_inference():
     """Public config check — helps verify Render env before debugging RunPod."""
+    import os
+
+    import httpx
+
     from .config import (
         API_CALLBACK_URL,
         BATCH_SIZE,
         BATCH_TIMEOUT_MS,
         INFERENCE_SERVER_URL,
         RUNPOD_API_KEY,
+        inference_request_headers,
         inference_runsync_url,
     )
     from .batcher import photo_batcher
@@ -184,6 +189,7 @@ async def health_inference():
     )
     batcher = photo_batcher.status_snapshot()
     return {
+        "deploy_commit": os.getenv("RENDER_GIT_COMMIT", "unknown"),
         "inference_server_url": INFERENCE_SERVER_URL,
         "runsync_url": inference_runsync_url(),
         "using_runpod": using_runpod,
@@ -199,6 +205,56 @@ async def health_inference():
         "batcher_flush_in_progress": batcher["flush_in_progress"],
         "batcher_timer_pending": batcher["timer_pending"],
     }
+
+
+@api_v1.get("/health/inference/probe")
+async def health_inference_probe():
+    """
+    Live test: Render → RunPod /runsync with configured API key.
+    Does not process a real photo; confirms the gateway accepts our auth.
+    """
+    import httpx
+
+    from .config import inference_request_headers, inference_runsync_url
+
+    url = inference_runsync_url(timeout_seconds=15)
+    payload = {
+        "input": {
+            "images": [
+                {
+                    "image_id": "00000000-0000-0000-0000-000000000001",
+                    "url": "https://httpbin.org/status/404",
+                }
+            ],
+            "batch_id": "health-probe",
+        }
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                json=payload,
+                headers=inference_request_headers(),
+                timeout=25.0,
+            )
+        body = response.text[:500]
+        return {
+            "ok": response.status_code == 200,
+            "status_code": response.status_code,
+            "runsync_url": url,
+            "body_preview": body,
+            "hint": (
+                "401 = bad/missing RUNPOD_API_KEY on Render. "
+                "200 = RunPod accepted the job (check RunPod Requests tab)."
+            ),
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "runsync_url": url,
+            "error": str(exc),
+            "hint": "Render could not reach api.runpod.ai — network or DNS issue.",
+        }
 
 
 # Mount API

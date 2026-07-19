@@ -23,6 +23,7 @@ from .config import (
     INFERENCE_TIMEOUT_SECONDS,
     SIMILARITY_THRESHOLD,
     inference_request_headers,
+    inference_runsync_url,
 )
 from .profile_utils import (
     user_profile_dict,
@@ -333,10 +334,10 @@ async def enroll_face(
         }
         try:
             resp = await client.post(
-                f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync",
+                inference_runsync_url(INFERENCE_TIMEOUT_SECONDS),
                 json=predict_payload,
                 headers=inference_request_headers(),
-                timeout=INFERENCE_TIMEOUT_SECONDS,
+                timeout=INFERENCE_TIMEOUT_SECONDS + 30,
             )
             if resp.status_code != 200:
                 raise HTTPException(status_code=500, detail=f"Inference service error: {resp.text}")

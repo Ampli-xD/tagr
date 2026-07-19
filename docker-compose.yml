@@ -69,38 +69,36 @@ services:
       retries: 5
 
   # ---------------------------------------------------------------------------
-  # Local InsightFace inference — DISABLED in favor of RunPod serverless GPU.
-  # Set INFERENCE_SERVER_URL + RUNPOD_API_KEY in .env (see .env.example).
-  # Re-enable for fully local dev: uncomment this service and restore the
-  # `inference` dependency under `web`, then point INFERENCE_SERVER_URL at it.
+  # Local InsightFace inference (default on v1 — offline dev).
+  # Production branch uses RunPod serverless instead (inference service commented out).
   # ---------------------------------------------------------------------------
-  # inference:
-  #   build:
-  #     context: ./inference
-  #     dockerfile: Dockerfile
-  #     args:
-  #       TARGET: dev
-  #   container_name: tagr-inference
-  #   env_file: .env
-  #   environment:
-  #     - INFERENCE_DEVICE=${INFERENCE_DEVICE:-cpu}
-  #   command:
-  #     - python
-  #     - -u
-  #     - main.py
-  #     - --rp_serve_api
-  #     - --rp_api_host
-  #     - 0.0.0.0
-  #     - --rp_api_port
-  #     - "8001"
-  #   ports:
-  #     - "${INFERENCE_PORT:-8001}:8001"
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8001/"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 10
-  #     start_period: 120s
+  inference:
+    build:
+      context: ./inference
+      dockerfile: Dockerfile
+      args:
+        TARGET: dev
+    container_name: tagr-inference
+    env_file: .env
+    environment:
+      - INFERENCE_DEVICE=${INFERENCE_DEVICE:-cpu}
+    command:
+      - python
+      - -u
+      - main.py
+      - --rp_serve_api
+      - --rp_api_host
+      - 0.0.0.0
+      - --rp_api_port
+      - "8001"
+    ports:
+      - "${INFERENCE_PORT:-8001}:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
 
   web:
     build: .
@@ -127,22 +125,20 @@ services:
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-tagr-bucket}
       STORAGE_REGION: ${STORAGE_REGION:-ap-southeast-1}
-      INFERENCE_SERVER_URL: ${INFERENCE_SERVER_URL:-https://api.runpod.ai/v2/wid4pce4yufwbd}
+      INFERENCE_SERVER_URL: ${INFERENCE_SERVER_URL:-http://inference:8001}
       RUNPOD_API_KEY: ${RUNPOD_API_KEY:-}
-      INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-60}
-      INFERENCE_BATCH_TIMEOUT_SECONDS: ${INFERENCE_BATCH_TIMEOUT_SECONDS:-300}
-      API_CALLBACK_URL: ${API_CALLBACK_URL:?Set API_CALLBACK_URL in .env — see docs/cloudflare-named-tunnel.md}
+      INFERENCE_TIMEOUT_SECONDS: ${INFERENCE_TIMEOUT_SECONDS:-120}
+      INFERENCE_BATCH_TIMEOUT_SECONDS: ${INFERENCE_BATCH_TIMEOUT_SECONDS:-600}
+      API_CALLBACK_URL: ${API_CALLBACK_URL:-http://web:8000/api/v1/internal/inference-callback}
       BATCH_SIZE: ${BATCH_SIZE:-20}
       BATCH_TIMEOUT_MS: ${BATCH_TIMEOUT_MS:-50}
       SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.35}
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-*}
     ports:
       - "${WEB_PORT:-8787}:8000"
-    # depends_on removed: db/storage/inference are external (Supabase + RunPod).
-    # Re-enable local inference by uncommenting the `inference` service above and adding:
-    #   depends_on:
-    #     inference:
-    #       condition: service_started
+    depends_on:
+      inference:
+        condition: service_started
     volumes:
       - ./app:/workspace/app
 

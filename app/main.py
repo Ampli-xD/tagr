@@ -57,6 +57,41 @@ def ensure_schema():
     except Exception as exc:
         print(f"WARNING: unknown_faces schema bootstrap failed: {exc}")
 
+
+@app.on_event("startup")
+async def requeue_stuck_photos():
+    """On boot, re-submit pending/failed photos that still exist in storage."""
+    from .database import SessionLocal
+    from .models import Photo
+    from .storage import get_image_url, object_exists
+    from .batcher import photo_batcher
+
+    db = SessionLocal()
+    try:
+        stuck = db.query(Photo).filter(Photo.status.in_(["pending", "failed"])).all()
+        if not stuck:
+            return
+        requeued = 0
+        to_queue = []
+        for photo in stuck:
+            if not object_exists(photo.storage_url):
+                photo.status = "failed"
+                continue
+            photo.status = "pending"
+            photo.batch_id = None
+            photo.processed_at = None
+            to_queue.append(photo)
+            requeued += 1
+        db.commit()
+        for photo in to_queue:
+            url = get_image_url(photo.storage_url, internal=True)
+            await photo_batcher.add_photo(str(photo.id), url)
+        print(f"Requeued {requeued} photos for inference ({len(stuck) - requeued} skipped: missing storage object)")
+    except Exception as exc:
+        print(f"WARNING: photo requeue on startup failed: {exc}")
+    finally:
+        db.close()
+
 # Allow CORS (origins configurable via CORS_ALLOW_ORIGINS)
 app.add_middleware(
     CORSMiddleware,

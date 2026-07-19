@@ -93,33 +93,44 @@ def extract_faces_from_bytes(image_data: bytes) -> List[Dict[str, Any]]:
     return faces
 
 
-def process_images(images: List[Dict[str, str]], timeout: float = 60.0) -> List[Dict[str, Any]]:
+def process_images(
+    images: List[Dict[str, str]], timeout: float = 60.0
+) -> tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
+    """Process each image; skip failures so one bad URL does not fail the batch."""
     results: List[Dict[str, Any]] = []
+    errors: List[Dict[str, str]] = []
 
     with httpx.Client(timeout=timeout) as client:
         for image in images:
             image_id = image["image_id"]
             url = image["url"]
-            logger.info("Processing image %s from %s", image_id, url)
+            try:
+                logger.info("Processing image %s from %s", image_id, url)
+                response = client.get(url)
+                if response.status_code != 200:
+                    raise RuntimeError(
+                        f"Failed to fetch image {image_id}. Status: {response.status_code}"
+                    )
 
-            response = client.get(url)
-            if response.status_code != 200:
-                raise RuntimeError(
-                    f"Failed to fetch image {image_id}. Status: {response.status_code}"
+                logger.info(
+                    "Downloaded image %s (%s bytes)",
+                    image_id,
+                    len(response.content),
                 )
+                faces = extract_faces_from_bytes(response.content)
+                results.append({"image_id": image_id, "faces": faces})
+            except Exception as exc:
+                logger.error("Skipping image %s: %s", image_id, exc)
+                errors.append({"photo_id": image_id, "error": str(exc)})
 
-            logger.info(
-                "Downloaded image %s (%s bytes)",
-                image_id,
-                len(response.content),
-            )
-            faces = extract_faces_from_bytes(response.content)
-            results.append({"image_id": image_id, "faces": faces})
-
-    return results
+    return results, errors
 
 
-def format_callback_payload(batch_id: str, results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def format_callback_payload(
+    batch_id: str,
+    results: List[Dict[str, Any]],
+    errors: List[Dict[str, str]] | None = None,
+) -> Dict[str, Any]:
     callback_results = []
     for result in results:
         faces_data = []
@@ -138,7 +149,10 @@ def format_callback_payload(batch_id: str, results: List[Dict[str, Any]]) -> Dic
             }
         )
 
-    return {
+    payload = {
         "batch_id": batch_id,
         "results": callback_results,
     }
+    if errors:
+        payload["errors"] = errors
+    return payload

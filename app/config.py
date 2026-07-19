@@ -109,18 +109,34 @@ SUPABASE_JWKS_URL = _get_str("SUPABASE_JWKS_URL", "")
 SUPABASE_JWT_SECRET = _get_str("SUPABASE_JWT_SECRET", "")
 
 # -------------------------------------------------------------------
-# Inference service
+# Inference service (RunPod serverless by default)
 # -------------------------------------------------------------------
-INFERENCE_SERVER_URL = _get_str("INFERENCE_SERVER_URL", "http://inference:8001")
+INFERENCE_SERVER_URL = _get_str(
+    "INFERENCE_SERVER_URL",
+    "https://api.runpod.ai/v2/wid4pce4yufwbd",
+)
+# RunPod API key (Bearer token). Required when INFERENCE_SERVER_URL points at RunPod.
+RUNPOD_API_KEY = _get_str("RUNPOD_API_KEY", "")
 # Timeout for a single synchronous enrollment inference call.
-INFERENCE_TIMEOUT_SECONDS = _get_float("INFERENCE_TIMEOUT_SECONDS", 30.0)
-# Timeout for a batched inference call from the batcher.
-INFERENCE_BATCH_TIMEOUT_SECONDS = _get_float("INFERENCE_BATCH_TIMEOUT_SECONDS", 120.0)
+INFERENCE_TIMEOUT_SECONDS = _get_float("INFERENCE_TIMEOUT_SECONDS", 60.0)
+# Timeout for a batched inference call from the batcher (includes callback round-trip).
+INFERENCE_BATCH_TIMEOUT_SECONDS = _get_float("INFERENCE_BATCH_TIMEOUT_SECONDS", 300.0)
+# Smaller copy stored alongside original for RunPod (avoids Supabase transform quotas).
+INFERENCE_IMAGE_MAX_WIDTH = _get_int("INFERENCE_IMAGE_MAX_WIDTH", 1024)
+INFERENCE_IMAGE_JPEG_QUALITY = _get_int("INFERENCE_IMAGE_JPEG_QUALITY", 85)
+
+
+def inference_request_headers() -> dict:
+    """HTTP headers for RunPod /runsync calls (Authorization when RUNPOD_API_KEY is set)."""
+    headers = {"Content-Type": "application/json"}
+    if RUNPOD_API_KEY:
+        headers["Authorization"] = f"Bearer {RUNPOD_API_KEY}"
+    return headers
 
 # -------------------------------------------------------------------
 # Batcher
 # -------------------------------------------------------------------
-BATCH_SIZE = _get_int("BATCH_SIZE", 10)
+BATCH_SIZE = _get_int("BATCH_SIZE", 20)
 BATCH_TIMEOUT_MS = _get_float("BATCH_TIMEOUT_MS", 50.0)
 API_CALLBACK_URL = _get_str(
     "API_CALLBACK_URL",

@@ -1,4 +1,6 @@
 import json
+import os
+
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
@@ -124,6 +126,18 @@ def object_exists(filename: str) -> bool:
         return True
     except ClientError:
         return False
+
+
+def inference_key_for(storage_key: str) -> str:
+    """Storage key for the client-uploaded inference JPEG ({name}.infer.jpg)."""
+    key = storage_key.lstrip("/")
+    root, _ = os.path.splitext(key)
+    return f"{root}.infer.jpg"
+
+
+def get_inference_image_url(original_key: str) -> str:
+    """Public URL for the inference copy (uploaded by the client at presign time)."""
+    return get_image_url(inference_key_for(original_key), internal=True)
 
 
 def get_image_url(filename: str, internal: bool = True) -> str:

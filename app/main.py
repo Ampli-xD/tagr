@@ -59,11 +59,50 @@ def ensure_schema():
 
 
 @app.on_event("startup")
+def validate_runpod_callback_url():
+    from .config import API_CALLBACK_URL, INFERENCE_SERVER_URL
+
+    if "runpod.ai" not in INFERENCE_SERVER_URL:
+        return
+    if any(host in API_CALLBACK_URL for host in ("127.0.0.1", "localhost", "web:8000")):
+        print(
+            "WARNING: API_CALLBACK_URL must be a public HTTPS URL when using RunPod. "
+            "RunPod workers cannot reach localhost. See docs/cloudflare-named-tunnel.md"
+        )
+
+
+@app.on_event("startup")
+def purge_orphan_photos():
+    """Remove photo rows whose storage object no longer exists (failed CORS uploads)."""
+    from .database import SessionLocal
+    from .models import Photo
+    from .storage import object_exists
+
+    db = SessionLocal()
+    try:
+        orphans = []
+        for photo in db.query(Photo).all():
+            if not object_exists(photo.storage_url):
+                orphans.append(photo)
+        if not orphans:
+            return
+        for photo in orphans:
+            db.delete(photo)
+        db.commit()
+        print(f"Purged {len(orphans)} orphan photo rows (missing storage object)")
+    except Exception as exc:
+        db.rollback()
+        print(f"WARNING: orphan photo purge failed: {exc}")
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
 async def requeue_stuck_photos():
     """On boot, re-submit pending/failed photos that still exist in storage."""
     from .database import SessionLocal
     from .models import Photo
-    from .storage import get_image_url, object_exists
+    from .storage import get_image_url
     from .batcher import photo_batcher
 
     db = SessionLocal()
@@ -74,9 +113,6 @@ async def requeue_stuck_photos():
         requeued = 0
         to_queue = []
         for photo in stuck:
-            if not object_exists(photo.storage_url):
-                photo.status = "failed"
-                continue
             photo.status = "pending"
             photo.batch_id = None
             photo.processed_at = None
@@ -86,7 +122,7 @@ async def requeue_stuck_photos():
         for photo in to_queue:
             url = get_image_url(photo.storage_url, internal=True)
             await photo_batcher.add_photo(str(photo.id), url)
-        print(f"Requeued {requeued} photos for inference ({len(stuck) - requeued} skipped: missing storage object)")
+        print(f"Requeued {requeued} photos for inference")
     except Exception as exc:
         print(f"WARNING: photo requeue on startup failed: {exc}")
     finally:

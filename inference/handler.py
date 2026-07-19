@@ -25,7 +25,7 @@ from core import format_callback_payload, get_face_analyzer, process_images
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tagr-inference-handler")
 
-CALLBACK_TIMEOUT_SECONDS = float(os.getenv("CALLBACK_TIMEOUT_SECONDS", "30"))
+CALLBACK_TIMEOUT_SECONDS = float(os.getenv("CALLBACK_TIMEOUT_SECONDS", "120"))
 
 
 def _post_callback(callback_url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -58,24 +58,29 @@ def handler(job: Dict[str, Any]) -> Dict[str, Any]:
     get_face_analyzer()
 
     try:
-        results = process_images(images)
+        results, errors = process_images(images)
     except Exception as exc:
         logger.error("Inference failed: %s", exc)
         return {"error": str(exc)}
 
+    if not results and errors:
+        return {"error": errors[0]["error"], "errors": errors}
+
     if callback_url and batch_id:
-        callback_payload = format_callback_payload(batch_id, results)
+        callback_payload = format_callback_payload(batch_id, results, errors)
         try:
             callback_response = _post_callback(callback_url, callback_payload)
         except Exception as exc:
             logger.error("Callback failed: %s", exc)
-            return {"error": f"Callback failed: {exc}"}
+            return {"error": f"Callback failed: {exc}", "errors": errors}
 
         return {
             "acknowledged": True,
             "batch_id": batch_id,
             "processed_images": len(results),
+            "failed_images": len(errors),
+            "errors": errors,
             "callback_response": callback_response,
         }
 
-    return {"results": _format_results(results)}
+    return {"results": _format_results(results), "errors": errors}

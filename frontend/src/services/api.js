@@ -2,8 +2,8 @@ import { Platform } from "react-native";
 
 export const API_BASE =
   Platform.OS === "web"
-    ? "http://localhost:8000/api/v1"
-    : "http://192.168.1.5:8000/api/v1"; // Android emulator local loopback
+    ? "http://localhost:8787/api/v1"
+    : "http://192.168.1.5:8787/api/v1"; // Android emulator local loopback
 
 // Helper for auth headers
 const getHeaders = (token) => {

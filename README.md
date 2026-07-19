@@ -14,7 +14,7 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 - **Social Graph** — Friend suggestions based on photo co-appearances, friend requests, and friendships
 - **Gallery & Comments** — Browse tagged photos per user, view photo details, and leave comments
 - **Notifications** — Real-time notification system for tags, friend requests, and social interactions
-- **Static Frontend** — Built-in HTML/JS frontend served directly by FastAPI
+- **Static Frontend** — Built-in HTML/JS frontend served by FastAPI
 
 ---
 
@@ -23,9 +23,9 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 ```
 ┌──────────────┐       ┌──────────────┐       ┌──────────────────┐
 │              │       │              │       │                  │
-│   Frontend   │◄─────►│   Web (API)  │◄─────►│   PostgreSQL     │
+│   Frontend   │◄─────►│  Web (API)   │◄─────►│   PostgreSQL     │
 │  (Static UI) │       │   FastAPI    │       │   + pgvector     │
-│  Port 8000   │       │   Port 8000  │       │   Port 5432      │
+│  Port 8787   │       │   Port 8000  │       │   Port 5432      │
 │              │       │              │       │                  │
 └──────────────┘       └──────┬───────┘       └──────────────────┘
                               │
@@ -44,13 +44,13 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 |---------------|------------------|-------------|--------------------------------------------------|
 | **db**        | `tagr-db`        | `5432`      | PostgreSQL 16 with pgvector extension             |
 | **storage**   | `tagr-storage`   | `9000/9001` | MinIO object storage (API / Console)              |
-| **web**       | `tagr-web`       | `8000`      | FastAPI app serving API + static frontend         |
+| **web**       | `tagr-web`       | `8787`      | FastAPI API + static UI (uvicorn)                 |
 | **inference** | `tagr-inference` | `8001`      | Face detection & embedding service (InsightFace)  |
 
 ### 🖥️ Frontend Clients
 
-* **FastAPI Static Frontend (Active/Primary)**: The primary frontend we are working on is the static HTML/JS application located in [app/static/](file:///c:/Workspace/face-rec-sm/app/static/). It is fully integrated with the `web` service and served directly on `http://localhost:8000/`.
-* **React Native Frontend (Optional)**: A React Native / Expo codebase exists in [frontend/](file:///c:/Workspace/face-rec-sm/frontend/). This mobile/client build is **not** included in the Docker Compose configuration. If you wish to run or work on it, you can do so manually by navigating to `frontend/`, installing node modules, and starting the Expo server:
+* **Static Web UI (Active/Primary)**: The mobile-first web UI lives in [app/static/](app/static/) (`index.html`, `css/app.css`, `js/*.js`). It is served by the `web` service at `http://localhost:8787/`. A copy also lives at the repo root as `index.html` for GitHub Pages.
+* **React Native Frontend (Optional)**: A React Native / Expo codebase exists in [frontend/](frontend/). This mobile/client build is **not** included in the Docker Compose configuration. If you wish to run or work on it, you can do so manually by navigating to `frontend/`, installing node modules, and starting the Expo server:
   ```bash
   cd frontend
   npm install
@@ -63,13 +63,12 @@ Tagr is a self-hosted, AI-powered photo tagging platform that automatically dete
 
 | Layer           | Technology                                                          |
 |-----------------|---------------------------------------------------------------------|
-| **API**         | Python 3.11, FastAPI, Uvicorn                                       |
+| **API**         | Python 3.11, FastAPI, SQLAlchemy, psycopg, PyJWT, boto3             |
 | **Database**    | PostgreSQL 16 + pgvector (cosine similarity search)                 |
-| **ORM**         | SQLAlchemy 2.0                                                      |
 | **Auth**        | JWT (PyJWT) with mock OTP flow                                      |
 | **ML/Inference**| InsightFace (`buffalo_l`), ONNX Runtime, OpenCV                     |
 | **Storage**     | MinIO (S3-compatible), Boto3                                        |
-| **Frontend**    | Vanilla HTML/CSS/JS (served as static files in FastAPI)             |
+| **Frontend**    | Vanilla HTML/CSS/JS (mobile-first UI served by FastAPI)             |
 | **Mobile App**  | React Native & Expo (optional client under `frontend/`)             |
 | **Infra**       | Docker, Docker Compose                                              |
 
@@ -111,7 +110,7 @@ The default `.env` ships with sensible development defaults:
 | `MINIO_CONSOLE_PORT`  | `9001`                   | MinIO console port             |
 | `MINIO_ROOT_USER`     | `minioadmin`             | MinIO access key               |
 | `MINIO_ROOT_PASSWORD` | `minioadmin`             | MinIO secret key               |
-| `WEB_PORT`            | `8000`                   | Web service port               |
+| `WEB_PORT`            | `8787`                   | FastAPI host port (maps to 8000 in container) |
 | `INFERENCE_PORT`      | `8001`                   | Inference service port         |
 | `INFERENCE_DEVICE`    | `cpu`                    | `cpu` or `gpu`                 |
 
@@ -123,6 +122,8 @@ The default `.env` ships with sensible development defaults:
 docker-compose up -d --build
 ```
 
+This starts **db**, **storage**, **inference**, and the **web** API on port **8787**.
+
 Wait for all services to become healthy:
 
 ```bash
@@ -133,8 +134,8 @@ docker-compose ps
 
 | What                    | URL                                |
 |-------------------------|------------------------------------|
-| **Web UI (Static)**     | http://localhost:8000              |
-| **API Docs (Swagger)**  | http://localhost:8000/api/v1/docs  |
+| **Web UI (Static)**     | http://localhost:8787              |
+| **API Health**          | http://localhost:8787/api/v1/health |
 | **MinIO Console**       | http://localhost:9001              |
 | **Inference Health**    | http://localhost:8001              |
 
@@ -144,26 +145,28 @@ docker-compose ps
 
 ```
 tagr/
-├── app/                        # FastAPI web application
-│   ├── main.py                 # App entrypoint, mounts routers & static files
-│   ├── database.py             # SQLAlchemy engine & session setup
-│   ├── models.py               # ORM models (User, Photo, FaceEmbedding, etc.)
-│   ├── auth.py                 # Auth routes: register, OTP verify, login, enroll face
-│   ├── photos.py               # Photo upload, status polling, tag CRUD
-│   ├── social.py               # Gallery, comments, friends, notifications
-│   ├── internal.py             # Internal inference callback endpoint
-│   ├── batcher.py              # In-memory photo batch queue for inference
-│   ├── storage.py              # MinIO/S3 upload & URL generation
-│   └── static/                 # Static frontend (HTML/CSS/JS served at /)
-│       └── index.html
+├── app/                        # FastAPI backend + static UI
+│   ├── main.py                 # FastAPI app (API + static mount)
+│   ├── auth.py                 # Auth & enrollment routes
+│   ├── photos.py               # Photo upload & tagging
+│   ├── social.py               # Gallery, friends, notifications
+│   ├── internal.py             # Inference callback
+│   ├── batcher.py              # In-memory photo batcher
+│   ├── database.py             # SQLAlchemy engine/session
+│   ├── models.py               # ORM models
+│   ├── storage.py              # MinIO via boto3
+│   └── static/                 # Mobile-first web UI (HTML/CSS/JS)
 ├── frontend/                   # Optional React Native/Expo frontend (Not in Docker)
 ├── inference/                  # Face detection & embedding microservice
-│   ├── main.py                 # InsightFace inference FastAPI server
+│   ├── main.py                 # RunPod-compatible inference worker
+│   ├── core.py                 # InsightFace processing logic
+│   ├── handler.py              # RunPod handler + callback support
 │   ├── requirements.txt        # Python dependencies for inference
 │   └── Dockerfile              # Inference container build
+├── v1-migration-backend/       # Legacy Cloudflare Worker (deprecated)
 ├── docker-compose.yml          # Multi-service orchestration
-├── Dockerfile                  # Web service container build
-├── requirements.txt            # Python dependencies for web service
+├── Dockerfile                  # FastAPI web container
+├── requirements.txt            # Python API dependencies
 ├── tagr_schema_v1.sql          # Database schema (auto-applied on first run)
 ├── .env                        # Environment configuration
 └── .gitignore                  # Git ignore rules
@@ -259,14 +262,14 @@ All API endpoints are prefixed with `/api/v1`. Interactive docs available at `/a
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f web
+docker-compose logs -f worker
 docker-compose logs -f inference
 ```
 
 ### Rebuild a Single Service
 
 ```bash
-docker-compose up -d --build web
+docker-compose up -d --build worker
 ```
 
 ### Reset Database
@@ -276,17 +279,17 @@ docker-compose down -v   # Removes volumes (data)
 docker-compose up -d --build
 ```
 
-### Run Without Docker (Local Dev)
+### Run Worker Without Docker (host pywrangler)
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the web server
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+docker compose up -d db storage inference
+cd v1-migration-backend
+cp .dev.vars.example .dev.vars
+uv sync
+uv run pywrangler dev
 ```
 
-> Make sure PostgreSQL and MinIO are running locally and `.env` has `localhost` hostnames.
+> Make sure PostgreSQL and MinIO are running (via Docker Compose) and `.dev.vars` points at `localhost`.
 
 ---
 

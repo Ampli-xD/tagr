@@ -1,0 +1,12 @@
+{
+  "input": {
+    "batch_id": "example-batch-id",
+    "callback_url": "http://web:8000/api/v1/internal/inference-callback",
+    "images": [
+      {
+        "image_id": "00000000-0000-0000-0000-000000000001",
+        "url": "http://storage:9000/tagr-bucket/photos/example.jpg"
+      }
+    ]
+  }
+}

@@ -7,7 +7,7 @@ from sqlalchemy import select, update
 
 from .database import get_db
 from .models import Photo, PhotoTag, FaceEmbedding, User, Notification, UnknownFace
-from .storage import upload_image, get_image_url, create_presigned_upload_url, object_exists
+from .storage import upload_image, get_image_url, get_inference_image_url, create_presigned_upload_url, object_exists
 from .batcher import photo_batcher
 from .auth import get_current_user_id
 from .config import SIMILARITY_THRESHOLD, PRESIGNED_UPLOAD_EXPIRES_SECONDS
@@ -126,8 +126,8 @@ async def complete_photo_uploads(
     upload_ids: List[str] = []
     for photo in photos:
         upload_ids.append(str(photo.id))
-        internal_url = get_image_url(photo.storage_url, internal=True)
-        await photo_batcher.add_photo(str(photo.id), internal_url)
+        infer_url = get_inference_image_url(photo.storage_url)
+        await photo_batcher.add_photo(str(photo.id), infer_url)
 
     return {"upload_ids": upload_ids, "status": "pending"}
 
@@ -168,8 +168,9 @@ async def upload_photos(
     # 3. Add to the in-memory batcher
     # Pass internal docker network S3 URL for inference server to fetch
     for pid in upload_ids:
-        internal_url = get_image_url(db.get(Photo, uuid.UUID(pid)).storage_url, internal=True)
-        await photo_batcher.add_photo(pid, internal_url)
+        photo = db.get(Photo, uuid.UUID(pid))
+        infer_url = get_inference_image_url(photo.storage_url)
+        await photo_batcher.add_photo(pid, infer_url)
         
     return {
         "upload_ids": upload_ids,

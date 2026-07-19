@@ -102,7 +102,7 @@ async def requeue_stuck_photos():
     """On boot, re-submit pending/failed photos that still exist in storage."""
     from .database import SessionLocal
     from .models import Photo
-    from .storage import get_image_url
+    from .storage import get_inference_image_url
     from .batcher import photo_batcher
 
     db = SessionLocal()
@@ -120,8 +120,8 @@ async def requeue_stuck_photos():
             requeued += 1
         db.commit()
         for photo in to_queue:
-            url = get_image_url(photo.storage_url, internal=True)
-            await photo_batcher.add_photo(str(photo.id), url)
+            infer_url = get_inference_image_url(photo.storage_url)
+            await photo_batcher.add_photo(str(photo.id), infer_url)
         print(f"Requeued {requeued} photos for inference")
     except Exception as exc:
         print(f"WARNING: photo requeue on startup failed: {exc}")

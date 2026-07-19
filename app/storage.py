@@ -1,4 +1,7 @@
 import json
+import logging
+import os
+
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
@@ -14,6 +17,8 @@ from .config import (
     STORAGE_SIGNATURE_VERSION,
     PRESIGNED_UPLOAD_EXPIRES_SECONDS,
 )
+
+logger = logging.getLogger("tagr-storage")
 
 
 def _is_remote_storage() -> bool:
@@ -124,6 +129,55 @@ def object_exists(filename: str) -> bool:
         return True
     except ClientError:
         return False
+
+
+def inference_key_for(storage_key: str) -> str:
+    """Derive the storage key for the inference-sized JPEG copy of an original."""
+    key = storage_key.lstrip("/")
+    root, _ = os.path.splitext(key)
+    return f"{root}.infer.jpg"
+
+
+def download_object(filename: str) -> bytes:
+    """Download an object from storage."""
+    response = s3_client.get_object(Bucket=STORAGE_BUCKET, Key=filename.lstrip("/"))
+    return response["Body"].read()
+
+
+def ensure_inference_copy(original_key: str) -> str:
+    """
+    Ensure a downscaled JPEG copy exists for RunPod. Original gallery key is unchanged.
+    Falls back to the original key if resize/upload fails.
+    """
+    infer_key = inference_key_for(original_key)
+    if object_exists(infer_key):
+        return infer_key
+    try:
+        from .image_utils import resize_for_inference
+
+        original_bytes = download_object(original_key)
+        infer_bytes = resize_for_inference(original_bytes)
+        upload_image(infer_bytes, infer_key, "image/jpeg")
+        logger.info(
+            "Created inference copy %s (%s KB) from %s",
+            infer_key,
+            len(infer_bytes) // 1024,
+            original_key,
+        )
+        return infer_key
+    except Exception as exc:
+        logger.warning(
+            "Could not create inference copy for %s, using original: %s",
+            original_key,
+            exc,
+        )
+        return original_key
+
+
+def get_inference_image_url(original_key: str) -> str:
+    """Public URL for the inference-sized copy (created on demand if missing)."""
+    infer_key = ensure_inference_copy(original_key)
+    return get_image_url(infer_key, internal=True)
 
 
 def get_image_url(filename: str, internal: bool = True) -> str:

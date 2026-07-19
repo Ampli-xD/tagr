@@ -121,6 +121,9 @@ RUNPOD_API_KEY = _get_str("RUNPOD_API_KEY", "")
 INFERENCE_TIMEOUT_SECONDS = _get_float("INFERENCE_TIMEOUT_SECONDS", 60.0)
 # Timeout for a batched inference call from the batcher (includes callback round-trip).
 INFERENCE_BATCH_TIMEOUT_SECONDS = _get_float("INFERENCE_BATCH_TIMEOUT_SECONDS", 300.0)
+# Smaller copy stored alongside original for RunPod (avoids Supabase transform quotas).
+INFERENCE_IMAGE_MAX_WIDTH = _get_int("INFERENCE_IMAGE_MAX_WIDTH", 1024)
+INFERENCE_IMAGE_JPEG_QUALITY = _get_int("INFERENCE_IMAGE_JPEG_QUALITY", 85)
 
 
 def inference_request_headers() -> dict:

@@ -3,7 +3,7 @@ import httpx
 import logging
 import os
 import uuid
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from .database import SessionLocal
 from .config import (
@@ -18,7 +18,7 @@ from .config import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tagr-batcher")
 
-BATCH_TIMEOUT_MS = _BATCH_TIMEOUT_MS / 1000.0
+BATCH_TIMEOUT_SEC = _BATCH_TIMEOUT_MS / 1000.0
 
 
 class PhotoBatcher:
@@ -26,42 +26,67 @@ class PhotoBatcher:
         self.queue: List[Tuple[str, str]] = []
         self.lock = asyncio.Lock()
         self._flush_in_progress = False
-        self.first_item_time = None
+        self._flush_timer_task: Optional[asyncio.Task] = None
+
+    def _cancel_flush_timer(self) -> None:
+        if self._flush_timer_task and not self._flush_timer_task.done():
+            self._flush_timer_task.cancel()
+        self._flush_timer_task = None
+
+    def _schedule_flush_timer(self) -> None:
+        """Flush partial queue after BATCH_TIMEOUT_MS if batch is not full yet."""
+        if self._flush_timer_task and not self._flush_timer_task.done():
+            return
+        self._flush_timer_task = asyncio.create_task(self._wait_and_flush())
+
+    async def _wait_and_flush(self) -> None:
+        try:
+            await asyncio.sleep(BATCH_TIMEOUT_SEC)
+        except asyncio.CancelledError:
+            return
+        await self.flush()
 
     async def add_photo(self, photo_id: str, storage_url: str):
         async with self.lock:
             self.queue.append((photo_id, storage_url))
-            logger.info("Added photo %s to batch. Queue size: %s", photo_id, len(self.queue))
-
-            if len(self.queue) == 1:
-                self.first_item_time = asyncio.get_event_loop().time()
-                asyncio.create_task(self._wait_for_timeout())
+            logger.info(
+                "Added photo %s to batch. Queue size: %s (flush at %s or after %.1fs)",
+                photo_id,
+                len(self.queue),
+                BATCH_SIZE,
+                BATCH_TIMEOUT_SEC,
+            )
 
             if len(self.queue) >= BATCH_SIZE:
+                self._cancel_flush_timer()
                 asyncio.create_task(self.flush())
-
-    async def _wait_for_timeout(self):
-        await asyncio.sleep(BATCH_TIMEOUT_MS)
-        async with self.lock:
-            if self.queue:
-                asyncio.create_task(self.flush())
+            else:
+                self._schedule_flush_timer()
 
     async def flush(self):
         async with self.lock:
-            if not self.queue or self._flush_in_progress:
+            if not self.queue:
+                return
+            if self._flush_in_progress:
+                # Another batch is in flight — retry after the timeout window.
+                self._cancel_flush_timer()
+                self._schedule_flush_timer()
                 return
             batch_items = self.queue[:BATCH_SIZE]
             self.queue = self.queue[BATCH_SIZE:]
             self._flush_in_progress = True
-            if not self.queue:
-                self.first_item_time = None
+            self._cancel_flush_timer()
 
         if not batch_items:
             async with self.lock:
                 self._flush_in_progress = False
             return
 
-        logger.info("Flushing batch of size %s (%s remaining in queue)", len(batch_items), len(self.queue))
+        logger.info(
+            "Flushing batch of size %s (%s remaining in queue)",
+            len(batch_items),
+            len(self.queue),
+        )
 
         batch_id = os.urandom(16).hex()
         payload = {
@@ -82,6 +107,8 @@ class PhotoBatcher:
                 self._flush_in_progress = False
                 if len(self.queue) >= BATCH_SIZE:
                     asyncio.create_task(self.flush())
+                elif self.queue:
+                    self._schedule_flush_timer()
 
     async def _send_to_inference(self, payload: dict):
         runsync_url = f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync"

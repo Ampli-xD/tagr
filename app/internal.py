@@ -117,6 +117,31 @@ def _process_inference_results(db: Session, batch_id: str | None, results: list)
         photo.batch_id = uuid.UUID(batch_id) if batch_id else None
 
 
+def normalize_sync_inference_output(batch_id: str, output: dict) -> dict:
+    """Convert RunPod handler sync output (image_id) to callback payload (photo_id)."""
+    results = []
+    for item in output.get("results") or []:
+        photo_id = item.get("photo_id") or item.get("image_id")
+        if not photo_id:
+            continue
+        faces = []
+        for face in item.get("faces") or []:
+            bbox = face.get("bbox") or face.get("bounding_box") or {}
+            faces.append(
+                {
+                    "bbox": bbox,
+                    "embedding": face.get("embedding", []),
+                    "confidence": face.get("confidence", 1.0),
+                }
+            )
+        results.append({"photo_id": str(photo_id), "faces": faces})
+    return {
+        "batch_id": batch_id,
+        "results": results,
+        "errors": output.get("errors") or [],
+    }
+
+
 def process_inference_callback(payload: dict) -> None:
     """Heavy face-matching work — runs in a background task after fast ACK."""
     results = payload.get("results", [])

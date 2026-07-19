@@ -11,8 +11,8 @@ from .config import (
     BATCH_TIMEOUT_MS as _BATCH_TIMEOUT_MS,
     INFERENCE_SERVER_URL,
     INFERENCE_BATCH_TIMEOUT_SECONDS,
-    API_CALLBACK_URL,
     inference_request_headers,
+    inference_runsync_url,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +27,7 @@ class PhotoBatcher:
         self.lock = asyncio.Lock()
         self._flush_in_progress = False
         self._flush_timer_task: Optional[asyncio.Task] = None
+        self._background_tasks: set[asyncio.Task] = set()
 
     def _cancel_flush_timer(self) -> None:
         if self._flush_timer_task and not self._flush_timer_task.done():
@@ -63,12 +64,57 @@ class PhotoBatcher:
             else:
                 self._schedule_flush_timer()
 
+    def status_snapshot(self) -> dict:
+        return {
+            "queue_size": len(self.queue),
+            "flush_in_progress": self._flush_in_progress,
+            "timer_pending": bool(
+                self._flush_timer_task and not self._flush_timer_task.done()
+            ),
+        }
+
+    async def flush_when_idle(self, timeout_sec: float = 60.0) -> None:
+        """Flush the queue; wait out an in-flight RunPod call if needed."""
+        loop = asyncio.get_event_loop()
+        deadline = loop.time() + timeout_sec
+        while loop.time() < deadline:
+            if not self.queue and not self._flush_in_progress:
+                return
+            if not self._flush_in_progress and self.queue:
+                await self.flush()
+            else:
+                await asyncio.sleep(0.25)
+        logger.error(
+            "Flush timed out (queue=%s, in_progress=%s)",
+            len(self.queue),
+            self._flush_in_progress,
+        )
+
+    def start_background_flush(self, timeout_sec: float = 120.0) -> None:
+        """Run flush after HTTP response returns — keeps Render request timeouts from aborting RunPod."""
+        task = asyncio.create_task(self._background_flush(timeout_sec))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+    async def _background_flush(self, timeout_sec: float) -> None:
+        try:
+            logger.info("Background flush started (timeout=%ss)", timeout_sec)
+            await self.flush_when_idle(timeout_sec)
+            logger.info("Background flush finished (queue=%s)", len(self.queue))
+        except Exception:
+            logger.exception("Background flush failed")
+            async with self.lock:
+                self._flush_in_progress = False
+
     async def flush(self):
         async with self.lock:
             if not self.queue:
                 return
             if self._flush_in_progress:
-                # Another batch is in flight — retry after the timeout window.
+                logger.warning(
+                    "Flush deferred — RunPod request already in flight (queue=%s)",
+                    len(self.queue),
+                )
                 self._cancel_flush_timer()
                 self._schedule_flush_timer()
                 return
@@ -96,12 +142,11 @@ class PhotoBatcher:
                     for item in batch_items
                 ],
                 "batch_id": batch_id,
-                "callback_url": API_CALLBACK_URL,
             }
         }
 
         try:
-            await self._send_to_inference(payload)
+            await self._send_to_inference(payload, batch_id)
         finally:
             async with self.lock:
                 self._flush_in_progress = False
@@ -110,8 +155,10 @@ class PhotoBatcher:
                 elif self.queue:
                     self._schedule_flush_timer()
 
-    async def _send_to_inference(self, payload: dict):
-        runsync_url = f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync"
+    async def _send_to_inference(self, payload: dict, batch_id: str):
+        from .internal import normalize_sync_inference_output, process_inference_callback
+
+        runsync_url = inference_runsync_url()
         photo_ids = [img["image_id"] for img in payload["input"]["images"]]
 
         try:
@@ -123,7 +170,7 @@ class PhotoBatcher:
                     runsync_url,
                     json=payload,
                     headers=inference_request_headers(),
-                    timeout=INFERENCE_BATCH_TIMEOUT_SECONDS,
+                    timeout=INFERENCE_BATCH_TIMEOUT_SECONDS + 30,
                 )
 
                 if response.status_code != 200:
@@ -139,8 +186,21 @@ class PhotoBatcher:
                     return
 
                 job_result = response.json()
-                output = job_result.get("output", {})
+                status = job_result.get("status", "")
+                output = job_result.get("output") or {}
+                if not isinstance(output, dict):
+                    output = {}
+
                 top_error = job_result.get("error") or output.get("error")
+                if status == "IN_PROGRESS":
+                    logger.warning(
+                        "RunPod runsync returned IN_PROGRESS (job still running). "
+                        "Response: %s",
+                        job_result,
+                    )
+                    self._update_photos_status(photo_ids, "pending")
+                    return
+
                 if top_error:
                     logger.error("Inference job failed: %s", job_result)
                     failed_ids = [
@@ -150,19 +210,35 @@ class PhotoBatcher:
                     ]
                     if failed_ids:
                         self._update_photos_status(failed_ids, "failed")
-                        succeeded = [pid for pid in photo_ids if pid not in failed_ids]
-                        if not succeeded:
-                            return
                     else:
                         self._update_photos_status(photo_ids, "failed")
-                        return
+                    return
 
-                logger.info(
-                    "Inference batch accepted (batch_id=%s, processed=%s, errors=%s)",
-                    output.get("batch_id"),
-                    output.get("processed_images"),
-                    len(output.get("errors", [])),
-                )
+                # Legacy path: worker posted callback itself during runsync.
+                if output.get("acknowledged"):
+                    logger.info(
+                        "Inference batch accepted via worker callback (batch_id=%s, processed=%s)",
+                        output.get("batch_id"),
+                        output.get("processed_images"),
+                    )
+                    return
+
+                if status == "COMPLETED" or output.get("results") is not None:
+                    callback_payload = normalize_sync_inference_output(batch_id, output)
+                    asyncio.create_task(
+                        asyncio.to_thread(process_inference_callback, callback_payload)
+                    )
+                    logger.info(
+                        "Inference batch completed (batch_id=%s, results=%s, errors=%s, status=%s)",
+                        batch_id,
+                        len(callback_payload.get("results", [])),
+                        len(callback_payload.get("errors", [])),
+                        status,
+                    )
+                    return
+
+                logger.error("Unexpected RunPod response: %s", job_result)
+                self._update_photos_status(photo_ids, "failed")
 
         except Exception as e:
             logger.error("Error in batch inference runner: %s", e)

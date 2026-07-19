@@ -22,6 +22,7 @@ from .config import (
     INFERENCE_SERVER_URL,
     INFERENCE_TIMEOUT_SECONDS,
     SIMILARITY_THRESHOLD,
+    inference_request_headers,
 )
 from .profile_utils import (
     user_profile_dict,
@@ -334,6 +335,7 @@ async def enroll_face(
             resp = await client.post(
                 f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync",
                 json=predict_payload,
+                headers=inference_request_headers(),
                 timeout=INFERENCE_TIMEOUT_SECONDS,
             )
             if resp.status_code != 200:

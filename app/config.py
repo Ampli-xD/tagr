@@ -109,13 +109,26 @@ SUPABASE_JWKS_URL = _get_str("SUPABASE_JWKS_URL", "")
 SUPABASE_JWT_SECRET = _get_str("SUPABASE_JWT_SECRET", "")
 
 # -------------------------------------------------------------------
-# Inference service
+# Inference service (RunPod serverless by default)
 # -------------------------------------------------------------------
-INFERENCE_SERVER_URL = _get_str("INFERENCE_SERVER_URL", "http://inference:8001")
+INFERENCE_SERVER_URL = _get_str(
+    "INFERENCE_SERVER_URL",
+    "https://api.runpod.ai/v2/wid4pce4yufwbd",
+)
+# RunPod API key (Bearer token). Required when INFERENCE_SERVER_URL points at RunPod.
+RUNPOD_API_KEY = _get_str("RUNPOD_API_KEY", "")
 # Timeout for a single synchronous enrollment inference call.
-INFERENCE_TIMEOUT_SECONDS = _get_float("INFERENCE_TIMEOUT_SECONDS", 30.0)
-# Timeout for a batched inference call from the batcher.
-INFERENCE_BATCH_TIMEOUT_SECONDS = _get_float("INFERENCE_BATCH_TIMEOUT_SECONDS", 120.0)
+INFERENCE_TIMEOUT_SECONDS = _get_float("INFERENCE_TIMEOUT_SECONDS", 60.0)
+# Timeout for a batched inference call from the batcher (includes callback round-trip).
+INFERENCE_BATCH_TIMEOUT_SECONDS = _get_float("INFERENCE_BATCH_TIMEOUT_SECONDS", 300.0)
+
+
+def inference_request_headers() -> dict:
+    """HTTP headers for RunPod /runsync calls (Authorization when RUNPOD_API_KEY is set)."""
+    headers = {"Content-Type": "application/json"}
+    if RUNPOD_API_KEY:
+        headers["Authorization"] = f"Bearer {RUNPOD_API_KEY}"
+    return headers
 
 # -------------------------------------------------------------------
 # Batcher

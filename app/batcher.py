@@ -12,6 +12,7 @@ from .config import (
     INFERENCE_SERVER_URL,
     INFERENCE_BATCH_TIMEOUT_SECONDS,
     API_CALLBACK_URL,
+    inference_request_headers,
 )
 
 # Configure logging
@@ -98,7 +99,12 @@ class PhotoBatcher:
             
             async with httpx.AsyncClient() as client:
                 logger.info(f"Sending payload to inference: {runsync_url}")
-                response = await client.post(runsync_url, json=payload, timeout=INFERENCE_BATCH_TIMEOUT_SECONDS)
+                response = await client.post(
+                    runsync_url,
+                    json=payload,
+                    headers=inference_request_headers(),
+                    timeout=INFERENCE_BATCH_TIMEOUT_SECONDS,
+                )
                 
                 if response.status_code != 200:
                     logger.error(f"Inference failed with status {response.status_code}: {response.text}")

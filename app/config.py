@@ -130,6 +130,13 @@ def inference_request_headers() -> dict:
         headers["Authorization"] = f"Bearer {RUNPOD_API_KEY}"
     return headers
 
+
+def inference_runsync_url(timeout_seconds: float | None = None) -> str:
+    """RunPod /runsync URL with extended wait (default API wait is only 90s)."""
+    seconds = timeout_seconds if timeout_seconds is not None else INFERENCE_BATCH_TIMEOUT_SECONDS
+    wait_ms = min(int(seconds * 1000), 300000)
+    return f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync?wait={wait_ms}"
+
 # -------------------------------------------------------------------
 # Batcher
 # -------------------------------------------------------------------

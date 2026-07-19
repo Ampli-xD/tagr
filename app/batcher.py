@@ -11,8 +11,8 @@ from .config import (
     BATCH_TIMEOUT_MS as _BATCH_TIMEOUT_MS,
     INFERENCE_SERVER_URL,
     INFERENCE_BATCH_TIMEOUT_SECONDS,
-    API_CALLBACK_URL,
     inference_request_headers,
+    inference_runsync_url,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -68,7 +68,6 @@ class PhotoBatcher:
             if not self.queue:
                 return
             if self._flush_in_progress:
-                # Another batch is in flight — retry after the timeout window.
                 self._cancel_flush_timer()
                 self._schedule_flush_timer()
                 return
@@ -96,12 +95,11 @@ class PhotoBatcher:
                     for item in batch_items
                 ],
                 "batch_id": batch_id,
-                "callback_url": API_CALLBACK_URL,
             }
         }
 
         try:
-            await self._send_to_inference(payload)
+            await self._send_to_inference(payload, batch_id)
         finally:
             async with self.lock:
                 self._flush_in_progress = False
@@ -110,8 +108,10 @@ class PhotoBatcher:
                 elif self.queue:
                     self._schedule_flush_timer()
 
-    async def _send_to_inference(self, payload: dict):
-        runsync_url = f"{INFERENCE_SERVER_URL.rstrip('/')}/runsync"
+    async def _send_to_inference(self, payload: dict, batch_id: str):
+        from .internal import normalize_sync_inference_output, process_inference_callback
+
+        runsync_url = inference_runsync_url()
         photo_ids = [img["image_id"] for img in payload["input"]["images"]]
 
         try:
@@ -123,17 +123,37 @@ class PhotoBatcher:
                     runsync_url,
                     json=payload,
                     headers=inference_request_headers(),
-                    timeout=INFERENCE_BATCH_TIMEOUT_SECONDS,
+                    timeout=INFERENCE_BATCH_TIMEOUT_SECONDS + 30,
                 )
 
                 if response.status_code != 200:
-                    logger.error("Inference HTTP %s: %s", response.status_code, response.text)
+                    if response.status_code == 401:
+                        logger.error(
+                            "RunPod 401 Unauthorized — set RUNPOD_API_KEY on Render "
+                            "(RunPod dashboard → Settings → API Keys). Response: %s",
+                            response.text,
+                        )
+                    else:
+                        logger.error("Inference HTTP %s: %s", response.status_code, response.text)
                     self._update_photos_status(photo_ids, "failed")
                     return
 
                 job_result = response.json()
-                output = job_result.get("output", {})
+                status = job_result.get("status", "")
+                output = job_result.get("output") or {}
+                if not isinstance(output, dict):
+                    output = {}
+
                 top_error = job_result.get("error") or output.get("error")
+                if status == "IN_PROGRESS":
+                    logger.warning(
+                        "RunPod runsync returned IN_PROGRESS (job still running). "
+                        "Response: %s",
+                        job_result,
+                    )
+                    self._update_photos_status(photo_ids, "pending")
+                    return
+
                 if top_error:
                     logger.error("Inference job failed: %s", job_result)
                     failed_ids = [
@@ -143,19 +163,35 @@ class PhotoBatcher:
                     ]
                     if failed_ids:
                         self._update_photos_status(failed_ids, "failed")
-                        succeeded = [pid for pid in photo_ids if pid not in failed_ids]
-                        if not succeeded:
-                            return
                     else:
                         self._update_photos_status(photo_ids, "failed")
-                        return
+                    return
 
-                logger.info(
-                    "Inference batch accepted (batch_id=%s, processed=%s, errors=%s)",
-                    output.get("batch_id"),
-                    output.get("processed_images"),
-                    len(output.get("errors", [])),
-                )
+                # Legacy path: worker posted callback itself during runsync.
+                if output.get("acknowledged"):
+                    logger.info(
+                        "Inference batch accepted via worker callback (batch_id=%s, processed=%s)",
+                        output.get("batch_id"),
+                        output.get("processed_images"),
+                    )
+                    return
+
+                if status == "COMPLETED" or output.get("results") is not None:
+                    callback_payload = normalize_sync_inference_output(batch_id, output)
+                    asyncio.create_task(
+                        asyncio.to_thread(process_inference_callback, callback_payload)
+                    )
+                    logger.info(
+                        "Inference batch completed (batch_id=%s, results=%s, errors=%s, status=%s)",
+                        batch_id,
+                        len(callback_payload.get("results", [])),
+                        len(callback_payload.get("errors", [])),
+                        status,
+                    )
+                    return
+
+                logger.error("Unexpected RunPod response: %s", job_result)
+                self._update_photos_status(photo_ids, "failed")
 
         except Exception as e:
             logger.error("Error in batch inference runner: %s", e)

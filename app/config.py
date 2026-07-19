@@ -137,7 +137,7 @@ def inference_request_headers() -> dict:
 # Batcher
 # -------------------------------------------------------------------
 BATCH_SIZE = _get_int("BATCH_SIZE", 20)
-BATCH_TIMEOUT_MS = _get_float("BATCH_TIMEOUT_MS", 50.0)
+BATCH_TIMEOUT_MS = _get_float("BATCH_TIMEOUT_MS", 5000.0)
 API_CALLBACK_URL = _get_str(
     "API_CALLBACK_URL",
     "http://web:8000/api/v1/internal/inference-callback",

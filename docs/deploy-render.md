@@ -45,7 +45,10 @@ API_CALLBACK_URL=https://YOUR-RENDER-HOST.onrender.com/api/v1/internal/inference
 CORS_ALLOW_ORIGINS=https://your-app.vercel.app
 
 BATCH_SIZE=20
+BATCH_TIMEOUT_MS=5000
 ```
+
+Partial batches (e.g. 1 or 11 photos) flush after `BATCH_TIMEOUT_MS` (default 5s) or immediately when the queue reaches `BATCH_SIZE`.
 
 `API_CALLBACK_URL` must be your **public Render URL** (RunPod posts results there).
 

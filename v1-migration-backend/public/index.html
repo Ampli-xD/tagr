@@ -1,0 +1,2493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#F4EFE4">
+    <title>tagr</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --paper: #F4EFE4;
+            --surface: #FFFDF8;
+            --ink: #111111;
+            --muted: #6D665D;
+            --line: rgba(17, 17, 17, 0.9);
+            --line-soft: rgba(17, 17, 17, 0.24);
+            --sage: #7DB8AE;
+            --sage-soft: #DCEBE7;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --content-max: 1200px;
+            --header-h: 64px;
+            --nav-h: 76px;
+            --side-nav-w: 220px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { min-height: 100%; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background:
+                radial-gradient(circle at 16% 8%, rgba(255,255,255,0.44), transparent 30%),
+                radial-gradient(circle at 82% 18%, rgba(255,255,255,0.24), transparent 24%),
+                #E8DDC9;
+            color: var(--ink);
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.05;
+            z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+            mix-blend-mode: multiply;
+        }
+
+        .app-shell {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+            background: rgba(244, 239, 228, 0.92);
+        }
+
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: var(--header-h);
+            padding: calc(10px + var(--safe-top)) clamp(16px, 3vw, 40px) 10px;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(244, 239, 228, 0.96);
+            backdrop-filter: blur(8px);
+        }
+
+        .app-layout {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        .app-main {
+            flex: 1;
+            width: 100%;
+            max-width: var(--content-max);
+            margin: 0 auto;
+            padding: 16px clamp(16px, 3vw, 40px) calc(var(--nav-h) + var(--safe-bottom) + 16px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .wordmark {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 31px;
+            line-height: 0.92;
+            letter-spacing: -0.03em;
+        }
+        .demo-pill {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid var(--line);
+            padding: 2px 8px;
+            margin-left: 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 600;
+            background: var(--sage-soft);
+        }
+
+        .account-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: min(54%, 320px);
+        }
+        .auth-status {
+            font-size: 11.5px;
+            color: var(--muted);
+            line-height: 1.35;
+            text-align: right;
+        }
+        .auth-status strong { color: var(--ink); }
+        .auth-status a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
+        .avatar-chip {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--sage-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .api-banner {
+            display: none;
+            padding: 10px clamp(16px, 3vw, 40px);
+            font-size: 11.5px;
+            line-height: 1.45;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(255, 253, 248, 0.9);
+            color: var(--muted);
+        }
+        .api-banner.demo-banner {
+            background: var(--sage-soft);
+            color: var(--ink);
+            border-color: var(--line);
+        }
+        .api-banner code {
+            font-size: 10.5px;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid var(--line-soft);
+            padding: 1px 4px;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: rise 0.26s ease-out both; }
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        .section-head { margin-bottom: 14px; }
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .display-title {
+            margin-top: 8px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: clamp(32px, 9.6vw, 38px);
+            line-height: 0.98;
+            letter-spacing: -0.03em;
+        }
+        .section-title {
+            margin-top: 8px;
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 26px;
+            line-height: 1;
+            letter-spacing: -0.02em;
+        }
+        .subtext {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .frame {
+            border: 1px solid var(--line);
+            background: var(--surface);
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(17,17,17,0.72);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            line-height: 1;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.52);
+        }
+
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            border: 1px solid var(--line);
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: var(--ink);
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-sm { min-height: 34px; font-size: 12px; padding: 7px 12px; }
+        .btn-block { width: 100%; }
+        .btn-outline { background: transparent; color: var(--ink); }
+        .btn-filled { background: var(--ink); color: #fff; }
+        .btn-accent { background: var(--sage); color: var(--ink); }
+
+        .story-strip {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .story-strip::-webkit-scrollbar { display: none; }
+        .story-ring {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .story-ring .inner {
+            width: 54px;
+            height: 54px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #EEE6D7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            overflow: hidden;
+        }
+        .story-ring.active .inner { background: var(--sage); }
+
+        .gallery-stack { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .photo-card {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .featured-card .photo-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .featured-card .photo-body {
+            aspect-ratio: 4 / 5;
+            background: #E9DFD3;
+        }
+        .featured-card .photo-meta {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--muted);
+            border-top: 1px solid var(--line-soft);
+        }
+        .thumb-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .thumb {
+            aspect-ratio: 1 / 1.08;
+            background: #E9DFD3;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .thumb .chip {
+            position: absolute;
+            left: 8px;
+            bottom: 8px;
+            background: rgba(255,255,255,0.74);
+        }
+
+        .stack-gap { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+        .empty-state {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 18px 14px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .notif-row, .friend-row, .queue-row {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .notif-row { align-items: flex-start; }
+        .notif-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #EEE6D7;
+            flex-shrink: 0;
+        }
+        .notif-body { flex: 1; min-width: 0; }
+        .notif-text { font-size: 13px; line-height: 1.45; }
+        .notif-time { margin-top: 4px; font-size: 11px; color: var(--muted); }
+        .notif-unread {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--sage);
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .friend-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #EEE6D7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .friend-info { flex: 1; min-width: 0; }
+        .row-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+        .row-meta { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+        .upload-zone {
+            border: 1px dashed var(--line);
+            background: rgba(255,255,255,0.45);
+            padding: 24px 14px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .upload-zone.dragover { background: var(--sage-soft); }
+        .upload-zone p { font-size: 13px; line-height: 1.45; color: var(--muted); }
+        .upload-zone strong { color: var(--ink); }
+        .queue-head {
+            margin-top: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            font-size: 11px;
+        }
+        .status-badge {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 10px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: #EFE6D8;
+            flex-shrink: 0;
+        }
+        .status-processing, .status-processed { background: var(--sage-soft); }
+        .status-failed { background: #F3D2CF; }
+
+        .auth-tabs {
+            margin-top: 12px;
+            border: 1px solid var(--line);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--surface);
+        }
+        .auth-tab {
+            border: none;
+            background: transparent;
+            padding: 11px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--muted);
+            border-right: 1px solid var(--line-soft);
+        }
+        .auth-tab:last-child { border-right: none; }
+        .auth-tab.active {
+            background: var(--sage-soft);
+            color: var(--ink);
+            font-weight: 600;
+        }
+        .auth-pane { display: none; margin-top: 12px; }
+        .auth-pane.active { display: block; }
+        .form-group { margin-bottom: 10px; }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11.5px;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+        .input-line {
+            width: 100%;
+            border: 1px solid var(--line);
+            background: transparent;
+            border-radius: 0;
+            padding: 13px 12px;
+            font-size: 16px;
+            color: var(--ink);
+            font-family: inherit;
+            outline: none;
+        }
+
+        .profile-card { padding: 14px; text-align: center; }
+        .profile-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: var(--sage-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 12px;
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        .camera-container {
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            border: 1px solid var(--line);
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+        video, canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .camera-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .face-oval {
+            width: 56%;
+            height: 66%;
+            border: 1px dashed rgba(255,255,255,0.74);
+            border-radius: 50%;
+        }
+        .locked-overlay { opacity: 0.48; pointer-events: none; }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 60;
+            border-top: 1px solid var(--line);
+            background: rgba(244, 239, 228, 0.96);
+            backdrop-filter: blur(6px);
+            padding: 8px clamp(10px, 2vw, 24px) calc(8px + var(--safe-bottom));
+        }
+        .bottom-nav-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+            max-width: var(--content-max);
+            margin: 0 auto;
+        }
+        .nav-btn {
+            border: 1px solid var(--line);
+            background: transparent;
+            padding: 8px 4px;
+            font-size: 11px;
+            line-height: 1;
+            border-radius: 16px;
+            color: var(--ink);
+            cursor: pointer;
+        }
+        .nav-btn.active { background: var(--sage); }
+
+        .side-nav {
+            display: none;
+        }
+
+        .sheet-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(17,17,17,0.24);
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.24s ease;
+            z-index: 70;
+        }
+        .sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+        .sheet {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            bottom: 0;
+            width: min(100%, 560px);
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-bottom: none;
+            border-radius: 24px 24px 0 0;
+            z-index: 80;
+            transition: transform 0.26s ease;
+            max-height: 84vh;
+            overflow-y: auto;
+        }
+        .sheet.show { transform: translateX(-50%) translateY(0); }
+        .sheet-inner { padding: 12px 16px 16px; }
+        .sheet-grabber {
+            width: 56px;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(17,17,17,0.15);
+            margin: 0 auto 10px;
+        }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+            border: 1px solid var(--line);
+            background: var(--ink);
+            color: #fff;
+            border-radius: 999px;
+            font-size: 13px;
+            padding: 9px 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.24s ease;
+            z-index: 90;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(17,17,17,0.42);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .lightbox-panel {
+            width: min(100%, 960px);
+            max-height: calc(100dvh - 24px);
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: var(--surface);
+        }
+        @media (max-width: 860px) {
+            .lightbox-panel {
+                width: 100%;
+                grid-template-columns: 1fr;
+                max-height: 100dvh;
+            }
+        }
+        .lightbox-header {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--line-soft);
+            background: var(--paper);
+        }
+        @media (max-width: 860px) { .lightbox-header { display: flex; } }
+        .lightbox-close {
+            border: 1px solid var(--line);
+            background: transparent;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+        }
+        .viewer-container {
+            border-right: 1px solid var(--line-soft);
+            background: #E9DFD3;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
+        }
+        @media (max-width: 860px) { .viewer-container { border-right: none; border-bottom: 1px solid var(--line-soft); } }
+        .viewer-image { width: 100%; max-height: 72vh; object-fit: contain; display: block; }
+        .sidebar {
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .sidebar h3 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 22px;
+            line-height: 1;
+        }
+        .photo-status-line { font-size: 12px; color: var(--muted); }
+        .side-label {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .face-overlay-box {
+            position: absolute;
+            border: 1px solid #fff;
+            background: rgba(255,255,255,0.14);
+            border-radius: 6px;
+        }
+        .face-overlay-box span {
+            position: absolute;
+            bottom: calc(100% + 5px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 1px solid var(--line);
+            padding: 3px 8px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .comments-list { max-height: 150px; overflow-y: auto; }
+        .comment-item { margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
+        .comment-author { font-weight: 700; }
+        .comment-input-row { display: flex; gap: 8px; }
+        .comment-input-row .input-line { font-size: 14px; padding: 10px; }
+
+        .section-head-row {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .section-head-row .btn-row { margin: 0; flex-shrink: 0; }
+
+        .upload-layout { display: flex; flex-direction: column; gap: 14px; }
+        .friends-panels { display: flex; flex-direction: column; gap: 12px; }
+
+        .enrollment-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: rgba(17, 17, 17, 0.28);
+            backdrop-filter: blur(4px);
+        }
+        .enrollment-overlay.show { display: flex; }
+        .enrollment-panel {
+            width: min(100%, 560px);
+            max-height: calc(100dvh - 24px);
+            overflow-y: auto;
+            border: 1px solid var(--line);
+            background: var(--surface);
+            padding: 16px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16);
+        }
+        .enrollment-panel .camera-container { max-height: min(52vh, 420px); }
+        .enrollment-notice {
+            border: 1px solid var(--line);
+            background: #F9F5EE;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+        .enrollment-notice strong { color: var(--ink); display: block; margin-bottom: 4px; }
+        .enrollment-preview {
+            display: none;
+            width: 100%;
+            max-height: min(52vh, 420px);
+            object-fit: cover;
+            border: 1px solid var(--line);
+            margin-bottom: 12px;
+        }
+        .enrollment-preview.show { display: block; }
+
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        @media (min-width: 768px) {
+            .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (min-width: 520px) {
+            .section-head-row {
+                flex-direction: row;
+                align-items: flex-end;
+                justify-content: space-between;
+            }
+            .upload-layout {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+                align-items: start;
+            }
+            .upload-layout .upload-zone { grid-column: 1 / -1; }
+            .upload-layout .queue-head { grid-column: 1 / -1; }
+            .upload-layout #upload-queue-list { grid-column: 1 / -1; }
+            .friends-panels {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+            .friends-panels .stack-gap { margin-top: 10px; }
+            .profile-signed-in-wrap {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                gap: 12px;
+                align-items: start;
+            }
+            .profile-signed-in-wrap .profile-card { height: 100%; }
+        }
+
+        @media (min-width: 900px) {
+            :root { --nav-h: 0px; }
+
+            .app-layout {
+                padding-left: var(--side-nav-w);
+            }
+
+            .bottom-nav { display: none; }
+
+            .side-nav {
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                left: 0;
+                top: var(--header-h);
+                bottom: 0;
+                width: var(--side-nav-w);
+                padding: 16px 12px 24px;
+                border-right: 1px solid var(--line-soft);
+                background: rgba(244, 239, 228, 0.98);
+                z-index: 40;
+                gap: 8px;
+            }
+
+            .side-nav .nav-btn {
+                width: 100%;
+                text-align: left;
+                padding: 12px 14px;
+                font-size: 13px;
+                border-radius: 14px;
+            }
+
+            .app-main {
+                padding-bottom: 32px;
+                max-width: none;
+                width: 100%;
+            }
+
+            .app-header {
+                padding-left: clamp(16px, 3vw, 40px);
+            }
+
+            #api-banner {
+                padding-left: clamp(16px, 3vw, 40px);
+            }
+
+            .display-title { font-size: clamp(36px, 4vw, 48px); }
+            .gallery-stack {
+                display: grid;
+                grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+                gap: 16px;
+                align-items: start;
+            }
+            .gallery-stack .featured-card { grid-row: span 2; }
+            .gallery-stack .thumb-grid { grid-column: 2; }
+            .gallery-stack .empty-state { grid-column: 1 / -1; }
+            .featured-card .photo-body { max-height: none; min-height: 420px; }
+            .enrollment-panel { border-radius: 24px; }
+            .btn:hover { filter: brightness(0.97); }
+            .nav-btn:hover { background: rgba(125, 184, 174, 0.35); }
+            .photo-card:hover,
+            .thumb:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(17, 17, 17, 0.08); }
+            .friend-row:hover,
+            .notif-row:hover,
+            .queue-row:hover { background: rgba(255, 255, 255, 0.72); }
+            .lightbox { padding: 24px; }
+            .lightbox-panel { border-radius: 24px; max-height: calc(100dvh - 48px); width: min(100%, 1100px); }
+            .viewer-image { max-height: 78vh; }
+            .sidebar { padding: 20px; }
+            .comments-list { max-height: 220px; }
+            .toast { bottom: calc(24px + var(--safe-bottom)); }
+            #notifications-list.stack-gap {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+            #profile-signed-out .auth-pane .frame,
+            #profile-signed-out .auth-tabs {
+                max-width: 520px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .thumb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .gallery-stack .thumb-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (min-width: 1400px) {
+            .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .gallery-stack .thumb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (hover: none) {
+            .photo-card:hover,
+            .thumb:hover { transform: none; box-shadow: none; }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <div id="api-banner" class="api-banner"></div>
+
+        <header class="app-header">
+            <div class="wordmark">tagr<span id="demo-badge" class="demo-pill hidden">Demo</span></div>
+            <div class="account-chip">
+                <div class="auth-status" id="header-auth-status">Not signed in</div>
+                <div class="avatar-chip hidden" id="header-avatar">?</div>
+            </div>
+        </header>
+
+        <div class="app-layout">
+            <nav class="side-nav" aria-label="Main navigation">
+                <button class="nav-btn active" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">Home</button>
+                <button class="nav-btn" data-tab="tab-notifications" onclick="switchTab('tab-notifications', this)">Alerts</button>
+                <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">Upload</button>
+                <button class="nav-btn" data-tab="tab-friends" onclick="switchTab('tab-friends', this)">Friends</button>
+                <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
+            </nav>
+
+            <main class="app-main">
+                <section id="tab-gallery" class="tab-content active">
+                    <div class="section-head-row">
+                        <div class="section-head" style="margin-bottom: 0;">
+                            <p class="eyebrow">Home</p>
+                            <h1 class="display-title">Hi, <span id="gallery-greeting-name">there</span></h1>
+                            <p class="subtext" id="gallery-username-title">Sign in to see your tagged photos.</p>
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn btn-accent" onclick="openSheet('upload-sheet')">Upload</button>
+                            <button type="button" class="btn btn-outline" onclick="switchTab('tab-upload')">Upload tab</button>
+                        </div>
+                    </div>
+                    <div id="story-rings" class="story-strip"></div>
+                    <div id="photo-grid" class="gallery-stack"></div>
+                </section>
+
+                <section id="tab-notifications" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Alerts</p>
+                        <h1 class="display-title">Notifications</h1>
+                        <p class="subtext">Tags and activity related to your gallery.</p>
+                    </div>
+                    <div id="notifications-list" class="stack-gap"></div>
+                </section>
+
+                <section id="tab-upload" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Upload</p>
+                        <h1 class="display-title">New post</h1>
+                        <p class="subtext">Take a photo or choose from your library.</p>
+                    </div>
+                    <div class="upload-layout">
+                        <div class="btn-row" style="margin: 0;">
+                            <button type="button" class="btn btn-accent btn-block" onclick="toast('Camera flow starts in native app.')">Take photo</button>
+                            <button type="button" class="btn btn-outline btn-block" onclick="document.getElementById('file-input').click()">Choose from library</button>
+                        </div>
+                        <div class="upload-zone" id="drop-zone"
+                             onclick="document.getElementById('file-input').click()"
+                             ondragover="event.preventDefault(); this.classList.add('dragover');"
+                             ondragleave="this.classList.remove('dragover');"
+                             ondrop="handleDrop(event)">
+                            <p><strong>Tap to choose</strong> or drag photos here</p>
+                            <p>Multiple files supported.</p>
+                            <input type="file" id="file-input" multiple class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                        </div>
+                        <div class="queue-head">Queue</div>
+                        <div id="upload-queue-list" class="stack-gap"></div>
+                    </div>
+                </section>
+
+                <section id="tab-friends" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Friends</p>
+                        <h1 class="display-title">People</h1>
+                        <p class="subtext">Suggestions and your current friends list.</p>
+                    </div>
+                    <div class="friends-panels">
+                        <div class="frame" style="padding: 12px;">
+                            <div class="eyebrow">Suggestions</div>
+                            <div id="friend-suggestions-list" class="stack-gap" style="margin-top: 10px;"></div>
+                        </div>
+                        <div class="frame" style="padding: 12px;">
+                            <div class="eyebrow">Friends</div>
+                            <div id="friends-list" class="stack-gap" style="margin-top: 10px;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-profile" class="tab-content">
+                    <div class="section-head">
+                        <p class="eyebrow">Profile</p>
+                        <h1 class="display-title">Your account</h1>
+                    </div>
+
+                    <div id="profile-signed-in" class="hidden profile-signed-in-wrap">
+                        <div class="frame profile-card">
+                            <div class="profile-avatar" id="profile-avatar">?</div>
+                            <h2 class="section-title" style="margin-top: 0;" id="profile-name">You</h2>
+                            <p class="subtext" style="margin-top: 6px;" id="profile-status-line">Signed in and ready to tag.</p>
+                            <span id="face-enrolled-badge" class="chip hidden" style="margin-top: 10px; background: var(--sage-soft);">Face enrolled</span>
+                            <div class="btn-row" style="margin-top: 10px; justify-content: center;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="switchTab('tab-gallery')">Go home</button>
+                                <button type="button" class="btn btn-filled btn-sm" onclick="logout()">Sign out</button>
+                            </div>
+                        </div>
+                        <div class="frame" style="padding: 12px;">
+                            <p class="eyebrow">Face setup</p>
+                            <h2 class="section-title" style="margin-top: 6px; font-size: 22px;">Your enrollment</h2>
+                            <p class="subtext" style="margin-top: 8px;">Your face photo powers automatic tagging in shared albums.</p>
+                            <div class="profile-actions">
+                                <button type="button" id="btn-recapture-face" class="btn btn-outline btn-block hidden" onclick="showEnrollmentOverlay(true)">Capture my face again</button>
+                                <button type="button" id="btn-enroll-face" class="btn btn-accent btn-block hidden" onclick="showEnrollmentOverlay(false)">Complete face setup</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="profile-signed-out">
+                        <div class="auth-tabs" role="tablist">
+                            <button type="button" class="auth-tab active" data-auth="register" onclick="switchAuthPane('register')">Register</button>
+                            <button type="button" class="auth-tab" data-auth="login" onclick="switchAuthPane('login')">Sign in</button>
+                        </div>
+
+                        <div id="auth-pane-register" class="auth-pane active">
+                            <div class="frame" style="padding: 12px;">
+                                <h2 class="section-title" style="margin-top: 0;">Create account</h2>
+                                <p class="subtext" style="margin-bottom: 10px;">Register with mobile and verify OTP.</p>
+                                <form id="register-form" onsubmit="handleRegister(event)">
+                                    <div class="form-group">
+                                        <label>Username</label>
+                                        <input type="text" id="reg-username" class="input-line" placeholder="johndoe" required autocomplete="username">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mobile number</label>
+                                        <input type="text" id="reg-mobile" class="input-line" placeholder="+1234567890" required autocomplete="tel">
+                                    </div>
+                                    <button type="submit" class="btn btn-filled btn-block">Continue</button>
+                                </form>
+                                <form id="otp-form" onsubmit="handleVerifyOTP(event)" class="hidden" style="margin-top: 10px;">
+                                    <div class="form-group">
+                                        <label>Verification code</label>
+                                        <input type="text" id="otp-code" class="input-line" placeholder="Enter code" required inputmode="numeric">
+                                    </div>
+                                    <button type="submit" class="btn btn-filled btn-block">Verify &amp; enter</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div id="auth-pane-login" class="auth-pane">
+                            <div class="frame" id="login-section" style="padding: 12px;">
+                                <h2 class="section-title" style="margin-top: 0;">Welcome back</h2>
+                                <p class="subtext" style="margin-bottom: 10px;">Get an OTP and sign in.</p>
+                                <form id="login-request-form" onsubmit="handleLoginRequest(event)">
+                                    <div class="form-group">
+                                        <label>Mobile number</label>
+                                        <input type="text" id="login-mobile" class="input-line" placeholder="+1234567890" required autocomplete="tel">
+                                    </div>
+                                    <button type="submit" class="btn btn-outline btn-block">Send code</button>
+                                </form>
+                                <form id="login-otp-form" onsubmit="handleLoginOTP(event)" class="hidden" style="margin-top: 10px;">
+                                    <div class="form-group">
+                                        <label>Enter code</label>
+                                        <input type="text" id="login-otp-code" class="input-line" placeholder="Enter code" required inputmode="numeric">
+                                    </div>
+                                    <button type="submit" class="btn btn-filled btn-block">Sign in</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
+            </main>
+        </div>
+
+        <nav class="bottom-nav" aria-label="Main">
+            <div class="bottom-nav-grid">
+                <button class="nav-btn active" data-tab="tab-gallery" onclick="switchTab('tab-gallery', this)">Home</button>
+                <button class="nav-btn" data-tab="tab-notifications" onclick="switchTab('tab-notifications', this)">Alerts</button>
+                <button class="nav-btn" data-tab="tab-upload" onclick="switchTab('tab-upload', this)">Upload</button>
+                <button class="nav-btn" data-tab="tab-friends" onclick="switchTab('tab-friends', this)">Friends</button>
+                <button class="nav-btn" data-tab="tab-profile" onclick="switchTab('tab-profile', this)">Profile</button>
+            </div>
+        </nav>
+    </div>
+
+    <div id="enrollment-overlay" class="enrollment-overlay" aria-hidden="true">
+        <div class="enrollment-panel" role="dialog" aria-modal="true" aria-labelledby="enrollment-title">
+            <div class="section-head" style="margin-bottom: 12px;">
+                <p class="eyebrow">Face setup</p>
+                <h2 class="section-title" id="enrollment-title">Enroll your face</h2>
+                <p class="subtext" id="enrollment-subtitle">Center your face in the frame. This helps tag you automatically in photos.</p>
+            </div>
+            <div id="enrollment-camera-notice" class="enrollment-notice hidden">
+                <strong>Camera needs a secure connection</strong>
+                Browsers block the camera on plain HTTP (for example <code>192.168.x.x</code>). Open tagr via <code>https://</code> or <code>localhost</code>, or upload a clear selfie below.
+            </div>
+            <img id="enrollment-preview" class="enrollment-preview" alt="Enrollment preview">
+            <div class="camera-container" id="enrollment-camera-wrap">
+                <video id="video" autoplay playsinline muted></video>
+                <canvas id="canvas" class="hidden"></canvas>
+                <div class="camera-overlay"><div class="face-oval"></div></div>
+            </div>
+            <div class="btn-row" id="enrollment-camera-actions" style="margin-top: 12px;">
+                <button type="button" class="btn btn-outline" onclick="startCamera()">Start camera</button>
+                <button type="button" class="btn btn-accent" onclick="captureAndEnroll()">Save face</button>
+            </div>
+            <div class="btn-row" style="margin-top: 10px;">
+                <button type="button" id="enrollment-upload-btn" class="btn btn-outline btn-block" onclick="document.getElementById('enrollment-file-input').click()">Upload a selfie</button>
+                <input type="file" id="enrollment-file-input" class="hidden" accept="image/*" capture="user" onchange="handleEnrollmentPhotoSelect(event)">
+            </div>
+            <button type="button" id="enrollment-skip-btn" class="btn btn-outline btn-block hidden" style="margin-top: 10px;" onclick="hideEnrollmentOverlay()">Not now</button>
+        </div>
+    </div>
+
+    <div id="sheet-backdrop" class="sheet-backdrop" onclick="closeSheet()"></div>
+    <div id="upload-sheet" class="sheet" aria-hidden="true">
+        <div class="sheet-inner">
+            <div class="sheet-grabber"></div>
+            <div class="section-head" style="margin-bottom: 10px;">
+                <p class="eyebrow">Upload</p>
+                <h2 class="section-title">Choose a photo</h2>
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn btn-accent btn-block" onclick="closeSheet(); switchTab('tab-upload'); toast('Use camera from Upload tab.')">Take photo</button>
+                <button type="button" class="btn btn-outline btn-block" onclick="closeSheet(); switchTab('tab-upload'); document.getElementById('file-input').click()">Choose library</button>
+            </div>
+            <div class="queue-head">Queue preview</div>
+            <div class="queue-row" style="margin-top: 8px;">
+                <div style="flex: 1;">
+                    <div class="row-title">Uploads process automatically</div>
+                    <div class="row-meta">Dropped files will appear in the Upload queue.</div>
+                </div>
+                <span class="chip" style="background: var(--sage-soft);">Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Saved</div>
+
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+        <div class="lightbox-panel">
+            <div class="lightbox-header">
+                <div class="eyebrow" style="color: var(--muted);">Photo detail</div>
+                <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">×</button>
+            </div>
+            <div class="viewer-container" id="viewer-container">
+                <img src="" class="viewer-image" id="viewer-image" alt="Full size photo">
+            </div>
+            <div class="sidebar">
+                <h3 id="photo-detail-id">Photo</h3>
+                <div class="photo-status-line" id="photo-detail-status">Status: pending</div>
+                <div>
+                    <div class="side-label">Tagged faces</div>
+                    <div id="photo-detail-tags" class="stack-gap" style="margin-top: 8px;"></div>
+                </div>
+                <div>
+                    <div class="side-label">Comments</div>
+                    <div class="comments-list" id="photo-comments-list" style="margin-top: 8px;"></div>
+                    <div class="comment-input-row" style="margin-top: 8px;">
+                        <input type="text" id="new-comment-text" class="input-line" placeholder="Write a comment…">
+                        <button class="btn btn-filled btn-sm" onclick="submitComment()">Post</button>
+                    </div>
+                </div>
+                <button class="btn btn-outline btn-block" onclick="closeLightbox()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        function resolveApiUrl() {
+            const params = new URLSearchParams(location.search);
+            const fromParam = params.get('api');
+            if (fromParam) {
+                const normalized = fromParam.replace(/\/$/, '');
+                localStorage.setItem('tagr_api_url', normalized);
+                return normalized;
+            }
+
+            const stored = localStorage.getItem('tagr_api_url');
+            if (stored) return stored;
+
+            // GitHub Pages has no backend on the same origin -> demo mode.
+            if (location.hostname.includes('github.io')) {
+                return '';
+            }
+
+            // Served by the backend (localhost, tunnel, or prod): use same origin.
+            return '/api/v1';
+        }
+
+        function resolveDemoMode() {
+            const params = new URLSearchParams(location.search);
+            const demoParam = params.get('demo');
+            if (demoParam === '1') {
+                localStorage.setItem('tagr_demo_mode', '1');
+                return true;
+            }
+            if (demoParam === '0') {
+                localStorage.setItem('tagr_demo_mode', '0');
+                return false;
+            }
+            if (params.get('api')) {
+                localStorage.setItem('tagr_demo_mode', '0');
+                return false;
+            }
+            if (location.hostname.includes('github.io')) {
+                return demoParam !== '0';
+            }
+            const stored = localStorage.getItem('tagr_demo_mode');
+            if (stored === '1') return true;
+            if (stored === '0') return false;
+            return !API_URL;
+        }
+
+        const API_URL = resolveApiUrl();
+        const DEMO_MODE = resolveDemoMode();
+        let demoState = null;
+        let cachedFriends = [];
+
+        function isoDaysAgo(days) {
+            return new Date(Date.now() - days * 86400000).toISOString();
+        }
+
+        function buildDemoSeed() {
+            const photos = [
+                {
+                    photo_id: 'demo-photo-1',
+                    url: 'https://picsum.photos/seed/tagr-party/900/700',
+                    uploaded_at: isoDaysAgo(1),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-1', username: 'Alex Kim' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-1a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.18, y: 0.12, width: 0.22, height: 0.34 }, confidence: 0.97, source: 'auto' },
+                        { tag_id: 'demo-tag-1b', user_id: 'demo-friend-1', username: 'Alex Kim', bbox: { x: 0.55, y: 0.15, width: 0.2, height: 0.32 }, confidence: 0.94, source: 'auto' }
+                    ],
+                    comments: [
+                        { comment_id: 'demo-c-1', user_id: 'demo-friend-1', username: 'Alex Kim', text: 'Great shot from the rooftop!', created_at: isoDaysAgo(1) }
+                    ]
+                },
+                {
+                    photo_id: 'demo-photo-2',
+                    url: 'https://picsum.photos/seed/tagr-brunch/900/700',
+                    uploaded_at: isoDaysAgo(3),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-2', username: 'Sam Rivera' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-2a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.35, y: 0.2, width: 0.18, height: 0.28 }, confidence: 0.96, source: 'auto' },
+                        { tag_id: 'demo-tag-2b', user_id: 'demo-friend-2', username: 'Sam Rivera', bbox: { x: 0.62, y: 0.22, width: 0.17, height: 0.27 }, confidence: 0.91, source: 'auto' }
+                    ],
+                    comments: [
+                        { comment_id: 'demo-c-2', user_id: 'demo-friend-2', username: 'Sam Rivera', text: 'Sunday brunch crew', created_at: isoDaysAgo(2) }
+                    ]
+                },
+                {
+                    photo_id: 'demo-photo-3',
+                    url: 'https://picsum.photos/seed/tagr-hike/900/700',
+                    uploaded_at: isoDaysAgo(5),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-3', username: 'Jordan Lee' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-3a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.28, y: 0.18, width: 0.2, height: 0.3 }, confidence: 0.95, source: 'auto' }
+                    ],
+                    comments: []
+                },
+                {
+                    photo_id: 'demo-photo-4',
+                    url: 'https://picsum.photos/seed/tagr-concert/900/700',
+                    uploaded_at: isoDaysAgo(7),
+                    status: 'processed',
+                    tagged_users: [
+                        { user_id: 'demo-user-me', username: '{{me}}' },
+                        { user_id: 'demo-friend-1', username: 'Alex Kim' },
+                        { user_id: 'demo-friend-3', username: 'Jordan Lee' }
+                    ],
+                    tags: [
+                        { tag_id: 'demo-tag-4a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.12, y: 0.25, width: 0.16, height: 0.24 }, confidence: 0.93, source: 'auto' },
+                        { tag_id: 'demo-tag-4b', user_id: 'demo-friend-1', username: 'Alex Kim', bbox: { x: 0.4, y: 0.2, width: 0.15, height: 0.23 }, confidence: 0.9, source: 'auto' },
+                        { tag_id: 'demo-tag-4c', user_id: 'demo-friend-3', username: 'Jordan Lee', bbox: { x: 0.68, y: 0.22, width: 0.14, height: 0.22 }, confidence: 0.88, source: 'auto' }
+                    ],
+                    comments: [
+                        { comment_id: 'demo-c-3', user_id: 'demo-friend-3', username: 'Jordan Lee', text: 'Best night', created_at: isoDaysAgo(6) }
+                    ]
+                },
+                {
+                    photo_id: 'demo-photo-5',
+                    url: 'https://picsum.photos/seed/tagr-office/900/700',
+                    uploaded_at: isoDaysAgo(10),
+                    status: 'processed',
+                    tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                    tags: [
+                        { tag_id: 'demo-tag-5a', user_id: 'demo-user-me', username: '{{me}}', bbox: { x: 0.42, y: 0.16, width: 0.19, height: 0.29 }, confidence: 0.92, source: 'manual' }
+                    ],
+                    comments: []
+                },
+                {
+                    photo_id: 'demo-photo-6',
+                    url: 'https://picsum.photos/seed/tagr-beach/900/700',
+                    uploaded_at: isoDaysAgo(14),
+                    status: 'processing',
+                    tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                    tags: [],
+                    comments: []
+                }
+            ];
+
+            return {
+                friends: [
+                    { user_id: 'demo-friend-1', username: 'Alex Kim' },
+                    { user_id: 'demo-friend-2', username: 'Sam Rivera' },
+                    { user_id: 'demo-friend-3', username: 'Jordan Lee' }
+                ],
+                suggestions: [
+                    { user_id: 'demo-suggest-1', username: 'Priya Patel', mutual_photo_count: 4 },
+                    { user_id: 'demo-suggest-2', username: 'Morgan Chen', mutual_photo_count: 2 }
+                ],
+                notifications: [
+                    { notification_id: 'demo-n-1', type: 'tag', photo_id: 'demo-photo-1', actor_user_id: 'demo-friend-1', actor_username: 'Alex Kim', created_at: isoDaysAgo(1), read: false },
+                    { notification_id: 'demo-n-2', type: 'tag', photo_id: 'demo-photo-2', actor_user_id: 'demo-friend-2', actor_username: 'Sam Rivera', created_at: isoDaysAgo(2), read: false },
+                    { notification_id: 'demo-n-3', type: 'tag', photo_id: 'demo-photo-4', actor_user_id: 'demo-friend-3', actor_username: 'Jordan Lee', created_at: isoDaysAgo(4), read: true }
+                ],
+                photos
+            };
+        }
+
+        function getDemoState() {
+            if (!demoState) demoState = buildDemoSeed();
+            return demoState;
+        }
+
+        function resetDemoState() {
+            demoState = buildDemoSeed();
+        }
+
+        function personalizeDemoValue(value, username) {
+            return value === '{{me}}' ? username : value;
+        }
+
+        function personalizeDemoPhoto(photo, username) {
+            const clone = JSON.parse(JSON.stringify(photo));
+            clone.tagged_users = clone.tagged_users.map(u => ({
+                ...u,
+                username: personalizeDemoValue(u.username, username)
+            }));
+            clone.tags = (clone.tags || []).map(t => ({
+                ...t,
+                username: personalizeDemoValue(t.username, username)
+            }));
+            return clone;
+        }
+
+        function demoGalleryForUser(username) {
+            const state = getDemoState();
+            return {
+                photos: state.photos
+                    .filter(p => p.tagged_users.some(u => u.user_id === 'demo-user-me'))
+                    .map(p => {
+                        const personalized = personalizeDemoPhoto(p, username);
+                        return {
+                            photo_id: personalized.photo_id,
+                            url: personalized.url,
+                            uploaded_by: 'demo-user-me',
+                            uploaded_at: personalized.uploaded_at,
+                            tagged_users: personalized.tagged_users
+                        };
+                    })
+                    .sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at))
+            };
+        }
+
+        function demoPhotoDetail(photoId, username) {
+            const state = getDemoState();
+            const photo = state.photos.find(p => p.photo_id === photoId);
+            if (!photo) return null;
+            const personalized = personalizeDemoPhoto(photo, username);
+            return {
+                photo_id: personalized.photo_id,
+                url: personalized.url,
+                owner_id: 'demo-user-me',
+                status: personalized.status,
+                tags: personalized.tags,
+                comments: personalized.comments
+            };
+        }
+
+        function demoDelay() {
+            return new Promise(resolve => setTimeout(resolve, 180 + Math.random() * 320));
+        }
+
+        function mockResponse(body, ok = true, status = 200) {
+            return {
+                ok,
+                status,
+                json: async () => body
+            };
+        }
+
+        async function mockFetch(path, options = {}) {
+            await demoDelay();
+            const method = (options.method || 'GET').toUpperCase();
+            const state = getDemoState();
+            const username = currentUsername || 'You';
+            const parts = path.replace(/^\//, '').split('/');
+
+            if (parts[0] === 'auth' && parts[1] === 'register' && method === 'POST') {
+                return mockResponse({ user_id: 'demo-user-me' });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'verify-otp' && method === 'POST') {
+                return mockResponse({ token: 'demo-token-' + Date.now() });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'request-login-otp' && method === 'POST') {
+                return mockResponse({ sent: true });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'login' && method === 'POST') {
+                return mockResponse({ token: 'demo-token-' + Date.now() });
+            }
+            if (parts[0] === 'auth' && parts[1] === 'enroll-face' && method === 'POST') {
+                return mockResponse({ enrolled: true });
+            }
+
+            if (parts[0] === 'photos' && parts[1] === 'upload' && method === 'POST') {
+                const files = [];
+                if (options.body instanceof FormData) {
+                    for (const [key, value] of options.body.entries()) {
+                        if (key === 'images' && value instanceof File) files.push(value);
+                    }
+                }
+                const count = Math.max(files.length, 1);
+                for (let i = 0; i < count; i++) {
+                    const file = files[i];
+                    const photoId = 'demo-upload-' + Date.now() + '-' + i;
+                    const url = file ? URL.createObjectURL(file) : `https://picsum.photos/seed/${photoId}/900/700`;
+                    state.photos.unshift({
+                        photo_id: photoId,
+                        url,
+                        uploaded_at: new Date().toISOString(),
+                        status: 'processing',
+                        tagged_users: [{ user_id: 'demo-user-me', username: '{{me}}' }],
+                        tags: [],
+                        comments: []
+                    });
+                    setTimeout(() => {
+                        const photo = state.photos.find(p => p.photo_id === photoId);
+                        if (!photo) return;
+                        photo.status = 'processed';
+                        photo.tags = [{
+                            tag_id: photoId + '-tag',
+                            user_id: 'demo-user-me',
+                            username: '{{me}}',
+                            bbox: { x: 0.3, y: 0.2, width: 0.2, height: 0.3 },
+                            confidence: 0.95,
+                            source: 'auto'
+                        }];
+                    }, 2500);
+                }
+                return mockResponse({ queued: count, photo_ids: [] });
+            }
+
+            if (parts[0] === 'users' && parts[2] === 'gallery' && method === 'GET') {
+                return mockResponse(demoGalleryForUser(username));
+            }
+
+            if (parts[0] === 'photos' && parts.length === 2 && method === 'GET') {
+                const detail = demoPhotoDetail(parts[1], username);
+                if (!detail) return mockResponse({ detail: 'Photo not found' }, false, 404);
+                return mockResponse(detail);
+            }
+
+            if (parts[0] === 'photos' && parts[2] === 'tags' && method === 'PATCH') {
+                const photoId = parts[1];
+                const tagId = parts[3];
+                const photo = state.photos.find(p => p.photo_id === photoId);
+                if (photo) {
+                    photo.tags = photo.tags.filter(t => t.tag_id !== tagId);
+                    photo.tagged_users = photo.tagged_users.filter(u =>
+                        photo.tags.some(t => t.user_id === u.user_id)
+                    );
+                }
+                return mockResponse({ updated: true });
+            }
+
+            if (parts[0] === 'photos' && parts[2] === 'comments' && method === 'POST') {
+                const photoId = parts[1];
+                const photo = state.photos.find(p => p.photo_id === photoId);
+                let text = '';
+                try {
+                    text = JSON.parse(options.body).text;
+                } catch (_) {}
+                if (photo && text) {
+                    photo.comments.push({
+                        comment_id: 'demo-c-' + Date.now(),
+                        user_id: 'demo-user-me',
+                        username,
+                        text,
+                        created_at: new Date().toISOString()
+                    });
+                }
+                return mockResponse({ comment_id: 'demo-c-' + Date.now(), created: true });
+            }
+
+            if (parts[0] === 'notifications' && method === 'GET') {
+                return mockResponse({ notifications: state.notifications });
+            }
+
+            if (parts[0] === 'friends' && parts[1] === 'suggestions' && method === 'GET') {
+                return mockResponse({ suggestions: state.suggestions });
+            }
+
+            if (parts[0] === 'friends' && parts[1] === 'request' && method === 'POST') {
+                let targetUserId = '';
+                try {
+                    targetUserId = JSON.parse(options.body).target_user_id;
+                } catch (_) {}
+                const idx = state.suggestions.findIndex(s => s.user_id === targetUserId);
+                if (idx >= 0) {
+                    const [added] = state.suggestions.splice(idx, 1);
+                    state.friends.push({ user_id: added.user_id, username: added.username });
+                }
+                return mockResponse({ request_id: 'demo-fr-' + Date.now(), created: true });
+            }
+
+            if (parts[0] === 'friends' && parts.length === 1 && method === 'GET') {
+                return mockResponse({ friends: state.friends });
+            }
+
+            return mockResponse({ detail: 'Demo route not implemented: ' + path }, false, 404);
+        }
+
+        async function apiFetch(path, options = {}) {
+            if (DEMO_MODE) return mockFetch(path, options);
+            return fetch(`${API_URL}${path}`, options);
+        }
+
+        function showModeBanner() {
+            const banner = document.getElementById('api-banner');
+            const badge = document.getElementById('demo-badge');
+            if (DEMO_MODE) {
+                badge.classList.remove('hidden');
+                banner.style.display = 'block';
+                banner.classList.add('demo-banner');
+                banner.innerHTML = `
+                    <strong>Demo mode</strong> — filler data only, no backend calls.
+                    Add <code>?demo=0&api=http://localhost:8787/api/v1</code> to use the real API.
+                `;
+                return;
+            }
+            if (!API_URL) {
+                banner.style.display = 'block';
+                banner.innerHTML = `
+                    Backend not configured. Point this UI at your API with
+                    <code>?api=https://your-host/api/v1</code>
+                    or use <code>?demo=1</code> for filler data.
+                `;
+            }
+        }
+
+        function requireApi() {
+            if (DEMO_MODE || API_URL) return true;
+            alert('Set your API URL first, e.g. ?api=http://localhost:8787/api/v1 — or use ?demo=1');
+            return false;
+        }
+
+        function ensureDemoUserFromLogin(mobileValue) {
+            if (!currentUserId) {
+                currentUserId = 'demo-user-me';
+                localStorage.setItem('user_id', currentUserId);
+            }
+            if (!currentUsername) {
+                currentUsername = mobileValue.trim() || 'You';
+                localStorage.setItem('username', currentUsername);
+            }
+        }
+
+        function toast(message, duration = 1800) {
+            const t = document.getElementById('toast');
+            if (!t) return;
+            t.textContent = message;
+            t.classList.add('show');
+            clearTimeout(window.__toastTimer);
+            window.__toastTimer = setTimeout(() => {
+                t.classList.remove('show');
+            }, duration);
+        }
+
+        function openSheet(sheetId = 'upload-sheet') {
+            const backdrop = document.getElementById('sheet-backdrop');
+            const sheet = document.getElementById(sheetId);
+            if (!backdrop || !sheet) return;
+            backdrop.classList.add('show');
+            sheet.classList.add('show');
+            sheet.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeSheet() {
+            const backdrop = document.getElementById('sheet-backdrop');
+            const sheet = document.getElementById('upload-sheet');
+            if (backdrop) backdrop.classList.remove('show');
+            if (sheet) {
+                sheet.classList.remove('show');
+                sheet.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        function finishDemoAuth(message) {
+            updateAuthUI();
+            toast(message);
+            document.getElementById('login-section').classList.add('hidden');
+            loadGallery();
+            loadNotifications();
+            loadFriendSuggestions();
+            loadFriendsList();
+            maybeShowOnboarding();
+        }
+
+        let currentToken = localStorage.getItem('token') || '';
+        let currentUserId = localStorage.getItem('user_id') || '';
+        let currentUsername = localStorage.getItem('username') || '';
+        let activePhotoId = null;
+        let enrollmentDismissedForSession = false;
+
+        function faceEnrolledKey() {
+            return currentUserId ? `tagr_face_enrolled_${currentUserId}` : 'tagr_face_enrolled';
+        }
+
+        function isFaceEnrolled() {
+            return localStorage.getItem(faceEnrolledKey()) === '1';
+        }
+
+        function setFaceEnrolled(enrolled) {
+            if (enrolled) {
+                localStorage.setItem(faceEnrolledKey(), '1');
+            } else {
+                localStorage.removeItem(faceEnrolledKey());
+            }
+            updateEnrollmentUI();
+        }
+
+        function showEnrollmentOverlay(allowDismiss = true) {
+            const overlay = document.getElementById('enrollment-overlay');
+            const skipBtn = document.getElementById('enrollment-skip-btn');
+            const subtitle = document.getElementById('enrollment-subtitle');
+            if (!overlay) return;
+            overlay.classList.add('show');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            if (skipBtn) skipBtn.classList.toggle('hidden', !allowDismiss);
+            if (subtitle) {
+                subtitle.textContent = allowDismiss
+                    ? 'Update your face photo for better automatic tagging.'
+                    : 'Center your face in the frame. This helps tag you automatically in photos.';
+            }
+            resetEnrollmentPreview();
+            updateEnrollmentCameraUI();
+        }
+
+        function resetEnrollmentPreview() {
+            const preview = document.getElementById('enrollment-preview');
+            const fileInput = document.getElementById('enrollment-file-input');
+            if (preview) {
+                preview.classList.remove('show');
+                preview.removeAttribute('src');
+            }
+            if (fileInput) fileInput.value = '';
+        }
+
+        function canUseCamera() {
+            return !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
+        }
+
+        function isLocalhostHost() {
+            return ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+        }
+
+        function updateEnrollmentCameraUI() {
+            const notice = document.getElementById('enrollment-camera-notice');
+            const cameraActions = document.getElementById('enrollment-camera-actions');
+            const cameraWrap = document.getElementById('enrollment-camera-wrap');
+            const cameraAvailable = window.isSecureContext && canUseCamera();
+
+            if (notice) notice.classList.toggle('hidden', cameraAvailable);
+            if (cameraActions) cameraActions.classList.toggle('hidden', !cameraAvailable);
+            if (cameraWrap) cameraWrap.classList.toggle('hidden', !cameraAvailable);
+
+            if (cameraAvailable) {
+                startCamera().catch(() => {});
+            } else if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        function hideEnrollmentOverlay() {
+            const overlay = document.getElementById('enrollment-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('show');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            enrollmentDismissedForSession = true;
+            resetEnrollmentPreview();
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        function maybeShowOnboarding() {
+            if (!currentToken || isFaceEnrolled() || enrollmentDismissedForSession) {
+                switchTab('tab-gallery');
+                return;
+            }
+            switchTab('tab-profile');
+            showEnrollmentOverlay(false);
+        }
+
+        function updateEnrollmentUI() {
+            const enrolled = isFaceEnrolled();
+            const signedIn = !!currentToken;
+            const badge = document.getElementById('face-enrolled-badge');
+            const recaptureBtn = document.getElementById('btn-recapture-face');
+            const enrollBtn = document.getElementById('btn-enroll-face');
+            const statusLine = document.getElementById('profile-status-line');
+
+            if (badge) badge.classList.toggle('hidden', !enrolled || !signedIn);
+            if (recaptureBtn) recaptureBtn.classList.toggle('hidden', !signedIn || !enrolled);
+            if (enrollBtn) enrollBtn.classList.toggle('hidden', !signedIn || enrolled);
+            if (statusLine) {
+                statusLine.textContent = enrolled
+                    ? 'Face enrolled — automatic tagging is on.'
+                    : 'Complete face setup to enable automatic tagging.';
+            }
+
+            if (signedIn && !enrolled && !enrollmentDismissedForSession) {
+                const overlay = document.getElementById('enrollment-overlay');
+                if (overlay && !overlay.classList.contains('show')) {
+                    showEnrollmentOverlay(false);
+                }
+            } else if (enrolled) {
+                hideEnrollmentOverlay();
+            }
+        }
+
+        function switchAuthPane(which) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.auth === which));
+            document.getElementById('auth-pane-register').classList.toggle('active', which === 'register');
+            document.getElementById('auth-pane-login').classList.toggle('active', which === 'login');
+        }
+
+        function switchTab(tabId, btnEl) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+            const tab = document.getElementById(tabId);
+            if (!tab) return;
+            tab.classList.add('active');
+
+            document.querySelectorAll(`.nav-btn[data-tab="${tabId}"]`).forEach(btn => btn.classList.add('active'));
+
+            if (tabId === 'tab-gallery') {
+                loadGallery();
+            } else if (tabId === 'tab-notifications') {
+                loadNotifications();
+            } else if (tabId === 'tab-friends') {
+                loadFriendSuggestions();
+                loadFriendsList();
+            } else if (tabId === 'tab-profile') {
+                updateAuthUI();
+                updateEnrollmentUI();
+            }
+
+            closeSheet();
+        }
+
+        function renderStoryRings() {
+            const strip = document.getElementById('story-rings');
+            if (!strip) return;
+            strip.innerHTML = '';
+
+            const me = currentUsername || 'You';
+            const meInitial = me.charAt(0).toUpperCase();
+            const selfRing = document.createElement('div');
+            selfRing.className = 'story-ring active';
+            selfRing.innerHTML = `<div class="inner">${meInitial}</div><span>You</span>`;
+            strip.appendChild(selfRing);
+
+            const pool = cachedFriends.length
+                ? cachedFriends.map(f => f.username)
+                : ['Friends', 'Nearby', 'Crew'];
+
+            pool.slice(0, 8).forEach(name => {
+                const ring = document.createElement('div');
+                ring.className = 'story-ring';
+                ring.innerHTML = `<div class="inner">${(name || '?').charAt(0).toUpperCase()}</div><span>${name}</span>`;
+                strip.appendChild(ring);
+            });
+        }
+
+        function updateAuthUI() {
+            const statusDiv = document.getElementById('header-auth-status');
+            const avatar = document.getElementById('header-avatar');
+            const profileName = document.getElementById('profile-name');
+            const profileAvatar = document.getElementById('profile-avatar');
+            const signedInSection = document.getElementById('profile-signed-in');
+            const signedOutSection = document.getElementById('profile-signed-out');
+            const greetingName = document.getElementById('gallery-greeting-name');
+
+            if (currentToken) {
+                const initial = (currentUsername || '?').charAt(0).toUpperCase();
+                statusDiv.innerHTML = `Signed in as <strong>${currentUsername || 'you'}</strong><br><a href="#" onclick="logout(); return false;">Sign out</a>`;
+                avatar.textContent = initial;
+                avatar.classList.remove('hidden');
+                signedInSection.classList.remove('hidden');
+                signedOutSection.classList.add('hidden');
+                profileName.textContent = currentUsername || 'you';
+                profileAvatar.textContent = initial;
+                greetingName.textContent = currentUsername || 'there';
+            } else {
+                statusDiv.textContent = 'Not signed in';
+                avatar.classList.add('hidden');
+                signedInSection.classList.add('hidden');
+                signedOutSection.classList.remove('hidden');
+                profileName.textContent = 'You';
+                profileAvatar.textContent = '?';
+                greetingName.textContent = 'there';
+                hideEnrollmentOverlay();
+            }
+
+            renderStoryRings();
+            updateEnrollmentUI();
+        }
+
+        function logout() {
+            const demoFlag = localStorage.getItem('tagr_demo_mode');
+            const apiUrl = localStorage.getItem('tagr_api_url');
+            localStorage.clear();
+            if (demoFlag) localStorage.setItem('tagr_demo_mode', demoFlag);
+            if (apiUrl) localStorage.setItem('tagr_api_url', apiUrl);
+            currentToken = '';
+            currentUserId = '';
+            currentUsername = '';
+            cachedFriends = [];
+            resetDemoState();
+            updateAuthUI();
+            location.reload();
+        }
+
+        let stream = null;
+
+        async function startCamera() {
+            if (!canUseCamera()) {
+                updateEnrollmentCameraUI();
+                toast('Camera unavailable here. Upload a selfie instead.');
+                return;
+            }
+            try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                document.getElementById('video').srcObject = stream;
+            } catch (err) {
+                toast('Could not start camera. Try uploading a selfie instead.');
+            }
+        }
+
+        async function submitEnrollmentBlob(blob) {
+            if (!requireApi()) return false;
+            if (!currentUserId) {
+                alert('Please register or sign in first.');
+                return false;
+            }
+            if (DEMO_MODE) {
+                const response = await apiFetch('/auth/enroll-face', { method: 'POST' });
+                const data = await response.json();
+                if (data.enrolled) {
+                    setFaceEnrolled(true);
+                    hideEnrollmentOverlay();
+                    toast('Face enrolled (demo).');
+                    switchTab('tab-gallery');
+                    return true;
+                }
+                toast('Enrollment failed.');
+                return false;
+            }
+
+            const formData = new FormData();
+            formData.append('user_id', currentUserId);
+            formData.append('image', blob, 'enrollment.jpg');
+
+            try {
+                const response = await apiFetch('/auth/enroll-face', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok && data.enrolled) {
+                    setFaceEnrolled(true);
+                    hideEnrollmentOverlay();
+                    toast('Face enrolled successfully.');
+                    switchTab('tab-gallery');
+                    return true;
+                }
+                alert('Enrollment failed: ' + (data.detail || data.reason || 'please try again with a clear, well-lit photo of your face.'));
+            } catch (err) {
+                alert('Error submitting enrollment: ' + err.message);
+            }
+            return false;
+        }
+
+        function handleEnrollmentPhotoSelect(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('enrollment-preview');
+            if (preview) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.add('show');
+            }
+            submitEnrollmentBlob(file);
+        }
+
+        async function captureAndEnroll() {
+            if (!requireApi()) return;
+            if (!currentUserId) {
+                alert('Please register or sign in first.');
+                return;
+            }
+            if (DEMO_MODE) {
+                await submitEnrollmentBlob(new Blob(['demo'], { type: 'image/jpeg' }));
+                return;
+            }
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+
+            if (!video.videoWidth || !video.videoHeight) {
+                toast('Start the camera first, or upload a selfie.');
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                if (!blob) {
+                    toast('Could not capture a frame. Try uploading a selfie instead.');
+                    return;
+                }
+                await submitEnrollmentBlob(blob);
+            }, 'image/jpeg');
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            if (!requireApi()) return;
+            const username = document.getElementById('reg-username').value;
+            const mobile = document.getElementById('reg-mobile').value;
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('mobile_number', mobile);
+
+            const response = await apiFetch(`/auth/register`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                currentUserId = data.user_id;
+                localStorage.setItem('user_id', currentUserId);
+                localStorage.setItem('username', username);
+                currentUsername = username;
+                document.getElementById('otp-form').classList.remove('hidden');
+                updateAuthUI();
+                toast(DEMO_MODE ? 'Demo: enter any code to continue.' : 'Code generated (123456). Complete verification below.');
+            } else {
+                alert('Registration failed: ' + data.detail);
+            }
+        }
+
+        async function handleVerifyOTP(e) {
+            e.preventDefault();
+            if (!requireApi()) return;
+            const otp = document.getElementById('otp-code').value;
+            const mobile = document.getElementById('reg-mobile').value;
+
+            const formData = new FormData();
+            formData.append('mobile_number', mobile);
+            formData.append('otp', otp);
+
+            const response = await apiFetch(`/auth/verify-otp`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                currentToken = data.token;
+                localStorage.setItem('token', currentToken);
+                if (DEMO_MODE) {
+                    finishDemoAuth('Welcome. Demo gallery and social data are ready.');
+                } else {
+                    updateAuthUI();
+                    toast('You are signed in.');
+                    maybeShowOnboarding();
+                }
+            } else {
+                alert('Verification failed: ' + data.detail);
+            }
+        }
+
+        async function handleLoginRequest(e) {
+            e.preventDefault();
+            if (!requireApi()) return;
+            const mobile = document.getElementById('login-mobile').value;
+            const formData = new FormData();
+            formData.append('mobile_number', mobile);
+            const response = await apiFetch(`/auth/request-login-otp`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById('login-request-form').classList.add('hidden');
+                document.getElementById('login-otp-form').classList.remove('hidden');
+                toast(DEMO_MODE ? 'Demo: enter any code to sign in.' : 'Code sent (123456).');
+            } else {
+                alert('Request failed: ' + data.detail);
+            }
+        }
+
+        async function handleLoginOTP(e) {
+            e.preventDefault();
+            if (!requireApi()) return;
+            const mobile = document.getElementById('login-mobile').value;
+            const otp = document.getElementById('login-otp-code').value;
+            const formData = new FormData();
+            formData.append('mobile_number', mobile);
+            formData.append('otp', otp);
+            const response = await apiFetch(`/auth/login`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                currentToken = data.token;
+                localStorage.setItem('token', currentToken);
+                if (data.user_id) {
+                    currentUserId = data.user_id;
+                    localStorage.setItem('user_id', currentUserId);
+                }
+                ensureDemoUserFromLogin(document.getElementById('login-mobile').value);
+                if (DEMO_MODE) {
+                    finishDemoAuth('Signed in with demo data.');
+                } else {
+                    updateAuthUI();
+                    toast('Signed in successfully.');
+                    document.getElementById('login-section').classList.add('hidden');
+                    maybeShowOnboarding();
+                }
+            } else {
+                alert('Sign in failed: ' + data.detail);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('drop-zone').classList.remove('dragover');
+            uploadFiles(e.dataTransfer.files);
+        }
+
+        function handleFileSelect(e) {
+            uploadFiles(e.target.files);
+        }
+
+        async function pollUploadStatus(ids, item, attempt = 0) {
+            if (!ids || ids.length === 0) {
+                setTimeout(() => loadGallery(), 1500);
+                return;
+            }
+            const maxAttempts = 20;
+            try {
+                const statuses = await Promise.all(ids.map(async (id) => {
+                    try {
+                        const r = await apiFetch(`/photos/${id}/status`, {
+                            headers: { 'Authorization': `Bearer ${currentToken}` }
+                        });
+                        const d = await r.json();
+                        return d.status || 'pending';
+                    } catch (_) { return 'pending'; }
+                }));
+
+                const done = statuses.every(s => s === 'processed' || s === 'failed');
+                if (done || attempt >= maxAttempts) {
+                    const anyFailed = statuses.some(s => s === 'failed');
+                    item.innerHTML = `
+                        <div style="flex:1;">
+                            <div class="row-title">${ids.length} photo${ids.length > 1 ? 's' : ''} ${anyFailed ? 'processed with issues' : 'processed'}</div>
+                            <div class="row-meta">${anyFailed ? 'Some images could not be read.' : 'Faces matching your enrolled photo are tagged and appear in your gallery.'}</div>
+                        </div>
+                        <span class="status-badge ${anyFailed ? 'status-failed' : 'status-processed'}">Done</span>
+                    `;
+                    loadGallery();
+                    return;
+                }
+            } catch (_) { /* keep polling */ }
+            setTimeout(() => pollUploadStatus(ids, item, attempt + 1), 1500);
+        }
+
+        async function uploadFiles(files) {
+            if (!currentToken) {
+                toast('Please sign in before uploading.');
+                switchTab('tab-profile');
+                return;
+            }
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('images', files[i]);
+            }
+
+            const queueList = document.getElementById('upload-queue-list');
+            const item = document.createElement('div');
+            item.className = 'queue-row';
+            item.innerHTML = `
+                <div style="flex:1;">
+                    <div class="row-title">Uploading ${files.length} image${files.length > 1 ? 's' : ''}</div>
+                </div>
+                <span class="status-badge status-processing">Uploading</span>
+            `;
+            queueList.prepend(item);
+
+            try {
+                const response = await apiFetch(`/photos/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${currentToken}` },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    const ids = data.upload_ids || data.photo_ids || [];
+                    item.innerHTML = `
+                        <div style="flex:1;">
+                            <div class="row-title">${files.length} image${files.length > 1 ? 's' : ''} uploaded</div>
+                            <div class="row-meta">Detecting faces…</div>
+                        </div>
+                        <span class="status-badge status-processing">Processing</span>
+                    `;
+                    pollUploadStatus(ids, item);
+                    toast('Upload queued.');
+                } else {
+                    item.innerHTML = `
+                        <div style="flex:1;">
+                            <div class="row-title">Upload failed</div>
+                            <div class="row-meta">${data.detail}</div>
+                        </div>
+                        <span class="status-badge status-failed">Error</span>
+                    `;
+                }
+            } catch (err) {
+                item.innerHTML = `
+                    <div style="flex:1;">
+                        <div class="row-title">Upload error</div>
+                        <div class="row-meta">${err.message}</div>
+                    </div>
+                    <span class="status-badge status-failed">Error</span>
+                `;
+            }
+        }
+
+        async function loadGallery() {
+            const title = document.getElementById('gallery-username-title');
+            const grid = document.getElementById('photo-grid');
+
+            if (!currentUserId) {
+                title.textContent = 'Sign in to view your personalized gallery.';
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        Sign in from Profile, then upload photos to start auto-tagging.
+                    </div>
+                `;
+                renderStoryRings();
+                return;
+            }
+
+            title.textContent = `Photos where ${currentUsername} appears.`;
+            const response = await apiFetch(`/users/${currentUserId}/gallery`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const data = await response.json();
+            grid.innerHTML = '';
+
+            if (data.photos && data.photos.length > 0) {
+                const photos = data.photos;
+                const featured = photos[0];
+                const rest = photos.slice(1);
+
+                const featuredCard = document.createElement('div');
+                featuredCard.className = 'photo-card featured-card';
+                featuredCard.onclick = () => openLightbox(featured.photo_id);
+                const featuredTags = featured.tagged_users.map(u => u.username).join(', ') || 'No tags yet';
+                featuredCard.innerHTML = `
+                    <div class="photo-head">
+                        <div>
+                            <div class="eyebrow">Featured</div>
+                            <div class="section-title" style="margin-top:6px; font-size:24px;">Latest capture</div>
+                        </div>
+                        <span class="chip">${featured.tagged_users.length || 0} tagged</span>
+                    </div>
+                    <div class="photo-body"><img src="${featured.url}" alt="Featured photo" loading="lazy"></div>
+                    <div class="photo-meta">
+                        <span>${featuredTags}</span>
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); openLightbox('${featured.photo_id}')">Open</button>
+                    </div>
+                `;
+                grid.appendChild(featuredCard);
+
+                if (rest.length) {
+                    const thumbGrid = document.createElement('div');
+                    thumbGrid.className = 'thumb-grid';
+                    rest.forEach(p => {
+                        const card = document.createElement('div');
+                        card.className = 'photo-card thumb';
+                        card.onclick = () => openLightbox(p.photo_id);
+                        const chipLabel = (p.tagged_users && p.tagged_users.length)
+                            ? `${p.tagged_users.length} tagged`
+                            : 'No tags';
+                        card.innerHTML = `
+                            <img src="${p.url}" alt="Gallery photo" loading="lazy">
+                            <span class="chip">${chipLabel}</span>
+                        `;
+                        thumbGrid.appendChild(card);
+                    });
+                    grid.appendChild(thumbGrid);
+                }
+            } else {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        No photos yet. Upload a few shots with your face and we'll start finding you.
+                    </div>
+                `;
+            }
+        }
+
+        async function openLightbox(photoId) {
+            activePhotoId = photoId;
+            document.getElementById('lightbox').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            const res = await apiFetch(`/photos/${photoId}`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const photo = await res.json();
+
+            document.getElementById('viewer-image').src = photo.url;
+            document.getElementById('photo-detail-id').textContent = `Photo ${photoId.substring(0, 8)}…`;
+            document.getElementById('photo-detail-status').textContent = `Status: ${photo.status}`;
+
+            renderComments(photo.comments || []);
+
+            const img = document.getElementById('viewer-image');
+            img.onload = () => drawFaceOverlays(photo.tags || []);
+            if (img.complete) drawFaceOverlays(photo.tags || []);
+        }
+
+        function drawFaceOverlays(tags) {
+            const container = document.getElementById('viewer-container');
+            container.querySelectorAll('.face-overlay-box').forEach(el => el.remove());
+
+            const img = document.getElementById('viewer-image');
+            const rect = img.getBoundingClientRect();
+            const detailTagsDiv = document.getElementById('photo-detail-tags');
+            detailTagsDiv.innerHTML = '';
+
+            (tags || []).forEach(tag => {
+                const box = document.createElement('div');
+                box.className = 'face-overlay-box';
+
+                const x = tag.bbox.x * rect.width;
+                const y = tag.bbox.y * rect.height;
+                const width = tag.bbox.width * rect.width;
+                const height = tag.bbox.height * rect.height;
+
+                box.style.left = `${img.offsetLeft + x}px`;
+                box.style.top = `${img.offsetTop + y}px`;
+                box.style.width = `${width}px`;
+                box.style.height = `${height}px`;
+                box.innerHTML = `<span>${tag.username}</span>`;
+                container.appendChild(box);
+
+                const tagItem = document.createElement('div');
+                tagItem.className = 'friend-row';
+                tagItem.innerHTML = `
+                    <div class="friend-avatar">${tag.username.charAt(0).toUpperCase()}</div>
+                    <div class="friend-info">
+                        <div class="row-title">${tag.username}</div>
+                        <div class="row-meta">${tag.source}</div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" onclick="removeTag('${tag.tag_id}')">Remove</button>
+                `;
+                detailTagsDiv.appendChild(tagItem);
+            });
+        }
+
+        async function removeTag(tagId) {
+            if (!confirm('Remove this tag?')) return;
+            const response = await apiFetch(`/photos/${activePhotoId}/tags/${tagId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify({ action: 'remove' })
+            });
+            if (response.ok) {
+                openLightbox(activePhotoId);
+                loadGallery();
+            }
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function renderComments(comments) {
+            const list = document.getElementById('photo-comments-list');
+            list.innerHTML = '';
+            if (!comments.length) {
+                list.innerHTML = '<div class="row-meta">No comments yet.</div>';
+                return;
+            }
+            comments.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'comment-item';
+                item.innerHTML = `<span class="comment-author">${c.username}</span> ${c.text}`;
+                list.appendChild(item);
+            });
+        }
+
+        async function submitComment() {
+            const textInput = document.getElementById('new-comment-text');
+            const commentVal = textInput.value.trim();
+            if (!commentVal) return;
+
+            const response = await apiFetch(`/photos/${activePhotoId}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify({ text: commentVal })
+            });
+
+            if (response.ok) {
+                textInput.value = '';
+                openLightbox(activePhotoId);
+            }
+        }
+
+        async function loadNotifications() {
+            const list = document.getElementById('notifications-list');
+            if (!currentToken) {
+                list.innerHTML = '<div class="empty-state">Sign in to see notifications.</div>';
+                return;
+            }
+            const response = await apiFetch(`/notifications`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const data = await response.json();
+            list.innerHTML = '';
+
+            if (data.notifications && data.notifications.length > 0) {
+                data.notifications.forEach(n => {
+                    const item = document.createElement('div');
+                    item.className = 'notif-row';
+                    const unread = n.read === false || n.read === undefined;
+                    item.innerHTML = `
+                        <div class="notif-thumb"></div>
+                        <div class="notif-body">
+                            <div class="notif-text"><strong>${n.actor_username || 'Someone'}</strong> tagged you in a photo</div>
+                            <div class="notif-time">${new Date(n.created_at).toLocaleString()}</div>
+                        </div>
+                        ${unread ? '<div class="notif-unread"></div>' : ''}
+                        <button class="btn btn-outline btn-sm" onclick="openLightbox('${n.photo_id}')">View</button>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = '<div class="empty-state">No new notifications.</div>';
+            }
+        }
+
+        async function loadFriendSuggestions() {
+            const list = document.getElementById('friend-suggestions-list');
+            if (!currentToken) {
+                list.innerHTML = '<div class="row-meta">Sign in to see suggestions.</div>';
+                return;
+            }
+            const response = await apiFetch(`/friends/suggestions`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const data = await response.json();
+            list.innerHTML = '';
+
+            if (data.suggestions && data.suggestions.length > 0) {
+                data.suggestions.forEach(s => {
+                    const item = document.createElement('div');
+                    item.className = 'friend-row';
+                    item.innerHTML = `
+                        <div class="friend-avatar">${s.username.charAt(0).toUpperCase()}</div>
+                        <div class="friend-info">
+                            <div class="row-title">${s.username}</div>
+                            <div class="row-meta">Co-appeared in ${s.mutual_photo_count} photos</div>
+                        </div>
+                        <button class="btn btn-filled btn-sm" onclick="sendFriendRequest('${s.user_id}')">Add</button>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = '<div class="row-meta">No suggestions yet. Co-appear with others in photos to get matches.</div>';
+            }
+        }
+
+        async function sendFriendRequest(targetUserId) {
+            const response = await apiFetch(`/friends/request`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                },
+                body: JSON.stringify({ target_user_id: targetUserId })
+            });
+            if (response.ok) {
+                toast('Friend request sent.');
+                loadFriendSuggestions();
+                loadFriendsList();
+            }
+        }
+
+        async function loadFriendsList() {
+            const list = document.getElementById('friends-list');
+            if (!currentToken) {
+                list.innerHTML = '<div class="row-meta">Sign in to see friends.</div>';
+                cachedFriends = [];
+                renderStoryRings();
+                return;
+            }
+            const response = await apiFetch(`/friends`, {
+                headers: { 'Authorization': `Bearer ${currentToken}` }
+            });
+            const data = await response.json();
+            list.innerHTML = '';
+            cachedFriends = data.friends || [];
+
+            if (data.friends && data.friends.length > 0) {
+                data.friends.forEach(f => {
+                    const item = document.createElement('div');
+                    item.className = 'friend-row';
+                    item.innerHTML = `
+                        <div class="friend-avatar">${f.username.charAt(0).toUpperCase()}</div>
+                        <div class="friend-info">
+                            <div class="row-title">${f.username}</div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = '<div class="row-meta">No friends added yet.</div>';
+            }
+
+            renderStoryRings();
+        }
+
+        document.getElementById('lightbox').addEventListener('click', (e) => {
+            if (e.target.id === 'lightbox') closeLightbox();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeLightbox();
+                closeSheet();
+                const overlay = document.getElementById('enrollment-overlay');
+                if (overlay && overlay.classList.contains('show') && isFaceEnrolled()) {
+                    hideEnrollmentOverlay();
+                }
+            }
+        });
+
+        document.getElementById('enrollment-overlay').addEventListener('click', (e) => {
+            if (e.target.id === 'enrollment-overlay' && isFaceEnrolled()) {
+                hideEnrollmentOverlay();
+            }
+        });
+
+        updateAuthUI();
+        showModeBanner();
+        if (currentToken) {
+            switchTab('tab-gallery');
+            loadNotifications();
+            loadFriendSuggestions();
+            loadFriendsList();
+            if (!isFaceEnrolled()) {
+                maybeShowOnboarding();
+            }
+        } else {
+            switchTab('tab-gallery');
+        }
+
+    </script>
+</body>
+</html>

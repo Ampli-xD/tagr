@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, text, and_, or_, delete
 
 from .database import get_db
-from .models import User, Photo, PhotoTag, Comment, Notification, FriendRequest, Friendship, FaceEmbedding
+from .models import User, Photo, PhotoTag, Comment, Notification, FriendRequest, Friendship, FaceEmbedding, UnknownFace
 from .storage import get_image_url
 from .auth import get_current_user_id
+from .profile_utils import profile_photo_url
 
 router = APIRouter(tags=["Social, Gallery & Notifications"])
 
@@ -84,9 +85,14 @@ async def get_user_gallery(
     photos_list = []
     for p in photos:
         # Get all tags for each photo
-        tags_stmt = select(PhotoTag.user_id, User.username).join(User, PhotoTag.user_id == User.id).where(PhotoTag.photo_id == p.id)
+        tags_stmt = select(PhotoTag.user_id, User.username, User.display_name, User.profile_photo_key).join(User, PhotoTag.user_id == User.id).where(PhotoTag.photo_id == p.id)
         tags_res = db.execute(tags_stmt).all()
-        tagged_users = [{"user_id": str(t[0]), "username": t[1]} for t in tags_res]
+        tagged_users = [{
+            "user_id": str(t[0]),
+            "username": t[1],
+            "display_name": t[2] or t[1],
+            "profile_photo_url": get_image_url(t[3], internal=False) if t[3] else None,
+        } for t in tags_res]
         
         photos_list.append({
             "photo_id": str(p.id),
@@ -109,24 +115,39 @@ async def get_photo_details(
         raise HTTPException(status_code=404, detail="Photo not found")
         
     # Get tags
-    tags_stmt = select(PhotoTag, User.username).join(User, PhotoTag.user_id == User.id).where(PhotoTag.photo_id == photo_id)
+    tags_stmt = select(PhotoTag, User.username, User.display_name, User.profile_photo_key).join(User, PhotoTag.user_id == User.id).where(PhotoTag.photo_id == photo_id)
     tags_res = db.execute(tags_stmt).all()
     tags = [{
         "tag_id": str(t[0].id),
         "user_id": str(t[0].user_id),
         "username": t[1],
+        "display_name": t[2] or t[1],
+        "profile_photo_url": get_image_url(t[3], internal=False) if t[3] else None,
         "bbox": {"x": t[0].bbox_x, "y": t[0].bbox_y, "width": t[0].bbox_width, "height": t[0].bbox_height},
         "confidence": t[0].confidence,
         "source": t[0].source
     } for t in tags_res]
-    
+
+    # Unidentified faces detected but not yet matched to a registered user.
+    unknown_res = db.execute(
+        select(UnknownFace)
+        .where(UnknownFace.photo_id == photo_id, UnknownFace.claimed_at.is_(None))
+    ).scalars().all()
+    unknown_faces = [{
+        "unknown_face_id": str(u.id),
+        "bbox": {"x": u.bbox_x, "y": u.bbox_y, "width": u.bbox_width, "height": u.bbox_height},
+        "confidence": u.confidence,
+    } for u in unknown_res]
+
     # Get comments
-    comments_stmt = select(Comment, User.username).join(User, Comment.user_id == User.id).where(Comment.photo_id == photo_id).order_by(Comment.created_at.asc())
+    comments_stmt = select(Comment, User.username, User.display_name, User.profile_photo_key).join(User, Comment.user_id == User.id).where(Comment.photo_id == photo_id).order_by(Comment.created_at.asc())
     comments_res = db.execute(comments_stmt).all()
     comments = [{
         "comment_id": str(c[0].id),
         "user_id": str(c[0].user_id),
         "username": c[1],
+        "display_name": c[2] or c[1],
+        "profile_photo_url": get_image_url(c[3], internal=False) if c[3] else None,
         "text": c[0].text,
         "created_at": c[0].created_at
     } for c in comments_res]
@@ -137,6 +158,7 @@ async def get_photo_details(
         "owner_id": str(photo.owner_id),
         "status": photo.status,
         "tags": tags,
+        "unknown_faces": unknown_faces,
         "comments": comments
     }
 
@@ -193,7 +215,8 @@ async def get_friend_suggestions(
 ):
     # Co-appearance SQL Query
     query = text("""
-        SELECT pt2.user_id as suggested_id, u.username, COUNT(pt1.photo_id) as mutual_photos
+        SELECT pt2.user_id as suggested_id, u.username, u.display_name, u.profile_photo_key,
+               COUNT(pt1.photo_id) as mutual_photos
         FROM photo_tags pt1
         JOIN photo_tags pt2 ON pt1.photo_id = pt2.photo_id AND pt1.user_id != pt2.user_id
         JOIN users u ON pt2.user_id = u.id
@@ -208,7 +231,7 @@ async def get_friend_suggestions(
               WHERE (fr.from_user_id = :curr_id AND fr.to_user_id = pt2.user_id) 
                  OR (fr.from_user_id = pt2.user_id AND fr.to_user_id = :curr_id)
           )
-        GROUP BY pt2.user_id, u.username
+        GROUP BY pt2.user_id, u.username, u.display_name, u.profile_photo_key
         ORDER BY mutual_photos DESC
     """)
     
@@ -216,7 +239,9 @@ async def get_friend_suggestions(
     suggestions = [{
         "user_id": str(r[0]),
         "username": r[1],
-        "mutual_photo_count": r[2]
+        "display_name": r[2] or r[1],
+        "profile_photo_url": get_image_url(r[3], internal=False) if r[3] else None,
+        "mutual_photo_count": r[4]
     } for r in rows]
     
     return {"suggestions": suggestions}
@@ -334,7 +359,7 @@ async def list_friends(
 ):
     # Find friends
     friends_stmt = text("""
-        SELECT u.id, u.username, f.created_at
+        SELECT u.id, u.username, u.display_name, u.profile_photo_key, f.created_at
         FROM friendships f
         JOIN users u ON (u.id = f.user_a_id AND f.user_b_id = :curr_id)
                      OR (u.id = f.user_b_id AND f.user_a_id = :curr_id)
@@ -344,7 +369,9 @@ async def list_friends(
     friends = [{
         "user_id": str(r[0]),
         "username": r[1],
-        "since": r[2]
+        "display_name": r[2] or r[1],
+        "profile_photo_url": get_image_url(r[3], internal=False) if r[3] else None,
+        "since": r[4]
     } for r in rows]
     
     return {"friends": friends}

@@ -1,24 +1,7 @@
 {
-  "name": "frontend",
-  "version": "1.0.0",
-  "main": "index.js",
-  "dependencies": {
-    "@expo/metro-runtime": "~6.1.2",
-    "@expo/ngrok": "^4.1.3",
-    "@expo/vector-icons": "^15.0.2",
-    "expo": "^54.0.35",
-    "expo-font": "~14.0.12",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-web": "^0.21.2"
-  },
+  "name": "tagr-frontend",
+  "private": true,
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
-  },
-  "private": true
+    "build": "node write-config.js"
+  }
 }

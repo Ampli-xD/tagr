@@ -1457,7 +1457,7 @@
             return '/api/v1';
         }
 
-        function resolveDemoMode() {
+        function resolveDemoMode(apiUrl) {
             const params = new URLSearchParams(location.search);
             const demoParam = params.get('demo');
             if (demoParam === '1') {
@@ -1473,16 +1473,18 @@
                 return false;
             }
             if (location.hostname.includes('github.io') || location.hostname.includes('vercel.app')) {
+                // Env-configured API (TAGR_API_URL) → real backend, not filler demo.
+                if (apiUrl) return false;
                 return demoParam !== '0';
             }
             const stored = localStorage.getItem('tagr_demo_mode');
             if (stored === '1') return true;
             if (stored === '0') return false;
-            return !API_URL;
+            return !apiUrl;
         }
 
         const API_URL = resolveApiUrl();
-        const DEMO_MODE = resolveDemoMode();
+        const DEMO_MODE = resolveDemoMode(API_URL);
         let demoState = null;
         let cachedFriends = [];
 

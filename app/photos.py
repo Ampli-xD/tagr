@@ -146,7 +146,7 @@ async def complete_photo_uploads(
         infer_url = get_inference_image_url(photo.storage_url)
         await photo_batcher.add_photo(str(photo.id), infer_url)
 
-    await photo_batcher.flush_when_idle(timeout_sec=120)
+    photo_batcher.start_background_flush(timeout_sec=120)
 
     return {"upload_ids": upload_ids, "status": "pending"}
 

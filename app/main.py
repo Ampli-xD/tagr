@@ -163,6 +163,34 @@ async def health(db: Session = Depends(get_db)):
     return {"status": "ok", "service": "tagr-api"}
 
 
+@api_v1.get("/health/inference")
+async def health_inference():
+    """Public config check — helps verify Render env before debugging RunPod."""
+    from .config import (
+        API_CALLBACK_URL,
+        BATCH_SIZE,
+        BATCH_TIMEOUT_MS,
+        INFERENCE_SERVER_URL,
+        RUNPOD_API_KEY,
+    )
+
+    using_runpod = "runpod.ai" in INFERENCE_SERVER_URL
+    key_set = bool(RUNPOD_API_KEY.strip())
+    callback_public = API_CALLBACK_URL.startswith("https://") and not any(
+        host in API_CALLBACK_URL for host in ("127.0.0.1", "localhost", "web:8000")
+    )
+    return {
+        "inference_server_url": INFERENCE_SERVER_URL,
+        "using_runpod": using_runpod,
+        "runpod_api_key_set": key_set,
+        "runpod_ready": (not using_runpod) or (key_set and callback_public),
+        "api_callback_url": API_CALLBACK_URL,
+        "callback_public_https": callback_public,
+        "batch_size": BATCH_SIZE,
+        "batch_timeout_ms": BATCH_TIMEOUT_MS,
+    }
+
+
 # Mount API
 app.mount("/api/v1", api_v1)
 

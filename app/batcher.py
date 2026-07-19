@@ -100,7 +100,14 @@ class PhotoBatcher:
                 )
 
                 if response.status_code != 200:
-                    logger.error("Inference HTTP %s: %s", response.status_code, response.text)
+                    if response.status_code == 401:
+                        logger.error(
+                            "RunPod 401 Unauthorized — set RUNPOD_API_KEY on Render "
+                            "(RunPod dashboard → Settings → API Keys). Response: %s",
+                            response.text,
+                        )
+                    else:
+                        logger.error("Inference HTTP %s: %s", response.status_code, response.text)
                     self._update_photos_status(photo_ids, "failed")
                     return
 

@@ -60,14 +60,19 @@ def ensure_schema():
 
 @app.on_event("startup")
 def validate_runpod_callback_url():
-    from .config import API_CALLBACK_URL, INFERENCE_SERVER_URL
+    from .config import API_CALLBACK_URL, INFERENCE_SERVER_URL, RUNPOD_API_KEY
 
     if "runpod.ai" not in INFERENCE_SERVER_URL:
         return
+    if not RUNPOD_API_KEY.strip():
+        print(
+            "ERROR: RUNPOD_API_KEY is not set but INFERENCE_SERVER_URL points at RunPod. "
+            "Inference will fail with 401 Unauthorized. Set RUNPOD_API_KEY in Render env."
+        )
     if any(host in API_CALLBACK_URL for host in ("127.0.0.1", "localhost", "web:8000")):
         print(
             "WARNING: API_CALLBACK_URL must be a public HTTPS URL when using RunPod. "
-            "RunPod workers cannot reach localhost. See docs/cloudflare-named-tunnel.md"
+            "RunPod workers cannot reach localhost. See docs/deploy-render.md"
         )
 
 

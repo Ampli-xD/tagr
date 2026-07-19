@@ -7,10 +7,10 @@ from sqlalchemy import select, update
 
 from .database import get_db
 from .models import Photo, PhotoTag, FaceEmbedding, User, Notification, UnknownFace
-from .storage import upload_image, get_image_url, get_inference_image_url, create_presigned_upload_url, object_exists
+from .storage import upload_image, get_image_url, get_inference_image_url, inference_key_for, create_presigned_upload_url, object_exists
 from .batcher import photo_batcher
 from .auth import get_current_user_id
-from .config import SIMILARITY_THRESHOLD, PRESIGNED_UPLOAD_EXPIRES_SECONDS
+from .config import SIMILARITY_THRESHOLD, PRESIGNED_UPLOAD_EXPIRES_SECONDS, INFERENCE_IMAGE_MAX_WIDTH, INFERENCE_IMAGE_JPEG_QUALITY
 
 router = APIRouter(prefix="/photos", tags=["Photos & Tagging"])
 
@@ -69,6 +69,7 @@ async def presign_photo_uploads(
 
         photo_id = uuid.uuid4()
         storage_key = _storage_key_for_photo(photo_id, filename)
+        infer_key = inference_key_for(storage_key)
         db.add(
             Photo(
                 id=photo_id,
@@ -83,12 +84,19 @@ async def presign_photo_uploads(
                 "storage_key": storage_key,
                 "upload_url": create_presigned_upload_url(storage_key, content_type),
                 "content_type": content_type,
+                "infer_storage_key": infer_key,
+                "infer_upload_url": create_presigned_upload_url(infer_key, "image/jpeg"),
+                "infer_content_type": "image/jpeg",
                 "expires_in": PRESIGNED_UPLOAD_EXPIRES_SECONDS,
             }
         )
 
     db.commit()
-    return {"uploads": uploads}
+    return {
+        "uploads": uploads,
+        "infer_max_width": INFERENCE_IMAGE_MAX_WIDTH,
+        "infer_jpeg_quality": INFERENCE_IMAGE_JPEG_QUALITY / 100.0,
+    }
 
 
 @router.post("/upload/complete", status_code=status.HTTP_202_ACCEPTED)
@@ -121,6 +129,15 @@ async def complete_photo_uploads(
         raise HTTPException(
             status_code=400,
             detail={"message": "Upload not found in storage yet", "photo_ids": missing},
+        )
+
+    missing_infer = [
+        str(p.id) for p in photos if not object_exists(inference_key_for(p.storage_url))
+    ]
+    if missing_infer:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "Inference copy not uploaded", "photo_ids": missing_infer},
         )
 
     upload_ids: List[str] = []
@@ -169,7 +186,7 @@ async def upload_photos(
     # Pass internal docker network S3 URL for inference server to fetch
     for pid in upload_ids:
         photo = db.get(Photo, uuid.UUID(pid))
-        infer_url = get_inference_image_url(photo.storage_url)
+        infer_url = get_image_url(photo.storage_url, internal=True)
         await photo_batcher.add_photo(pid, infer_url)
         
     return {

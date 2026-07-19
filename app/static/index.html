@@ -1660,10 +1660,12 @@
                     photo_id: 'demo-upload-' + Date.now() + '-' + i,
                     storage_key: `uploads/demo/${Date.now()}-${i}.jpg`,
                     upload_url: 'demo-direct-upload',
+                    infer_upload_url: 'demo-direct-upload',
                     content_type: f.content_type || 'image/jpeg',
+                    infer_content_type: 'image/jpeg',
                     expires_in: 900,
                 }));
-                return mockResponse({ uploads });
+                return mockResponse({ uploads, infer_max_width: 1024, infer_jpeg_quality: 0.85 });
             }
 
             if (parts[0] === 'photos' && parts[1] === 'upload' && parts[2] === 'complete' && method === 'POST') {
@@ -3088,6 +3090,41 @@
             return 'image/jpeg';
         }
 
+        async function buildInferenceBlob(file, maxEdge = 1024, quality = 0.85) {
+            const bitmap = await createImageBitmap(file);
+            try {
+                const longest = Math.max(bitmap.width, bitmap.height);
+                const scale = Math.min(1, maxEdge / longest);
+                const w = Math.max(1, Math.round(bitmap.width * scale));
+                const h = Math.max(1, Math.round(bitmap.height * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(bitmap, 0, 0, w, h);
+                return await new Promise((resolve, reject) => {
+                    canvas.toBlob(
+                        (blob) => (blob ? resolve(blob) : reject(new Error('JPEG encode failed'))),
+                        'image/jpeg',
+                        quality
+                    );
+                });
+            } finally {
+                bitmap.close();
+            }
+        }
+
+        async function putStorageObject(url, contentType, body) {
+            const putResp = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': contentType },
+                body,
+            });
+            if (!putResp.ok) {
+                throw new Error(`Storage upload failed (${putResp.status}). Check bucket CORS allows PUT from this site.`);
+            }
+        }
+
         function batchProgressLabel(batchIndex, batchCount, doneInBatch, batchLen, totalFiles, doneTotal) {
             if (batchCount <= 1) {
                 return `Uploading ${doneTotal}/${totalFiles}…`;
@@ -3182,6 +3219,8 @@
             if (uploads.length !== files.length) {
                 throw new Error('Upload preparation failed.');
             }
+            const inferMaxEdge = presignData.infer_max_width || 1024;
+            const inferQuality = presignData.infer_jpeg_quality || 0.85;
 
             let finished = 0;
             setMeta(0);
@@ -3193,19 +3232,21 @@
                     setMeta(finished);
                     return;
                 }
-                let putResp;
                 try {
-                    putResp = await fetch(entry.upload_url, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': entry.content_type || guessImageContentType(file) },
-                        body: file,
-                    });
+                    await putStorageObject(
+                        entry.upload_url,
+                        entry.content_type || guessImageContentType(file),
+                        file
+                    );
+                    const inferBlob = await buildInferenceBlob(file, inferMaxEdge, inferQuality);
+                    await putStorageObject(
+                        entry.infer_upload_url,
+                        entry.infer_content_type || 'image/jpeg',
+                        inferBlob
+                    );
                 } catch (networkErr) {
                     const hint = networkErr && networkErr.message ? networkErr.message : 'network error';
                     throw new Error(`Direct storage upload blocked (${hint}). Bucket CORS may need PUT from this site.`);
-                }
-                if (!putResp.ok) {
-                    throw new Error(`Storage upload failed (${putResp.status}). Check bucket CORS allows PUT from this site.`);
                 }
                 finished += 1;
                 setMeta(finished);

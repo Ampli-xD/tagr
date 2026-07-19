@@ -63,11 +63,41 @@ class PhotoBatcher:
             else:
                 self._schedule_flush_timer()
 
+    def status_snapshot(self) -> dict:
+        return {
+            "queue_size": len(self.queue),
+            "flush_in_progress": self._flush_in_progress,
+            "timer_pending": bool(
+                self._flush_timer_task and not self._flush_timer_task.done()
+            ),
+        }
+
+    async def flush_when_idle(self, timeout_sec: float = 60.0) -> None:
+        """Flush the queue; wait out an in-flight RunPod call if needed."""
+        loop = asyncio.get_event_loop()
+        deadline = loop.time() + timeout_sec
+        while loop.time() < deadline:
+            if not self.queue and not self._flush_in_progress:
+                return
+            if not self._flush_in_progress and self.queue:
+                await self.flush()
+            else:
+                await asyncio.sleep(0.25)
+        logger.error(
+            "Flush timed out (queue=%s, in_progress=%s)",
+            len(self.queue),
+            self._flush_in_progress,
+        )
+
     async def flush(self):
         async with self.lock:
             if not self.queue:
                 return
             if self._flush_in_progress:
+                logger.warning(
+                    "Flush deferred — RunPod request already in flight (queue=%s)",
+                    len(self.queue),
+                )
                 self._cancel_flush_timer()
                 self._schedule_flush_timer()
                 return

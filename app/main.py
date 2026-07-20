@@ -126,6 +126,7 @@ async def requeue_stuck_photos():
             else:
                 url = get_image_url(photo.storage_url, internal=True)
             await photo_batcher.add_photo(str(photo.id), url)
+        photo_batcher.start_background_flush(timeout_sec=120)
         print(f"Requeued {requeued} photos for inference")
     except Exception as exc:
         print(f"WARNING: photo requeue on startup failed: {exc}")
@@ -161,6 +162,99 @@ api_v1.include_router(social_router)
 async def health(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"status": "ok", "service": "tagr-api"}
+
+
+@api_v1.get("/health/inference")
+async def health_inference():
+    """Public config check — helps verify Render env before debugging RunPod."""
+    import os
+
+    import httpx
+
+    from .config import (
+        API_CALLBACK_URL,
+        BATCH_SIZE,
+        BATCH_TIMEOUT_MS,
+        INFERENCE_SERVER_URL,
+        RUNPOD_API_KEY,
+        inference_request_headers,
+        inference_runsync_url,
+    )
+    from .batcher import photo_batcher
+
+    using_runpod = "runpod.ai" in INFERENCE_SERVER_URL
+    key_set = bool(RUNPOD_API_KEY.strip())
+    callback_public = API_CALLBACK_URL.startswith("https://") and not any(
+        host in API_CALLBACK_URL for host in ("127.0.0.1", "localhost", "web:8000")
+    )
+    batcher = photo_batcher.status_snapshot()
+    return {
+        "deploy_commit": os.getenv("RENDER_GIT_COMMIT", "unknown"),
+        "inference_server_url": INFERENCE_SERVER_URL,
+        "runsync_url": inference_runsync_url(),
+        "using_runpod": using_runpod,
+        "runpod_api_key_set": key_set,
+        "runpod_ready": (not using_runpod) or (key_set and callback_public),
+        "api_callback_url": API_CALLBACK_URL,
+        "callback_public_https": callback_public,
+        "batch_size": BATCH_SIZE,
+        "batch_timeout_ms": BATCH_TIMEOUT_MS,
+        "batch_timeout_recommended_ms": 5000,
+        "batch_timeout_too_low": BATCH_TIMEOUT_MS < 1000,
+        "batcher_queue_size": batcher["queue_size"],
+        "batcher_flush_in_progress": batcher["flush_in_progress"],
+        "batcher_timer_pending": batcher["timer_pending"],
+    }
+
+
+@api_v1.get("/health/inference/probe")
+async def health_inference_probe():
+    """
+    Live test: Render → RunPod /runsync with configured API key.
+    Does not process a real photo; confirms the gateway accepts our auth.
+    """
+    import httpx
+
+    from .config import inference_request_headers, inference_runsync_url
+
+    url = inference_runsync_url(timeout_seconds=15)
+    payload = {
+        "input": {
+            "images": [
+                {
+                    "image_id": "00000000-0000-0000-0000-000000000001",
+                    "url": "https://httpbin.org/status/404",
+                }
+            ],
+            "batch_id": "health-probe",
+        }
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                json=payload,
+                headers=inference_request_headers(),
+                timeout=25.0,
+            )
+        body = response.text[:500]
+        return {
+            "ok": response.status_code == 200,
+            "status_code": response.status_code,
+            "runsync_url": url,
+            "body_preview": body,
+            "hint": (
+                "401 = bad/missing RUNPOD_API_KEY on Render. "
+                "200 = RunPod accepted the job (check RunPod Requests tab)."
+            ),
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "runsync_url": url,
+            "error": str(exc),
+            "hint": "Render could not reach api.runpod.ai — network or DNS issue.",
+        }
 
 
 # Mount API

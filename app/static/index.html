@@ -293,6 +293,61 @@
             100% { background-position: -100% 0; }
         }
 
+        .backend-wake-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(26, 24, 22, 0.72);
+            backdrop-filter: blur(6px);
+        }
+
+        .backend-wake-overlay.show {
+            display: flex;
+        }
+
+        .backend-wake-card {
+            width: min(420px, 100%);
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 28px 24px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .backend-wake-card h2 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            margin: 12px 0 8px;
+        }
+
+        .backend-wake-card p {
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin: 0 0 16px;
+        }
+
+        .backend-wake-status {
+            font-size: 0.85rem;
+            color: var(--ink);
+            min-height: 1.25rem;
+        }
+
+        .backend-wake-spinner {
+            width: 36px;
+            height: 36px;
+            margin: 0 auto;
+            border: 3px solid var(--line);
+            border-top-color: var(--sage);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
         .viewer-loading {
             position: absolute;
             inset: 0;
@@ -1328,6 +1383,17 @@
     </div>
 
     <div id="global-busy-bar" class="global-busy-bar" aria-hidden="true"></div>
+    <div id="backend-wake-overlay" class="backend-wake-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="backend-wake-title">
+        <div class="backend-wake-card">
+            <div class="backend-wake-spinner" aria-hidden="true"></div>
+            <h2 id="backend-wake-title">Starting the server</h2>
+            <p id="backend-wake-message">
+                Sorry for the inconvenience — we're on a free backend tier that sleeps when idle.
+                Waking it up now. This can take up to 5 minutes on first visit.
+            </p>
+            <div id="backend-wake-status" class="backend-wake-status" aria-live="polite">Sending wake-up request…</div>
+        </div>
+    </div>
     <div id="toast" class="toast">Saved</div>
 
     <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
@@ -1815,6 +1881,85 @@
             }
 
             return mockResponse({ detail: 'Demo route not implemented: ' + path }, false, 404);
+        }
+
+        function sleep(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        function shouldWakeRemoteBackend() {
+            if (DEMO_MODE || !API_URL) return false;
+            if (window.TAGR_WAKE_BACKEND === false) return false;
+            if (window.TAGR_WAKE_BACKEND === true) return true;
+            try {
+                const api = new URL(API_URL, location.origin);
+                if (api.origin === location.origin) return false;
+                if (['localhost', '127.0.0.1'].includes(api.hostname)) return false;
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function showBackendWakeOverlay(message) {
+            const overlay = document.getElementById('backend-wake-overlay');
+            const msg = document.getElementById('backend-wake-message');
+            const status = document.getElementById('backend-wake-status');
+            if (msg && message) msg.textContent = message;
+            if (status) status.textContent = 'Sending wake-up request…';
+            if (overlay) {
+                overlay.classList.add('show');
+                overlay.setAttribute('aria-hidden', 'false');
+            }
+        }
+
+        function updateBackendWakeStatus(text) {
+            const status = document.getElementById('backend-wake-status');
+            if (status) status.textContent = text;
+        }
+
+        function hideBackendWakeOverlay() {
+            const overlay = document.getElementById('backend-wake-overlay');
+            if (!overlay) return;
+            overlay.classList.remove('show');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+
+        async function wakeRemoteBackendIfNeeded() {
+            if (!shouldWakeRemoteBackend()) return true;
+
+            const wakeMessage = window.TAGR_WAKE_MESSAGE || (
+                "Sorry for the inconvenience — we're on a free backend tier that sleeps when idle. " +
+                'Waking it up now. This can take up to 5 minutes on first visit.'
+            );
+            showBackendWakeOverlay(wakeMessage);
+
+            const healthUrl = `${API_URL}/health`;
+            const maxWaitMs = Number(window.TAGR_WAKE_TIMEOUT_MS || 5 * 60 * 1000);
+            const pollMs = Number(window.TAGR_WAKE_POLL_MS || 5000);
+            const started = Date.now();
+            let attempt = 0;
+
+            while (Date.now() - started < maxWaitMs) {
+                attempt += 1;
+                updateBackendWakeStatus(`Connecting to backend (attempt ${attempt})…`);
+                try {
+                    const resp = await fetch(healthUrl, { cache: 'no-store', mode: 'cors' });
+                    if (resp.ok) {
+                        hideBackendWakeOverlay();
+                        return true;
+                    }
+                } catch (_) {
+                    /* Render cold start — keep polling */
+                }
+                const elapsedSec = Math.floor((Date.now() - started) / 1000);
+                updateBackendWakeStatus(`Server is starting… ${elapsedSec}s elapsed (up to 5 min)`);
+                await sleep(pollMs);
+            }
+
+            hideBackendWakeOverlay();
+            toast('Backend is still waking up. Please refresh in a minute.');
+            return false;
         }
 
         async function apiFetch(path, options = {}) {
@@ -3773,6 +3918,8 @@
             setGlobalBusy(true);
             try {
                 if (!DEMO_MODE && API_URL) {
+                    const awake = await wakeRemoteBackendIfNeeded();
+                    if (!awake) return;
                     await initSupabase();
                 } else if (currentToken && DEMO_MODE) {
                     await fetchProfile();
